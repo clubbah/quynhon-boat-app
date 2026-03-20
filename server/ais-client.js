@@ -1,7 +1,15 @@
 import WebSocket from 'ws';
 import { getVesselTypeLabel, getVesselTypeColor, getNavStatusLabel, getFlagCountry } from './ais-types.js';
 
-const BOUNDING_BOX = [[13.5, 109.0], [14.0, 109.5]];
+// Multiple bounding boxes: Quy Nhon area + Singapore Strait (known high coverage)
+// aisstream.io lacks terrestrial AIS stations in Vietnam, so we include
+// nearby high-traffic areas to demonstrate the app with real data.
+// TODO: Replace with Quy Nhon-only box once local AIS coverage is available
+//       (e.g., via RTL-SDR receiver feeding data to the network)
+const BOUNDING_BOXES = [
+  [[13.5, 109.0], [14.0, 109.5]],   // Quy Nhon area
+  [[1.0, 103.5], [1.5, 104.2]],     // Singapore Strait (high coverage)
+];
 
 export function parseAisMessage(raw) {
   const meta = raw.MetaData;
@@ -65,7 +73,7 @@ export function connectAisStream(apiKey, onMessage) {
     console.log('[AIS] Connected to aisstream.io');
     ws.send(JSON.stringify({
       APIKey: apiKey,
-      BoundingBoxes: [BOUNDING_BOX],
+      BoundingBoxes: BOUNDING_BOXES,
     }));
   });
 

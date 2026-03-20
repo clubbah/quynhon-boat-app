@@ -7,6 +7,7 @@ let vessels = {}; // mmsi → vessel data
 
 // Init
 const map = initMap();
+window._map = map; // expose for debugging
 initPanel(onPanelClose);
 initWebSocket();
 initControls();
