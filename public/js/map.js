@@ -1,7 +1,7 @@
 import { createVesselIcon } from './vessel-icons.js';
 import { t } from './i18n.js';
 
-const QUY_NHON_CENTER = [13.76, 109.23];
+const MAP_CENTER = [1.25, 103.85]; // Singapore Strait
 const DEFAULT_ZOOM = 12;
 
 let map;
@@ -10,7 +10,7 @@ let currentTrack = null; // L.polyline
 let selectedMmsi = null;
 
 export function initMap() {
-  map = L.map('map').setView(QUY_NHON_CENTER, DEFAULT_ZOOM);
+  map = L.map('map').setView(MAP_CENTER, DEFAULT_ZOOM);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors',
     maxZoom: 18,
