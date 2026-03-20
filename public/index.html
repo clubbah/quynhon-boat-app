@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quy Nhon Vessel Tracker</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header id="top-bar">
+    <h1 id="app-title">Quy Nhon Vessel Tracker</h1>
+    <div id="top-bar-right">
+      <span id="vessel-count">0 vessels</span>
+      <select id="type-filter">
+        <option value="all" data-i18n="filter_all">All Types</option>
+        <option value="Cargo">Cargo</option>
+        <option value="Tanker">Tanker</option>
+        <option value="Passenger">Passenger</option>
+        <option value="Fishing">Fishing</option>
+        <option value="Other">Other</option>
+      </select>
+      <button id="lang-toggle">VI</button>
+    </div>
+  </header>
+
+  <div id="map"></div>
+
+  <aside id="info-panel" class="hidden">
+    <button id="panel-close">&times;</button>
+    <div id="panel-essential">
+      <h2 id="panel-name"></h2>
+      <div id="panel-type"></div>
+      <div id="panel-flag"></div>
+      <div id="panel-speed"></div>
+      <div id="panel-destination"></div>
+      <div id="panel-status"></div>
+    </div>
+    <button id="panel-expand-btn" data-i18n="show_details">Show Details</button>
+    <div id="panel-expanded" class="hidden">
+      <div id="panel-dimensions"></div>
+      <div id="panel-draught"></div>
+      <div id="panel-imo"></div>
+      <div id="panel-mmsi"></div>
+      <div id="panel-callsign"></div>
+      <div id="panel-eta"></div>
+      <div id="panel-course"></div>
+      <div id="panel-updated"></div>
+    </div>
+  </aside>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
