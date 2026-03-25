@@ -688,8 +688,11 @@ body {
 .port-stat { text-align: center; }
 
 .port-stat-icon {
-  color: var(--ink-quaternary);
-  margin-bottom: 4px;
+  color: var(--accent);
+  opacity: 0.5;
+  margin-bottom: 8px;
+  width: 28px;
+  height: 28px;
 }
 
 .port-stat-value {
