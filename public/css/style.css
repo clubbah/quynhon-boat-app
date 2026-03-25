@@ -429,6 +429,13 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
   box-shadow: 0 4px 16px rgba(13,148,136,0.35);
   text-decoration: none;
 }
+/* Show FAB on any touch device or screen under 1024px */
+@media (max-width: 1024px) {
+  .spot-fab { display: flex; }
+}
+@media (pointer: coarse) {
+  .spot-fab { display: flex; }
+}
 .spot-fab:hover { background: var(--teal-deep); }
 
 /* ════════════════════════════════════════
