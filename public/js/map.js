@@ -22,10 +22,51 @@ const ICON_COLORS = {
   other: '#6b7280',
 };
 
-function createShipIconUrl(color) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="32" viewBox="0 0 24 32">
-    <path d="M12,1 L17,7 L17,26 L16,30 L8,30 L7,26 L7,7 Z" fill="${color}" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
-  </svg>`;
+// Top-down ship SVG paths — different hull shapes per type
+const SHIP_SVGS = {
+  // Cargo: wide rectangular hull, squared stern, bridge block near back
+  cargo: (color) => `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="36" viewBox="0 0 20 36">
+    <path d="M10,1 L14,5 L15,8 L15,28 L14,32 L6,32 L5,28 L5,8 L6,5 Z" fill="${color}" stroke="white" stroke-width="1.2" stroke-linejoin="round"/>
+    <rect x="7" y="24" width="6" height="4" rx="0.5" fill="white" opacity="0.35"/>
+    <line x1="7" y1="14" x2="13" y2="14" stroke="white" opacity="0.2" stroke-width="0.8"/>
+    <line x1="7" y1="18" x2="13" y2="18" stroke="white" opacity="0.2" stroke-width="0.8"/>
+  </svg>`,
+
+  // Tanker: rounded wide hull, pipeline detail
+  tanker: (color) => `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="36" viewBox="0 0 22 36">
+    <path d="M11,1 L15,5 L16,9 L16,28 L15,32 L7,32 L6,28 L6,9 L7,5 Z" fill="${color}" stroke="white" stroke-width="1.2" stroke-linejoin="round"/>
+    <circle cx="11" cy="13" r="2.5" fill="white" opacity="0.2"/>
+    <circle cx="11" cy="20" r="2.5" fill="white" opacity="0.2"/>
+    <rect x="8" y="26" width="6" height="3" rx="0.5" fill="white" opacity="0.35"/>
+  </svg>`,
+
+  // Passenger: multi-deck, wider body, rounded
+  passenger: (color) => `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="36" viewBox="0 0 20 36">
+    <path d="M10,1 L14,4 L15,8 L15,30 L13,33 L7,33 L5,30 L5,8 L6,4 Z" fill="${color}" stroke="white" stroke-width="1.2" stroke-linejoin="round"/>
+    <rect x="6.5" y="9" width="7" height="2" rx="0.5" fill="white" opacity="0.3"/>
+    <rect x="6.5" y="13" width="7" height="2" rx="0.5" fill="white" opacity="0.3"/>
+    <rect x="6.5" y="17" width="7" height="2" rx="0.5" fill="white" opacity="0.3"/>
+    <rect x="7.5" y="27" width="5" height="3" rx="0.5" fill="white" opacity="0.35"/>
+  </svg>`,
+
+  // Fishing: small narrow hull, mast line
+  fishing: (color) => `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="32" viewBox="0 0 16 32">
+    <path d="M8,1 L11,5 L12,9 L12,24 L11,28 L5,28 L4,24 L4,9 L5,5 Z" fill="${color}" stroke="white" stroke-width="1.2" stroke-linejoin="round"/>
+    <line x1="8" y1="3" x2="8" y2="12" stroke="white" opacity="0.4" stroke-width="0.8"/>
+    <line x1="5" y1="8" x2="11" y2="8" stroke="white" opacity="0.25" stroke-width="0.6"/>
+    <rect x="6" y="22" width="4" height="3" rx="0.5" fill="white" opacity="0.35"/>
+  </svg>`,
+
+  // Other: generic simple hull
+  other: (color) => `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="32" viewBox="0 0 18 32">
+    <path d="M9,1 L13,6 L13,26 L12,30 L6,30 L5,26 L5,6 Z" fill="${color}" stroke="white" stroke-width="1.2" stroke-linejoin="round"/>
+    <rect x="6.5" y="23" width="5" height="3" rx="0.5" fill="white" opacity="0.35"/>
+  </svg>`,
+};
+
+function createShipIconUrl(type, color) {
+  const svgFn = SHIP_SVGS[type] || SHIP_SVGS.other;
+  const svg = svgFn(color);
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }
 
@@ -44,15 +85,17 @@ export function initMap() {
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
 
   map.on('load', () => {
-    // Load ship icons for each type
+    // Load ship icons for each type — each has unique hull shape
+    const sizes = { cargo: [20,36], tanker: [22,36], passenger: [20,36], fishing: [16,32], other: [18,32] };
     const iconPromises = Object.entries(ICON_COLORS).map(([type, color]) => {
       return new Promise((resolve) => {
-        const img = new Image(24, 32);
+        const [w, h] = sizes[type] || [18, 32];
+        const img = new Image(w, h);
         img.onload = () => {
           map.addImage(`ship-${type}`, img);
           resolve();
         };
-        img.src = createShipIconUrl(color);
+        img.src = createShipIconUrl(type, color);
       });
     });
 
