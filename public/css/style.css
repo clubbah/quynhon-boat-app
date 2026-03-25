@@ -50,14 +50,19 @@ body {
   justify-content: flex-end;
 }
 
-.lang-switcher { display: flex; gap: 5px; }
+.lang-switcher {
+  display: flex; gap: 4px;
+  background: rgba(13, 148, 136, 0.06);
+  padding: 4px 6px;
+  border-radius: 8px;
+}
 .lang-flag {
-  width: 26px; height: 19px; border-radius: 3px; object-fit: cover;
-  cursor: pointer; opacity: 0.35; transition: opacity 0.15s;
+  width: 28px; height: 20px; border-radius: 3px; object-fit: cover;
+  cursor: pointer; opacity: 0.45; transition: opacity 0.15s, transform 0.15s;
   border: 1.5px solid transparent;
 }
-.lang-flag:hover { opacity: 0.75; }
-.lang-flag.active { opacity: 1; border-color: var(--teal); }
+.lang-flag:hover { opacity: 0.85; transform: scale(1.08); }
+.lang-flag.active { opacity: 1; border-color: var(--teal); box-shadow: 0 0 0 1.5px rgba(13,148,136,0.2); }
 
 /* ─── Hero ─── */
 .page-content {
@@ -203,7 +208,7 @@ body {
 #map { width: 100%; height: 100%; }
 
 .map-hint {
-  position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+  position: absolute; top: 12px; right: 60px; transform: none;
   z-index: 10;
   background: rgba(26, 46, 53, 0.76);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
@@ -348,10 +353,12 @@ body {
 
 /* ─── Footer ─── */
 .site-footer {
-  padding: 32px 24px;
+  padding: 40px 24px 32px;
   text-align: center;
-  color: var(--ink-quaternary);
-  font-size: 12px;
+  color: var(--ink-tertiary);
+  font-size: 13px;
+  font-style: italic;
+  letter-spacing: -0.005em;
 }
 
 /* ─── Vessel Popup (hover) ─── */
@@ -450,8 +457,25 @@ body {
   .map-legend { gap: 6px; padding: 4px 8px; }
   .legend-item { font-size: 10px; }
 
-  .activity-table { font-size: 12px; }
-  .activity-table th, .activity-table td { padding: 7px 6px; }
+  /* Table → card layout on mobile */
+  .activity-table thead { display: none; }
+  .activity-table, .activity-table tbody, .activity-table tr, .activity-table td {
+    display: block; width: 100%;
+  }
+  .activity-table tr {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+  }
+  .activity-table tr:last-child { border-bottom: none; }
+  .activity-table td { padding: 0; border: none; font-size: 13px; }
+  .activity-table td:hover { background: none; }
+  .activity-table .vessel-name-cell { font-size: 15px; font-weight: 600; width: 100%; }
+  .activity-table .flag-cell { order: -1; }
+  .activity-table .time-cell { margin-left: auto; }
 
   .vessel-card {
     width: 100%; right: 0; left: 0; bottom: 0; top: auto;
