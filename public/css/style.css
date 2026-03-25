@@ -20,7 +20,7 @@
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-html { -webkit-font-smoothing: antialiased; }
+html { -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }
 
 body {
   font-family: 'Noto Sans', sans-serif;
@@ -28,6 +28,22 @@ body {
   color: var(--ink);
   min-height: 100vh;
 }
+
+::selection { background: rgba(13, 148, 136, 0.15); color: var(--ink); }
+
+/* Entrance animations */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.masthead { animation: fadeUp 0.5s ease-out; }
+.section--vessels { animation: fadeUp 0.5s ease-out 0.1s both; }
+.section--explore { animation: fadeUp 0.5s ease-out 0.2s both; }
+.section--activity { animation: fadeUp 0.5s ease-out 0.3s both; }
+.site-footer { animation: fadeUp 0.4s ease-out 0.4s both; }
+
+/* Smooth transitions on interactive elements */
+a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opacity 0.15s, transform 0.15s; }
 
 /* ════════════════════════════════════════
    MASTHEAD
@@ -54,10 +70,11 @@ body {
   color: var(--ink);
 }
 .masthead-sub {
-  font-size: clamp(13px, 1.8vw, 16px);
+  font-size: clamp(13px, 1.8vw, 15px);
   color: var(--ink-3);
-  margin-top: 4px;
-  letter-spacing: 0.01em;
+  margin-top: 6px;
+  letter-spacing: 0.02em;
+  font-weight: 400;
 }
 .masthead-right {
   display: flex;
@@ -277,7 +294,10 @@ body {
   background: var(--white);
   padding: 24px 20px;
   display: flex; flex-direction: column; gap: 4px;
+  transition: background 0.15s;
+  cursor: default;
 }
+.explore-card:hover { background: var(--warm); }
 .explore-emoji { font-size: 28px; margin-bottom: 6px; }
 .explore-card-title {
   font-size: 15px; font-weight: 700; color: var(--ink);
@@ -361,9 +381,10 @@ body {
   background: var(--white); border: 1px solid var(--rule-strong);
   width: 300px; max-height: 80vh; overflow-y: auto;
   top: 50%; right: 24px; transform: translateY(-50%);
-  transition: opacity 0.2s, transform 0.2s;
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
 }
-.vessel-card.hidden { opacity: 0; pointer-events: none; transform: translateY(-48%) scale(0.98); }
+.vessel-card.hidden { opacity: 0; pointer-events: none; transform: translateY(-48%) scale(0.97); }
 .card-close {
   position: absolute; top: 8px; right: 8px;
   background: none; border: 1px solid var(--rule);
