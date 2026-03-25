@@ -1,17 +1,33 @@
-import { createVesselElement, getFlagEmoji, getColorForType } from './vessel-icons.js';
+import { getFlagEmoji, getColorForType } from './vessel-icons.js';
 
 const MAPTILER_KEY = 'CKY69E5ib1MMQDfWMRvg';
-const MAP_CENTER = [109.23, 13.76]; // [lng, lat] — MapLibre order
+const MAP_CENTER = [109.23, 13.76];
 const DEFAULT_ZOOM = 13;
-const DEFAULT_PITCH = 0;
-const DEFAULT_BEARING = 0;
 
 let map;
-let markers = {};       // mmsi → { marker, vessel }
+let vesselData = {};    // mmsi → vessel
 let trackSource = null;
 let selectedMmsi = null;
 let mapReady = false;
-let pendingUpdates = []; // buffer updates until map loads
+let pendingUpdates = [];
+let onVesselClickFn = null;
+
+// Ship icon SVGs as data URLs for the map
+const SHIP_ICONS = {};
+const ICON_COLORS = {
+  cargo: '#2563eb',
+  tanker: '#dc2626',
+  passenger: '#16a34a',
+  fishing: '#ca8a04',
+  other: '#6b7280',
+};
+
+function createShipIconUrl(color) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="32" viewBox="0 0 24 32">
+    <path d="M12,1 L17,7 L17,26 L16,30 L8,30 L7,26 L7,7 Z" fill="${color}" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+  </svg>`;
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
 
 export function initMap() {
   map = new maplibregl.Map({
@@ -19,9 +35,8 @@ export function initMap() {
     style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,
     center: MAP_CENTER,
     zoom: DEFAULT_ZOOM,
-    pitch: DEFAULT_PITCH,
-    bearing: DEFAULT_BEARING,
-    maxPitch: 60,
+    pitch: 0,
+    bearing: 0,
     attributionControl: false,
   });
 
@@ -29,39 +44,119 @@ export function initMap() {
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
 
   map.on('load', () => {
-    // Track line source
-    map.addSource('vessel-track', {
-      type: 'geojson',
-      data: { type: 'FeatureCollection', features: [] },
-    });
-    map.addLayer({
-      id: 'vessel-track-line',
-      type: 'line',
-      source: 'vessel-track',
-      paint: {
-        'line-color': '#3b82f6',
-        'line-width': 3,
-        'line-opacity': 0.7,
-      },
+    // Load ship icons for each type
+    const iconPromises = Object.entries(ICON_COLORS).map(([type, color]) => {
+      return new Promise((resolve) => {
+        const img = new Image(24, 32);
+        img.onload = () => {
+          map.addImage(`ship-${type}`, img);
+          resolve();
+        };
+        img.src = createShipIconUrl(color);
+      });
     });
 
-    trackSource = map.getSource('vessel-track');
-    mapReady = true;
+    Promise.all(iconPromises).then(() => {
+      // Vessel source
+      map.addSource('vessels', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      });
 
-    // Process any buffered updates
-    for (const { vessel, onClick } of pendingUpdates) {
-      addOrUpdateMarker(vessel, onClick);
-    }
-    pendingUpdates = [];
-  });
+      // Vessel layer — icons rotate with heading
+      map.addLayer({
+        id: 'vessel-icons',
+        type: 'symbol',
+        source: 'vessels',
+        layout: {
+          'icon-image': ['get', 'icon'],
+          'icon-size': ['interpolate', ['linear'], ['get', 'length'],
+            0, 0.7,
+            50, 0.85,
+            150, 1.1,
+            300, 1.4
+          ],
+          'icon-rotate': ['get', 'heading'],
+          'icon-rotation-alignment': 'map',
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
+        },
+      });
 
-  // Close card on map click (not on marker)
-  map.on('click', (e) => {
-    if (!e.originalEvent.target.closest('.vessel-marker')) {
-      if (selectedMmsi && map._onMapClick) {
+      // Track line source
+      map.addSource('vessel-track', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      });
+      map.addLayer({
+        id: 'vessel-track-line',
+        type: 'line',
+        source: 'vessel-track',
+        paint: {
+          'line-color': '#3b82f6',
+          'line-width': 3,
+          'line-opacity': 0.7,
+        },
+      });
+
+      trackSource = map.getSource('vessel-track');
+      mapReady = true;
+
+      // Process buffered updates
+      for (const { vessel } of pendingUpdates) {
+        vesselData[vessel.mmsi] = vessel;
+      }
+      pendingUpdates = [];
+      refreshVesselSource();
+    });
+
+    // Click on vessel
+    map.on('click', 'vessel-icons', (e) => {
+      if (e.features && e.features[0] && onVesselClickFn) {
+        const mmsi = e.features[0].properties.mmsi;
+        const vessel = vesselData[mmsi];
+        if (vessel) onVesselClickFn(vessel);
+      }
+    });
+
+    // Hover cursor
+    map.on('mouseenter', 'vessel-icons', () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', 'vessel-icons', () => {
+      map.getCanvas().style.cursor = '';
+    });
+
+    // Tooltip popup on hover
+    const popup = new maplibregl.Popup({
+      closeButton: false,
+      closeOnClick: false,
+      offset: 12,
+      className: 'vessel-popup',
+    });
+
+    map.on('mouseenter', 'vessel-icons', (e) => {
+      if (!e.features || !e.features[0]) return;
+      const props = e.features[0].properties;
+      const flag = getFlagEmoji(props.flag_country);
+      const name = props.name || props.mmsi;
+      const typeLabel = props.vessel_type_label || '';
+      popup.setLngLat(e.lngLat)
+        .setHTML(`<span style="margin-right:4px">${flag}</span><strong>${name}</strong>${typeLabel ? ` <span style="color:#64748b;font-size:12px">${typeLabel}</span>` : ''}`)
+        .addTo(map);
+    });
+
+    map.on('mouseleave', 'vessel-icons', () => {
+      popup.remove();
+    });
+
+    // Click on map (not vessel) to close card
+    map.on('click', (e) => {
+      const features = map.queryRenderedFeatures(e.point, { layers: ['vessel-icons'] });
+      if (features.length === 0 && map._onMapClick) {
         map._onMapClick();
       }
-    }
+    });
   });
 
   return map;
@@ -69,72 +164,63 @@ export function initMap() {
 
 export function getMap() { return map; }
 
+function getIconType(typeLabel) {
+  const label = (typeLabel || '').toLowerCase();
+  if (label.includes('cargo') || label.includes('container')) return 'ship-cargo';
+  if (label.includes('tanker')) return 'ship-tanker';
+  if (label.includes('passenger')) return 'ship-passenger';
+  if (label.includes('fishing')) return 'ship-fishing';
+  return 'ship-other';
+}
+
+function refreshVesselSource() {
+  if (!mapReady) return;
+  const source = map.getSource('vessels');
+  if (!source) return;
+
+  const features = Object.values(vesselData)
+    .filter(v => v.lat != null && v.lng != null)
+    .map(v => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [v.lng, v.lat] },
+      properties: {
+        mmsi: v.mmsi,
+        name: v.name || '',
+        flag_country: v.flag_country || '',
+        vessel_type_label: v.vessel_type_label || 'Other',
+        icon: getIconType(v.vessel_type_label),
+        heading: v.heading ?? v.course ?? 0,
+        speed: v.speed ?? 0,
+        length: v.length ?? 0,
+      },
+    }));
+
+  source.setData({ type: 'FeatureCollection', features });
+}
+
 export function updateVesselMarker(vessel, onClick) {
+  if (!onVesselClickFn) onVesselClickFn = onClick;
+
   if (!mapReady) {
-    pendingUpdates.push({ vessel, onClick });
+    pendingUpdates.push({ vessel });
     return;
   }
-  addOrUpdateMarker(vessel, onClick);
-}
 
-function addOrUpdateMarker(vessel, onClick) {
-  const { mmsi, lat, lng } = vessel;
-  if (lat == null || lng == null) return;
-
-  if (markers[mmsi]) {
-    // Update position — remove old marker, create new one
-    markers[mmsi].marker.remove();
-  }
-
-  const el = createVesselElement(vessel);
-  attachTooltip(el, vessel);
-
-  const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
-    .setLngLat([lng, lat])
-    .addTo(map);
-
-  el.addEventListener('click', (e) => {
-    e.stopPropagation();
-    onClick(vessel);
-  });
-
-  markers[mmsi] = { marker, vessel };
-}
-
-function attachTooltip(el, vessel) {
-  const name = vessel.name || vessel.mmsi;
-  const flag = getFlagEmoji(vessel.flag_country);
-  const typeLabel = vessel.vessel_type_label || '';
-
-  el.addEventListener('mouseenter', () => {
-    if (el.querySelector('.vessel-tooltip')) return;
-    const tip = document.createElement('div');
-    tip.className = 'vessel-tooltip';
-    tip.innerHTML = `<span class="tooltip-flag">${flag}</span><span class="tooltip-name">${name}</span>${typeLabel ? `<span class="tooltip-type">${typeLabel}</span>` : ''}`;
-    el.appendChild(tip);
-  });
-
-  el.addEventListener('mouseleave', () => {
-    const tip = el.querySelector('.vessel-tooltip');
-    if (tip) tip.remove();
-  });
+  vesselData[vessel.mmsi] = vessel;
+  refreshVesselSource();
 }
 
 export function removeVesselMarker(mmsi) {
-  if (markers[mmsi]) {
-    markers[mmsi].marker.remove();
-    delete markers[mmsi];
-  }
+  delete vesselData[mmsi];
+  refreshVesselSource();
 }
 
-export function getAllMarkers() { return markers; }
+export function getAllMarkers() { return vesselData; }
 
 export function showTrack(positions) {
   clearTrack();
   if (!positions || positions.length === 0 || !trackSource) return;
-
   const coordinates = positions.map(p => [p.lng, p.lat]);
-
   trackSource.setData({
     type: 'Feature',
     geometry: { type: 'LineString', coordinates },
@@ -151,13 +237,11 @@ export function setSelectedMmsi(mmsi) { selectedMmsi = mmsi; }
 export function getSelectedMmsi() { return selectedMmsi; }
 
 export function filterMarkersByType(typeLabel) {
-  for (const [mmsi, entry] of Object.entries(markers)) {
-    const label = entry.vessel.vessel_type_label || 'Other';
-    if (typeLabel === 'all' || label === typeLabel) {
-      entry.marker.getElement().style.display = '';
-    } else {
-      entry.marker.getElement().style.display = 'none';
-    }
+  if (!mapReady) return;
+  if (typeLabel === 'all') {
+    map.setFilter('vessel-icons', null);
+  } else {
+    map.setFilter('vessel-icons', ['==', ['get', 'vessel_type_label'], typeLabel]);
   }
 }
 
