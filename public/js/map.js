@@ -73,7 +73,7 @@ function createShipIconUrl(type, color) {
 export function initMap() {
   map = new maplibregl.Map({
     container: 'map',
-    style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,
+    style: `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${MAPTILER_KEY}`,
     center: MAP_CENTER,
     zoom: DEFAULT_ZOOM,
     pitch: 0,
