@@ -24,174 +24,147 @@
       background: var(--surface);
       color: var(--ink);
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
       padding: 0 20px;
-      overflow-x: hidden;
     }
+
+    .spot-page {
+      max-width: 400px;
+      margin: 0 auto;
+      padding-top: 24px;
+      padding-bottom: 32px;
+    }
+
+    .spot-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--accent);
+      font-size: 15px;
+      font-weight: 500;
+      text-decoration: none;
+      margin-bottom: 20px;
+    }
+    .spot-back:hover { text-decoration: underline; }
 
     .spot-header {
       text-align: center;
-      padding: 40px 0 24px;
-      width: 100%;
-      max-width: 400px;
+      margin-bottom: 20px;
     }
     .spot-title {
-      font-size: 32px;
+      font-size: 28px;
       font-weight: 700;
       letter-spacing: -0.03em;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
     .spot-subtitle {
       font-size: 15px;
       color: var(--ink-tertiary);
     }
 
-    /* Compass */
-    .compass-container {
-      position: relative;
-      width: 260px;
-      height: 260px;
-      margin: 20px auto;
+    /* Scanning indicator */
+    .spot-scanner {
+      text-align: center;
+      padding: 20px 0;
+      display: none;
     }
-    .compass-ring {
-      width: 100%;
-      height: 100%;
+    .spot-scanner.active { display: block; }
+
+    .scanner-ring {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 12px;
       border-radius: 50%;
-      border: 2px solid var(--border);
-      background: var(--surface-elevated);
-      position: relative;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      animation: spin 1.2s linear infinite;
     }
-    .compass-label {
-      position: absolute;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--ink-quaternary);
-    }
-    .compass-n { top: 8px; left: 50%; transform: translateX(-50%); color: var(--accent); }
-    .compass-s { bottom: 8px; left: 50%; transform: translateX(-50%); }
-    .compass-e { right: 10px; top: 50%; transform: translateY(-50%); }
-    .compass-w { left: 10px; top: 50%; transform: translateY(-50%); }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    .compass-arrow {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 4px;
-      height: 100px;
-      margin-left: -2px;
-      margin-top: -100px;
-      transform-origin: bottom center;
-      transition: transform 0.25s ease-out;
-    }
-    .compass-arrow::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -6px;
-      width: 0;
-      height: 0;
-      border-left: 8px solid transparent;
-      border-right: 8px solid transparent;
-      border-bottom: 20px solid var(--accent);
-    }
-    .compass-arrow::after {
-      content: '';
-      position: absolute;
-      top: 20px;
-      left: 0;
-      width: 4px;
-      height: 80px;
-      background: linear-gradient(to bottom, var(--accent), transparent);
-      border-radius: 2px;
-    }
-
-    .compass-heading {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 28px;
+    .scanner-heading {
+      font-size: 32px;
       font-weight: 700;
       letter-spacing: -0.02em;
       color: var(--ink);
-      background: var(--surface-elevated);
-      padding: 8px 14px;
-      border-radius: 12px;
+      font-variant-numeric: tabular-nums;
     }
-
-    /* Cone indicator dots for matched vessels */
-    .compass-dot {
-      position: absolute;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
+    .scanner-label {
+      font-size: 13px;
+      color: var(--ink-quaternary);
+      margin-top: 2px;
     }
-
-    /* Status */
-    .spot-status {
-      text-align: center;
-      font-size: 14px;
-      color: var(--ink-tertiary);
-      margin: 16px 0;
-      min-height: 20px;
-    }
-    .spot-status.error { color: #dc2626; }
 
     /* Start button */
     .spot-start {
-      display: inline-flex;
+      display: flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
+      width: 100%;
       background: var(--accent);
       color: white;
       border: none;
-      padding: 14px 28px;
-      border-radius: 980px;
+      padding: 16px;
+      border-radius: 14px;
       font-size: 17px;
       font-weight: 600;
       font-family: inherit;
       cursor: pointer;
-      margin: 12px 0 24px;
       transition: opacity 0.15s;
     }
     .spot-start:hover { opacity: 0.85; }
-    .spot-start:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+    .spot-start:disabled { opacity: 0.5; cursor: not-allowed; }
+    .spot-start.stop-btn {
+      background: none;
+      color: var(--ink-tertiary);
+      border: 1px solid var(--border);
+      font-size: 15px;
+      padding: 12px;
     }
+
+    .spot-status {
+      text-align: center;
+      font-size: 14px;
+      color: var(--ink-tertiary);
+      margin: 12px 0;
+    }
+    .spot-status.error { color: #dc2626; }
 
     /* Result card */
     .spot-result {
-      width: 100%;
-      max-width: 400px;
       background: var(--surface-elevated);
       border: 1px solid var(--border);
       border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 32px;
+      overflow: hidden;
+      margin-top: 16px;
       display: none;
+      animation: slideUp 0.3s ease-out;
     }
     .spot-result.visible { display: block; }
 
-    .result-header {
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-top {
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 14px;
+      padding: 16px;
     }
     .result-flag {
-      width: 36px;
-      height: 27px;
+      width: 40px;
+      height: 30px;
       border-radius: 4px;
       object-fit: cover;
+      flex-shrink: 0;
     }
+    .result-info { flex: 1; min-width: 0; }
     .result-name {
-      font-size: 20px;
+      font-size: 19px;
       font-weight: 700;
       letter-spacing: -0.02em;
+      line-height: 1.2;
     }
     .result-type {
       display: inline-block;
@@ -200,143 +173,190 @@
       padding: 2px 10px;
       border-radius: 980px;
       color: white;
-      margin-top: 2px;
+      margin-top: 4px;
     }
 
-    .result-grid {
+    .result-stats {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
+      grid-template-columns: 1fr 1fr 1fr;
+      border-top: 1px solid var(--border);
     }
-    .result-item {
+    .result-stat {
       text-align: center;
-      padding: 10px;
-      background: var(--surface);
-      border-radius: 10px;
+      padding: 12px 8px;
     }
-    .result-value {
+    .result-stat + .result-stat { border-left: 1px solid var(--border); }
+    .result-stat-value {
       font-size: 18px;
       font-weight: 600;
       color: var(--ink);
       letter-spacing: -0.02em;
       font-variant-numeric: tabular-nums;
     }
-    .result-label {
+    .result-stat-label {
       font-size: 11px;
       color: var(--ink-quaternary);
       margin-top: 2px;
     }
 
+    .result-details {
+      border-top: 1px solid var(--border);
+      padding: 8px 16px;
+    }
     .result-row {
       display: flex;
       justify-content: space-between;
-      padding: 8px 0;
-      border-top: 1px solid var(--border);
+      padding: 6px 0;
       font-size: 14px;
     }
-    .result-row:first-of-type { margin-top: 14px; }
+    .result-row + .result-row { border-top: 1px solid var(--border); }
     .result-row-label { color: var(--ink-tertiary); }
     .result-row-value { font-weight: 500; color: var(--ink); }
 
-    .result-distance {
-      text-align: center;
-      margin-top: 14px;
-      font-size: 13px;
-      color: var(--ink-quaternary);
-    }
-
-    .back-link {
-      display: inline-block;
-      color: var(--accent);
-      font-size: 15px;
-      font-weight: 500;
-      text-decoration: none;
-      margin-bottom: 32px;
-    }
-    .back-link:hover { text-decoration: underline; }
-
+    /* No match */
     .no-match {
       text-align: center;
-      padding: 24px;
+      padding: 32px 16px;
+      display: none;
+    }
+    .no-match.visible { display: block; }
+    .no-match-icon { font-size: 40px; margin-bottom: 8px; }
+    .no-match p {
       color: var(--ink-tertiary);
       font-size: 15px;
+      line-height: 1.5;
     }
-    .no-match-icon { font-size: 40px; margin-bottom: 8px; }
   </style>
 </head>
 <body>
+  <div class="spot-page">
+    <a class="spot-back" href="/">&larr; <span id="t-back">Back to map</span></a>
 
-  <div class="spot-header">
-    <h1 class="spot-title">What's That Boat?</h1>
-    <p class="spot-subtitle">Point your phone at a vessel to identify it</p>
+    <div class="spot-header">
+      <h1 class="spot-title" id="t-title">What's That Boat?</h1>
+      <p class="spot-subtitle" id="t-subtitle">Point your phone at any vessel to identify it</p>
+    </div>
+
+    <button class="spot-start" id="spot-start">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+      <span id="t-start">Start Spotting</span>
+    </button>
+
+    <p class="spot-status" id="spot-status"></p>
+
+    <div class="spot-scanner" id="spot-scanner">
+      <div class="scanner-ring"></div>
+      <div class="scanner-heading" id="scanner-heading">--°</div>
+      <div class="scanner-label" id="t-scanning">Scanning...</div>
+    </div>
+
+    <div class="spot-result" id="spot-result">
+      <div class="result-top">
+        <img class="result-flag" id="result-flag" src="" alt="" />
+        <div class="result-info">
+          <div class="result-name" id="result-name"></div>
+          <span class="result-type" id="result-type"></span>
+        </div>
+      </div>
+      <div class="result-stats">
+        <div class="result-stat">
+          <div class="result-stat-value" id="result-distance">--</div>
+          <div class="result-stat-label" id="t-distance">Distance</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" id="result-speed">--</div>
+          <div class="result-stat-label" id="t-speed">Speed</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" id="result-bearing">--</div>
+          <div class="result-stat-label" id="t-bearing">Bearing</div>
+        </div>
+      </div>
+      <div class="result-details">
+        <div class="result-row">
+          <span class="result-row-label" id="t-dest-label">Destination</span>
+          <span class="result-row-value" id="result-destination">--</span>
+        </div>
+        <div class="result-row">
+          <span class="result-row-label" id="t-dim-label">Dimensions</span>
+          <span class="result-row-value" id="result-dimensions">--</span>
+        </div>
+        <div class="result-row">
+          <span class="result-row-label" id="t-status-label">Status</span>
+          <span class="result-row-value" id="result-status">--</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="no-match" id="no-match">
+      <div class="no-match-icon">🌊</div>
+      <p id="t-no-match">No vessel found in that direction.<br>Try pointing at a different angle.</p>
+    </div>
   </div>
-
-  <div class="compass-container" id="compass-container">
-    <div class="compass-ring">
-      <span class="compass-label compass-n">N</span>
-      <span class="compass-label compass-s">S</span>
-      <span class="compass-label compass-e">E</span>
-      <span class="compass-label compass-w">W</span>
-      <div class="compass-arrow" id="compass-arrow"></div>
-      <div class="compass-heading" id="compass-heading">--°</div>
-    </div>
-  </div>
-
-  <p class="spot-status" id="spot-status">Tap the button to start</p>
-
-  <button class="spot-start" id="spot-start">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
-    Start Spotting
-  </button>
-
-  <div class="spot-result" id="spot-result">
-    <div class="result-header">
-      <img class="result-flag" id="result-flag" src="" alt="" />
-      <div>
-        <div class="result-name" id="result-name"></div>
-        <span class="result-type" id="result-type"></span>
-      </div>
-    </div>
-    <div class="result-grid">
-      <div class="result-item">
-        <div class="result-value" id="result-speed">--</div>
-        <div class="result-label">Speed</div>
-      </div>
-      <div class="result-item">
-        <div class="result-value" id="result-bearing">--</div>
-        <div class="result-label">Bearing</div>
-      </div>
-      <div class="result-item">
-        <div class="result-value" id="result-distance">--</div>
-        <div class="result-label">Distance</div>
-      </div>
-      <div class="result-item">
-        <div class="result-value" id="result-heading">--</div>
-        <div class="result-label">Heading</div>
-      </div>
-    </div>
-    <div class="result-row">
-      <span class="result-row-label">Destination</span>
-      <span class="result-row-value" id="result-destination">--</span>
-    </div>
-    <div class="result-row">
-      <span class="result-row-label">Dimensions</span>
-      <span class="result-row-value" id="result-dimensions">--</span>
-    </div>
-    <div class="result-row">
-      <span class="result-row-label">Status</span>
-      <span class="result-row-value" id="result-status">--</span>
-    </div>
-  </div>
-
-  <div class="no-match" id="no-match" style="display:none">
-    <div class="no-match-icon">🌊</div>
-    <p>No vessel found in that direction.<br>Try pointing at a different angle.</p>
-  </div>
-
-  <a class="back-link" href="/">← Back to map</a>
 
   <script>
+    // i18n — reads language from localStorage (set by main site)
+    const STRINGS = {
+      en: {
+        back: 'Back to map', title: "What's That Boat?",
+        subtitle: 'Point your phone at any vessel to identify it',
+        start: 'Start Spotting', stop: 'Stop', scanning: 'Scanning...',
+        distance: 'Distance', speed: 'Speed', bearing: 'Bearing',
+        destination: 'Destination', dimensions: 'Dimensions', status: 'Status',
+        no_match: 'No vessel found in that direction.<br>Try pointing at a different angle.',
+        getting_perms: 'Requesting permissions...', getting_loc: 'Getting your location...',
+        point: 'Point your phone at a vessel...', no_gps: 'Could not get location. Please enable GPS.',
+        no_compass_perm: 'Compass permission denied.', no_compass: 'Compass not supported on this device.',
+      },
+      vi: {
+        back: 'Quay l\u1EA1i b\u1EA3n \u0111\u1ED3', title: '\u0110\u00F3 l\u00E0 t\u00E0u g\u00EC?',
+        subtitle: 'Ch\u1EC9 \u0111i\u1EC7n tho\u1EA1i v\u00E0o t\u00E0u \u0111\u1EC3 nh\u1EADn d\u1EA1ng',
+        start: 'B\u1EAFt \u0111\u1EA7u', stop: 'D\u1EEBng', scanning: '\u0110ang qu\u00E9t...',
+        distance: 'Kho\u1EA3ng c\u00E1ch', speed: 'T\u1ED1c \u0111\u1ED9', bearing: 'H\u01B0\u1EDBng',
+        destination: '\u0110i\u1EC3m \u0111\u1EBFn', dimensions: 'K\u00EDch th\u01B0\u1EDBc', status: 'Tr\u1EA1ng th\u00E1i',
+        no_match: 'Kh\u00F4ng t\u00ECm th\u1EA5y t\u00E0u theo h\u01B0\u1EDBng n\u00E0y.<br>Th\u1EED ch\u1EC9 theo g\u00F3c kh\u00E1c.',
+        getting_perms: '\u0110ang xin quy\u1EC1n...', getting_loc: '\u0110ang l\u1EA5y v\u1ECB tr\u00ED...',
+        point: 'Ch\u1EC9 \u0111i\u1EC7n tho\u1EA1i v\u00E0o t\u00E0u...', no_gps: 'Kh\u00F4ng th\u1EC3 l\u1EA5y v\u1ECB tr\u00ED. Vui l\u00F2ng b\u1EADt GPS.',
+        no_compass_perm: 'Quy\u1EC1n la b\u00E0n b\u1ECB t\u1EEB ch\u1ED1i.', no_compass: 'La b\u00E0n kh\u00F4ng h\u1ED7 tr\u1EE3 tr\u00EAn thi\u1EBFt b\u1ECB n\u00E0y.',
+      },
+      ko: {
+        back: '\uC9C0\uB3C4\uB85C \uB3CC\uC544\uAC00\uAE30', title: '\uC800 \uBC30\uB294 \uBB50\uC9C0?',
+        subtitle: '\uD734\uB300\uD3F0\uC744 \uC120\uBC15\uC73C\uB85C \uAC00\uB9AC\uCF1C \uC2DD\uBCC4\uD558\uC138\uC694',
+        start: '\uC2DC\uC791', stop: '\uC815\uC9C0', scanning: '\uC2A4\uCE94 \uC911...',
+        distance: '\uAC70\uB9AC', speed: '\uC18D\uB3C4', bearing: '\uBC29\uC704',
+        destination: '\uBAA9\uC801\uC9C0', dimensions: '\uCE58\uC218', status: '\uC0C1\uD0DC',
+        no_match: '\uD574\uB2F9 \uBC29\uD5A5\uC5D0 \uC120\uBC15\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.<br>\uB2E4\uB978 \uAC01\uB3C4\uB85C \uC2DC\uB3C4\uD574 \uBCF4\uC138\uC694.',
+        getting_perms: '\uAD8C\uD55C \uC694\uCCAD \uC911...', getting_loc: '\uC704\uCE58 \uD655\uC778 \uC911...',
+        point: '\uC120\uBC15\uC744 \uD5A5\uD574 \uD734\uB300\uD3F0\uC744 \uAC00\uB9AC\uCF1C\uC138\uC694...', no_gps: '\uC704\uCE58\uB97C \uD655\uC778\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. GPS\uB97C \uCF1C\uC8FC\uC138\uC694.',
+        no_compass_perm: '\uB098\uCE68\uBC18 \uAD8C\uD55C\uC774 \uAC70\uBD80\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', no_compass: '\uC774 \uAE30\uAE30\uC5D0\uC11C \uB098\uCE68\uBC18\uC744 \uC9C0\uC6D0\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.',
+      },
+      zh: {
+        back: '\u8FD4\u56DE\u5730\u56FE', title: '\u90A3\u662F\u4EC0\u4E48\u8239?',
+        subtitle: '\u5C06\u624B\u673A\u5BF9\u51C6\u8239\u8236\u8FDB\u884C\u8BC6\u522B',
+        start: '\u5F00\u59CB', stop: '\u505C\u6B62', scanning: '\u626B\u63CF\u4E2D...',
+        distance: '\u8DDD\u79BB', speed: '\u901F\u5EA6', bearing: '\u65B9\u4F4D',
+        destination: '\u76EE\u7684\u5730', dimensions: '\u5C3A\u5BF8', status: '\u72B6\u6001',
+        no_match: '\u8BE5\u65B9\u5411\u672A\u53D1\u73B0\u8239\u8236\u3002<br>\u8BF7\u5C1D\u8BD5\u5176\u4ED6\u89D2\u5EA6\u3002',
+        getting_perms: '\u8BF7\u6C42\u6743\u9650...', getting_loc: '\u83B7\u53D6\u4F4D\u7F6E...',
+        point: '\u5C06\u624B\u673A\u5BF9\u51C6\u8239\u8236...', no_gps: '\u65E0\u6CD5\u83B7\u53D6\u4F4D\u7F6E\u3002\u8BF7\u5F00\u542FGPS\u3002',
+        no_compass_perm: '\u6307\u5357\u9488\u6743\u9650\u88AB\u62D2\u7EDD\u3002', no_compass: '\u6B64\u8BBE\u5907\u4E0D\u652F\u6301\u6307\u5357\u9488\u3002',
+      },
+      ja: {
+        back: '\u5730\u56F3\u306B\u623B\u308B', title: '\u3042\u306E\u8239\u306F\u4F55?',
+        subtitle: '\u30B9\u30DE\u30DB\u3092\u8239\u306B\u5411\u3051\u3066\u8B58\u5225',
+        start: '\u30B9\u30BF\u30FC\u30C8', stop: '\u505C\u6B62', scanning: '\u30B9\u30AD\u30E3\u30F3\u4E2D...',
+        distance: '\u8DDD\u96E2', speed: '\u901F\u529B', bearing: '\u65B9\u4F4D',
+        destination: '\u76EE\u7684\u5730', dimensions: '\u5BF8\u6CD5', status: '\u72B6\u614B',
+        no_match: '\u305D\u306E\u65B9\u5411\u306B\u8239\u8236\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3002<br>\u5225\u306E\u89D2\u5EA6\u3092\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002',
+        getting_perms: '\u6A29\u9650\u3092\u8981\u6C42\u4E2D...', getting_loc: '\u4F4D\u7F6E\u60C5\u5831\u3092\u53D6\u5F97\u4E2D...',
+        point: '\u8239\u306B\u30B9\u30DE\u30DB\u3092\u5411\u3051\u3066\u304F\u3060\u3055\u3044...', no_gps: '\u4F4D\u7F6E\u60C5\u5831\u3092\u53D6\u5F97\u3067\u304D\u307E\u305B\u3093\u3002GPS\u3092\u6709\u52B9\u306B\u3057\u3066\u304F\u3060\u3055\u3044\u3002',
+        no_compass_perm: '\u30B3\u30F3\u30D1\u30B9\u306E\u6A29\u9650\u304C\u62D2\u5426\u3055\u308C\u307E\u3057\u305F\u3002', no_compass: '\u3053\u306E\u30C7\u30D0\u30A4\u30B9\u3067\u306F\u30B3\u30F3\u30D1\u30B9\u975E\u5BFE\u5FDC\u3067\u3059\u3002',
+      },
+    };
+
+    const lang = localStorage.getItem('lang') || 'en';
+    const S = STRINGS[lang] || STRINGS.en;
+
     const TYPE_COLORS = {
       Cargo: '#2563eb', Tanker: '#dc2626', Passenger: '#16a34a',
       Fishing: '#ca8a04', Other: '#86868b',
@@ -348,21 +368,35 @@
     let vessels = [];
     let active = false;
     let matchInterval = null;
-    const SMOOTHING = 0.15; // lower = smoother (0.1 very smooth, 0.3 responsive)
+    const SMOOTHING = 0.15;
 
     const $ = (id) => document.getElementById(id);
 
-    // Fetch vessels
+    // Apply translations
+    function applyLang() {
+      $('t-back').textContent = S.back;
+      $('t-title').textContent = S.title;
+      $('t-subtitle').textContent = S.subtitle;
+      $('t-start').textContent = S.start;
+      $('t-scanning').textContent = S.scanning;
+      $('t-distance').textContent = S.distance;
+      $('t-speed').textContent = S.speed;
+      $('t-bearing').textContent = S.bearing;
+      $('t-dest-label').textContent = S.destination;
+      $('t-dim-label').textContent = S.dimensions;
+      $('t-status-label').textContent = S.status;
+      $('t-no-match').innerHTML = S.no_match;
+      document.title = S.title + ' — Quy Nhon Life';
+    }
+    applyLang();
+
     async function loadVessels() {
       try {
         const res = await fetch('/api/vessels');
         vessels = await res.json();
-      } catch (e) {
-        console.error('Failed to load vessels:', e);
-      }
+      } catch (e) { console.error('Failed to load vessels:', e); }
     }
 
-    // Haversine distance in km
     function haversine(lat1, lon1, lat2, lon2) {
       const R = 6371;
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -371,30 +405,29 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    // Bearing from user to vessel (degrees)
     function bearingTo(lat1, lon1, lat2, lon2) {
       const dLon = (lon2 - lon1) * Math.PI / 180;
       const y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
-      const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
-                Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon);
+      const x = Math.cos(lat1*Math.PI/180) * Math.sin(lat2*Math.PI/180) -
+                Math.sin(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.cos(dLon);
       return ((Math.atan2(y, x) * 180 / Math.PI) + 360) % 360;
     }
 
-    // Angle difference (handles wrap-around)
     function angleDiff(a, b) {
       let d = ((b - a + 180) % 360) - 180;
       return Math.abs(d < -180 ? d + 360 : d);
     }
 
+    function lerpAngle(from, to, t) {
+      let diff = ((to - from + 540) % 360) - 180;
+      return ((from + diff * t) + 360) % 360;
+    }
+
     function findMatchingVessel() {
       if (userLat == null || compassHeading == null || vessels.length === 0) return null;
-
-      const CONE_HALF = 15; // degrees each side
-      const MAX_DIST = 50;  // km
-
-      let best = null;
-      let bestDist = Infinity;
-
+      const CONE_HALF = 15;
+      const MAX_DIST = 50;
+      let best = null, bestDist = Infinity;
       for (const v of vessels) {
         if (v.lat == null || v.lng == null) continue;
         const dist = haversine(userLat, userLng, v.lat, v.lng);
@@ -410,11 +443,11 @@
     }
 
     function showResult(vessel) {
-      $('no-match').style.display = 'none';
+      $('no-match').classList.remove('visible');
       $('spot-result').classList.add('visible');
 
       const cc = (vessel.flag_country || '').toLowerCase();
-      $('result-flag').src = cc ? `https://flagcdn.com/36x27/${cc}.png` : '';
+      $('result-flag').src = cc ? `https://flagcdn.com/40x30/${cc}.png` : '';
       $('result-flag').style.display = cc ? '' : 'none';
       $('result-name').textContent = vessel.name || vessel.mmsi;
 
@@ -422,10 +455,10 @@
       $('result-type').textContent = type;
       $('result-type').style.background = TYPE_COLORS[type] || TYPE_COLORS.Other;
 
+      $('result-distance').textContent = vessel.dist < 1 ? (vessel.dist * 1000).toFixed(0) + ' m' : vessel.dist.toFixed(1) + ' km';
       $('result-speed').textContent = vessel.speed != null ? vessel.speed.toFixed(1) + ' kn' : '--';
       $('result-bearing').textContent = Math.round(vessel.bearing) + '\u00B0';
-      $('result-distance').textContent = vessel.dist < 1 ? (vessel.dist * 1000).toFixed(0) + ' m' : vessel.dist.toFixed(1) + ' km';
-      $('result-heading').textContent = vessel.heading != null ? vessel.heading + '\u00B0' : '--';
+
       $('result-destination').textContent = vessel.destination || '--';
       $('result-dimensions').textContent = vessel.length && vessel.width ? `${vessel.length} x ${vessel.width} m` : '--';
       $('result-status').textContent = vessel.nav_status_label || '--';
@@ -433,96 +466,7 @@
 
     function showNoMatch() {
       $('spot-result').classList.remove('visible');
-      $('no-match').style.display = 'block';
-    }
-
-    function updateCompass(heading) {
-      $('compass-arrow').style.transform = `rotate(${heading}deg)`;
-      $('compass-heading').textContent = Math.round(heading) + '\u00B0';
-    }
-
-    async function startSpotting() {
-      const btn = $('spot-start');
-      const status = $('spot-status');
-
-      if (active) {
-        stopSpotting();
-        return;
-      }
-
-      btn.disabled = true;
-      status.textContent = 'Requesting permissions...';
-      status.className = 'spot-status';
-
-      // iOS: request compass permission FIRST (must be in direct user gesture)
-      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        try {
-          const response = await DeviceOrientationEvent.requestPermission();
-          if (response !== 'granted') {
-            status.textContent = 'Compass permission denied. Please allow in Settings.';
-            status.className = 'spot-status error';
-            btn.disabled = false;
-            return;
-          }
-        } catch (e) {
-          status.textContent = 'Compass permission failed. Try refreshing the page.';
-          status.className = 'spot-status error';
-          btn.disabled = false;
-          return;
-        }
-      } else if (!('DeviceOrientationEvent' in window)) {
-        status.textContent = 'Compass not supported on this device.';
-        status.className = 'spot-status error';
-        btn.disabled = false;
-        return;
-      }
-
-      // Now get GPS
-      status.textContent = 'Getting your location...';
-
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          userLat = pos.coords.latitude;
-          userLng = pos.coords.longitude;
-          attachCompass();
-        },
-        (err) => {
-          status.textContent = 'Could not get location. Please enable GPS.';
-          status.className = 'spot-status error';
-          btn.disabled = false;
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    }
-
-    function attachCompass() {
-      const btn = $('spot-start');
-      const status = $('spot-status');
-
-      window.addEventListener('deviceorientationabsolute', onOrientation, true);
-      window.addEventListener('deviceorientation', onOrientation, true);
-
-      active = true;
-      btn.disabled = false;
-      btn.textContent = 'Stop';
-      status.textContent = 'Point your phone at a vessel...';
-
-      loadVessels();
-      matchInterval = setInterval(() => {
-        loadVessels();
-        const match = findMatchingVessel();
-        if (match) {
-          showResult(match);
-        } else {
-          showNoMatch();
-        }
-      }, 1500);
-    }
-
-    // Smooth angle interpolation handling 0/360 wraparound
-    function lerpAngle(from, to, t) {
-      let diff = ((to - from + 540) % 360) - 180;
-      return ((from + diff * t) + 360) % 360;
+      $('no-match').classList.add('visible');
     }
 
     function onOrientation(e) {
@@ -533,14 +477,77 @@
         heading = e.absolute ? (360 - e.alpha) : e.alpha;
       }
       if (heading != null) {
-        if (smoothedHeading == null) {
-          smoothedHeading = heading;
-        } else {
-          smoothedHeading = lerpAngle(smoothedHeading, heading, SMOOTHING);
-        }
+        smoothedHeading = smoothedHeading == null ? heading : lerpAngle(smoothedHeading, heading, SMOOTHING);
         compassHeading = smoothedHeading;
-        updateCompass(smoothedHeading);
+        $('scanner-heading').textContent = Math.round(smoothedHeading) + '\u00B0';
       }
+    }
+
+    async function startSpotting() {
+      const btn = $('spot-start');
+      const status = $('spot-status');
+
+      if (active) { stopSpotting(); return; }
+
+      btn.disabled = true;
+      status.textContent = S.getting_perms;
+      status.className = 'spot-status';
+
+      // iOS compass permission (must be in direct user gesture)
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        try {
+          const response = await DeviceOrientationEvent.requestPermission();
+          if (response !== 'granted') {
+            status.textContent = S.no_compass_perm;
+            status.className = 'spot-status error';
+            btn.disabled = false;
+            return;
+          }
+        } catch (e) {
+          status.textContent = S.no_compass_perm;
+          status.className = 'spot-status error';
+          btn.disabled = false;
+          return;
+        }
+      } else if (!('DeviceOrientationEvent' in window)) {
+        status.textContent = S.no_compass;
+        status.className = 'spot-status error';
+        btn.disabled = false;
+        return;
+      }
+
+      status.textContent = S.getting_loc;
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          userLat = pos.coords.latitude;
+          userLng = pos.coords.longitude;
+
+          window.addEventListener('deviceorientationabsolute', onOrientation, true);
+          window.addEventListener('deviceorientation', onOrientation, true);
+
+          active = true;
+          btn.disabled = false;
+          $('t-start').textContent = S.stop;
+          btn.classList.add('stop-btn');
+          status.textContent = S.point;
+          $('spot-scanner').classList.add('active');
+
+          loadVessels();
+          matchInterval = setInterval(() => {
+            loadVessels();
+            const match = findMatchingVessel();
+            if (match) showResult(match);
+            else showNoMatch();
+          }, 1500);
+        },
+        () => {
+          status.textContent = S.no_gps;
+          status.className = 'spot-status error';
+          btn.disabled = false;
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
     }
 
     function stopSpotting() {
@@ -548,13 +555,13 @@
       window.removeEventListener('deviceorientationabsolute', onOrientation, true);
       window.removeEventListener('deviceorientation', onOrientation, true);
       if (matchInterval) clearInterval(matchInterval);
-      $('spot-start').textContent = 'Start Spotting';
-      $('spot-status').textContent = 'Stopped';
+      $('t-start').textContent = S.start;
+      $('spot-start').classList.remove('stop-btn');
+      $('spot-scanner').classList.remove('active');
+      $('spot-status').textContent = '';
     }
 
     $('spot-start').addEventListener('click', startSpotting);
-
-    // Preload vessels
     loadVessels();
   </script>
 </body>
