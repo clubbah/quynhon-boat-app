@@ -223,8 +223,8 @@ function initSearch() {
   });
 }
 
-// WMO weather codes to emoji + description
-const WEATHER_CODES = {
+// WMO weather codes to emoji + description (day / night variants)
+const WEATHER_CODES_DAY = {
   0: ['☀️', 'Clear sky'], 1: ['🌤️', 'Mainly clear'], 2: ['⛅', 'Partly cloudy'],
   3: ['☁️', 'Overcast'], 45: ['🌫️', 'Foggy'], 48: ['🌫️', 'Icy fog'],
   51: ['🌦️', 'Light drizzle'], 53: ['🌦️', 'Drizzle'], 55: ['🌧️', 'Heavy drizzle'],
@@ -232,6 +232,24 @@ const WEATHER_CODES = {
   80: ['🌦️', 'Light showers'], 81: ['🌧️', 'Showers'], 82: ['🌧️', 'Heavy showers'],
   95: ['⛈️', 'Thunderstorm'], 96: ['⛈️', 'Thunderstorm + hail'], 99: ['⛈️', 'Severe storm'],
 };
+
+const WEATHER_CODES_NIGHT = {
+  0: ['🌙', 'Clear night'], 1: ['🌙', 'Mostly clear'], 2: ['☁️', 'Partly cloudy'],
+  3: ['☁️', 'Overcast'], 45: ['🌫️', 'Foggy'], 48: ['🌫️', 'Icy fog'],
+  51: ['🌧️', 'Light drizzle'], 53: ['🌧️', 'Drizzle'], 55: ['🌧️', 'Heavy drizzle'],
+  61: ['🌧️', 'Light rain'], 63: ['🌧️', 'Rain'], 65: ['🌧️', 'Heavy rain'],
+  80: ['🌧️', 'Light showers'], 81: ['🌧️', 'Showers'], 82: ['🌧️', 'Heavy showers'],
+  95: ['⛈️', 'Thunderstorm'], 96: ['⛈️', 'Thunderstorm + hail'], 99: ['⛈️', 'Severe storm'],
+};
+
+function isNightTime(sunrise, sunset) {
+  if (!sunrise || !sunset) return false;
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const sunriseTime = new Date(sunrise.includes('T') ? sunrise : today + 'T' + sunrise);
+  const sunsetTime = new Date(sunset.includes('T') ? sunset : today + 'T' + sunset);
+  return now < sunriseTime || now > sunsetTime;
+}
 
 function windDirection(deg) {
   const dirs = ['N','NE','E','SE','S','SW','W','NW'];
@@ -247,7 +265,11 @@ async function fetchWeather() {
     const m = data.marine?.current;
     if (!c) return;
 
-    const [icon, desc] = WEATHER_CODES[c.weather_code] || ['🌡️', ''];
+    const sunrise = d?.sunrise?.[0] || '';
+    const sunset = d?.sunset?.[0] || '';
+    const night = isNightTime(sunrise, sunset);
+    const codes = night ? WEATHER_CODES_NIGHT : WEATHER_CODES_DAY;
+    const [icon, desc] = codes[c.weather_code] || ['🌡️', ''];
     document.getElementById('weather-icon').textContent = icon;
     document.getElementById('weather-temp').textContent = Math.round(c.temperature_2m) + '°C';
     document.getElementById('weather-desc').textContent = desc;
