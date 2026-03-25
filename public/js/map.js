@@ -1,7 +1,7 @@
 import { createVesselIcon } from './vessel-icons.js';
 import { t } from './i18n.js';
 
-const MAP_CENTER = [1.25, 103.85]; // Singapore Strait
+const MAP_CENTER = [13.76, 109.23]; // Quy Nhon, Vietnam
 const DEFAULT_ZOOM = 12;
 
 let map;
