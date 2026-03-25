@@ -168,9 +168,10 @@ export function initMap() {
         type: 'line',
         source: 'vessel-track',
         paint: {
-          'line-color': '#3b82f6',
-          'line-width': 3,
+          'line-color': '#ffffff',
+          'line-width': 1.5,
           'line-opacity': 0.7,
+          'line-dasharray': [4, 3],
         },
       });
 
