@@ -101,8 +101,20 @@ function parseAisCatcherMessage(msg) {
   if (!mmsi || mmsi === 'undefined') return null;
 
   const name = (msg.shipname || msg.name || '').trim() || null;
-  const flag_country = getFlagCountry(mmsi);
+  const flag_country = msg.country || getFlagCountry(mmsi);
   const updated_at = msg.timestamp || new Date().toISOString();
+
+  // Build ETA string from separate fields if available
+  let eta = msg.eta ?? null;
+  if (!eta && msg.eta_month && msg.eta_day) {
+    const m = String(msg.eta_month).padStart(2, '0');
+    const d = String(msg.eta_day).padStart(2, '0');
+    const h = String(msg.eta_hour || 0).padStart(2, '0');
+    const min = String(msg.eta_minute || 0).padStart(2, '0');
+    eta = `${m}-${d} ${h}:${min}`;
+  }
+
+  const draught = msg.draught != null && msg.draught >= 0 ? msg.draught : null;
 
   return {
     mmsi, name, flag_country, updated_at,
@@ -114,14 +126,14 @@ function parseAisCatcherMessage(msg) {
     nav_status: msg.status ?? msg.nav_status ?? null,
     nav_status_label: msg.status != null ? getNavStatusLabel(msg.status) : null,
     imo: msg.imo ? String(msg.imo) : null,
-    call_sign: msg.callsign ?? msg.call_sign ?? null,
+    call_sign: (msg.callsign ?? msg.call_sign ?? '').trim() || null,
     vessel_type: msg.shiptype ?? msg.vessel_type ?? null,
     vessel_type_label: msg.shiptype != null ? getVesselTypeLabel(msg.shiptype) : null,
     length: msg.to_bow != null && msg.to_stern != null ? msg.to_bow + msg.to_stern : (msg.length ?? null),
     width: msg.to_port != null && msg.to_starboard != null ? msg.to_port + msg.to_starboard : (msg.width ?? null),
-    draught: msg.draught ?? null,
-    destination: msg.destination ?? null,
-    eta: msg.eta ?? null,
+    draught,
+    destination: (msg.destination ?? '').trim() || null,
+    eta,
   };
 }
 
