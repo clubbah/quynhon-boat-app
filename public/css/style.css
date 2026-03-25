@@ -423,7 +423,7 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 .spot-fab {
   display: flex !important;
   position: fixed;
-  bottom: 24px;
+  bottom: 80px;
   right: 20px;
   z-index: 9999;
   width: 56px;
