@@ -167,45 +167,8 @@ function broadcast(data) {
   }
 }
 
-// AIS stream (optional — RTL-SDR feed via /api/ais-feed is the primary source)
-if (API_KEY) {
-  console.log('[AIS] Connecting to aisstream.io as secondary source...');
-  connectAisStream(API_KEY, (parsed) => {
-  const vessel = { mmsi: parsed.mmsi, updated_at: parsed.updated_at };
-
-  if (parsed.name) vessel.name = parsed.name;
-  if (parsed.flag_country) vessel.flag_country = parsed.flag_country;
-
-  if (parsed.type === 'position') {
-    Object.assign(vessel, {
-      lat: parsed.lat, lng: parsed.lng, speed: parsed.speed,
-      course: parsed.course, heading: parsed.heading,
-      nav_status: parsed.nav_status, nav_status_label: parsed.nav_status_label,
-    });
-
-    appendPosition(db, {
-      mmsi: parsed.mmsi, lat: parsed.lat, lng: parsed.lng,
-      speed: parsed.speed, course: parsed.course, timestamp: parsed.updated_at,
-    });
-  }
-
-  if (parsed.type === 'static') {
-    Object.assign(vessel, {
-      imo: parsed.imo, call_sign: parsed.call_sign,
-      vessel_type: parsed.vessel_type, vessel_type_label: parsed.vessel_type_label,
-      length: parsed.length, width: parsed.width, draught: parsed.draught,
-      destination: parsed.destination, eta: parsed.eta,
-    });
-  }
-
-  upsertVessel(db, vessel);
-
-  // Broadcast full vessel record to browser clients
-  broadcast({ type: 'update', vessel: { ...vessel, ...getVesselFromDb(db, parsed.mmsi) } });
-  });
-} else {
-  console.log('[AIS] No AISSTREAM_API_KEY — using RTL-SDR feed via /api/ais-feed only');
-}
+// RTL-SDR feed via /api/ais-feed is the only data source
+console.log('[AIS] Using RTL-SDR feed via /api/ais-feed');
 
 function getVesselFromDb(db, mmsi) {
   return db.prepare('SELECT * FROM vessels WHERE mmsi = ?').get(mmsi) || {};

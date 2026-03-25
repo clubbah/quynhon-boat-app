@@ -2,9 +2,9 @@ import { createVesselElement, getFlagEmoji, getColorForType } from './vessel-ico
 
 const MAPTILER_KEY = 'CKY69E5ib1MMQDfWMRvg';
 const MAP_CENTER = [109.23, 13.76]; // [lng, lat] — MapLibre order
-const DEFAULT_ZOOM = 12;
-const DEFAULT_PITCH = 45;
-const DEFAULT_BEARING = -10;
+const DEFAULT_ZOOM = 13;
+const DEFAULT_PITCH = 0;
+const DEFAULT_BEARING = 0;
 
 let map;
 let markers = {};       // mmsi → { marker, element, vessel }
