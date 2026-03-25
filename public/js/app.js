@@ -1,16 +1,16 @@
-import { initMap, updateVesselMarker, showTrack, clearTrack, setSelectedMmsi, getSelectedMmsi, filterMarkersByType, getAllMarkers } from './map.js';
-import { showPanel, hidePanel, initPanel } from './panel.js';
-import { t, toggleLang, getLang } from './i18n.js';
+import { initMap, updateVesselMarker, showTrack, clearTrack, setSelectedMmsi, getSelectedMmsi, filterMarkersByType, setMapClickHandler } from './map.js';
+import { showPanel, hidePanel, initPanel } from './vessel-card.js';
+import { t, toggleLang } from './i18n.js';
 
 // State
-let vessels = {}; // mmsi → vessel data
+let vessels = {};
 
 // Init
 const map = initMap();
-window._map = map; // expose for debugging
 initPanel(onPanelClose);
 initWebSocket();
 initControls();
+setMapClickHandler(onPanelClose);
 
 function initWebSocket() {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -24,14 +24,14 @@ function initWebSocket() {
         vessels[v.mmsi] = v;
         updateVesselMarker(v, onVesselClick);
       });
-      updateVesselCount();
+      updateStats();
     }
 
     if (msg.type === 'update') {
       const v = msg.vessel;
       vessels[v.mmsi] = { ...vessels[v.mmsi], ...v };
       updateVesselMarker(vessels[v.mmsi], onVesselClick);
-      updateVesselCount();
+      updateStats();
 
       if (getSelectedMmsi() === v.mmsi) {
         showPanel(vessels[v.mmsi]);
@@ -47,7 +47,6 @@ function initWebSocket() {
 
 async function onVesselClick(vessel) {
   setSelectedMmsi(vessel.mmsi);
-
   const current = vessels[vessel.mmsi] || vessel;
   showPanel(current);
 
@@ -67,9 +66,22 @@ function onPanelClose() {
   setSelectedMmsi(null);
 }
 
-function updateVesselCount() {
-  const count = Object.keys(vessels).length;
-  document.getElementById('vessel-count').textContent = `${count} ${t('vessels')}`;
+function updateStats() {
+  const all = Object.values(vessels);
+  const total = all.length;
+
+  document.getElementById('stat-total').textContent = `${total} ${t('vessels')}`;
+
+  const counts = { Cargo: 0, Tanker: 0, Passenger: 0, Fishing: 0 };
+  for (const v of all) {
+    const label = v.vessel_type_label || 'Other';
+    if (counts[label] !== undefined) counts[label]++;
+  }
+
+  document.getElementById('stat-cargo').textContent = counts.Cargo ? `${counts.Cargo} ${t('cargo')}` : '';
+  document.getElementById('stat-tanker').textContent = counts.Tanker ? `${counts.Tanker} ${t('tanker')}` : '';
+  document.getElementById('stat-passenger').textContent = counts.Passenger ? `${counts.Passenger} ${t('passenger')}` : '';
+  document.getElementById('stat-fishing').textContent = counts.Fishing ? `${counts.Fishing} ${t('fishing')}` : '';
 }
 
 function initControls() {
@@ -77,16 +89,15 @@ function initControls() {
     const next = toggleLang();
     document.getElementById('lang-toggle').textContent = next === 'en' ? 'VI' : 'EN';
     document.getElementById('app-title').textContent = t('app_title');
-    document.getElementById('panel-expand-btn').textContent = t('show_details');
-    updateVesselCount();
+    document.getElementById('hero-description').textContent = t('hero_description');
+    document.getElementById('footer-text').textContent = t('footer_text');
+    updateStats();
 
     const filterAll = document.querySelector('#type-filter option[value="all"]');
     if (filterAll) filterAll.textContent = t('filter_all');
 
     const sel = getSelectedMmsi();
-    if (sel && vessels[sel]) {
-      showPanel(vessels[sel]);
-    }
+    if (sel && vessels[sel]) showPanel(vessels[sel]);
   });
 
   document.getElementById('type-filter').addEventListener('change', (e) => {

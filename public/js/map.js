@@ -1,123 +1,167 @@
-import { createVesselIcon } from './vessel-icons.js';
-import { t } from './i18n.js';
+import { createVesselElement, getFlagEmoji, getColorForType } from './vessel-icons.js';
 
-const MAP_CENTER = [13.76, 109.23]; // Quy Nhon, Vietnam
+const MAPTILER_KEY = 'CKY69E5ib1MMQDfWMRvg';
+const MAP_CENTER = [109.23, 13.76]; // [lng, lat] — MapLibre order
 const DEFAULT_ZOOM = 12;
+const DEFAULT_PITCH = 45;
+const DEFAULT_BEARING = -10;
 
 let map;
-let markers = {};       // mmsi → L.marker
-let currentTrack = null; // L.polyline
+let markers = {};       // mmsi → { marker, element, vessel }
+let trackSource = null;
 let selectedMmsi = null;
 
 export function initMap() {
-  map = L.map('map').setView(MAP_CENTER, DEFAULT_ZOOM);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors',
-    maxZoom: 18,
-  }).addTo(map);
+  map = new maplibregl.Map({
+    container: 'map',
+    style: `https://api.maptiler.com/maps/hybrid/style.json?key=${MAPTILER_KEY}`,
+    center: MAP_CENTER,
+    zoom: DEFAULT_ZOOM,
+    pitch: DEFAULT_PITCH,
+    bearing: DEFAULT_BEARING,
+    maxPitch: 60,
+    attributionControl: false,
+  });
+
+  map.addControl(new maplibregl.NavigationControl(), 'top-right');
+  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+
+  map.on('load', () => {
+    // Add terrain for 3D effect
+    map.addSource('terrain', {
+      type: 'raster-dem',
+      url: `https://api.maptiler.com/tiles/terrain-rgb/tiles.json?key=${MAPTILER_KEY}`,
+      tileSize: 256,
+    });
+    map.setTerrain({ source: 'terrain', exaggeration: 1.5 });
+
+    // Add track source (empty initially)
+    map.addSource('vessel-track', {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] },
+    });
+    map.addLayer({
+      id: 'vessel-track-line',
+      type: 'line',
+      source: 'vessel-track',
+      paint: {
+        'line-color': '#3b82f6',
+        'line-width': 3,
+        'line-opacity': 0.7,
+      },
+    });
+
+    trackSource = map.getSource('vessel-track');
+  });
+
+  // Close card on map click (not on marker)
+  map.on('click', (e) => {
+    if (!e.originalEvent.target.closest('.vessel-marker')) {
+      if (selectedMmsi && map._onMapClick) {
+        map._onMapClick();
+      }
+    }
+  });
+
   return map;
 }
 
-export function getMap() {
-  return map;
-}
+export function getMap() { return map; }
 
 export function updateVesselMarker(vessel, onClick) {
-  const { mmsi, lat, lng, heading, vessel_type, vessel_type_label, name } = vessel;
+  const { mmsi, lat, lng } = vessel;
   if (lat == null || lng == null) return;
 
-  const color = getColorForType(vessel_type_label || vessel_type);
-  const icon = createVesselIcon(color, heading || 0);
-
   if (markers[mmsi]) {
-    markers[mmsi].setLatLng([lat, lng]);
-    markers[mmsi].setIcon(icon);
-    markers[mmsi]._vesselData = vessel;
+    // Update position and icon
+    markers[mmsi].marker.setLngLat([lng, lat]);
+    const newEl = createVesselElement(vessel);
+    attachTooltip(newEl, vessel);
+    const oldEl = markers[mmsi].element;
+    oldEl.replaceWith(newEl);
+    markers[mmsi].element = newEl;
+    markers[mmsi].vessel = vessel;
+    newEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      onClick(vessel);
+    });
   } else {
-    const marker = L.marker([lat, lng], { icon })
-      .addTo(map)
-      .bindTooltip(name || mmsi, { direction: 'top', offset: [0, -12] });
-    marker._vesselData = vessel;
-    marker.on('click', () => onClick(vessel));
-    markers[mmsi] = marker;
+    const el = createVesselElement(vessel);
+    attachTooltip(el, vessel);
+
+    const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+      .setLngLat([lng, lat])
+      .addTo(map);
+
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      onClick(vessel);
+    });
+
+    markers[mmsi] = { marker, element: el, vessel };
   }
+}
+
+function attachTooltip(el, vessel) {
+  const name = vessel.name || vessel.mmsi;
+  const flag = getFlagEmoji(vessel.flag_country);
+  const typeLabel = vessel.vessel_type_label || '';
+
+  el.addEventListener('mouseenter', () => {
+    if (el.querySelector('.vessel-tooltip')) return;
+    const tip = document.createElement('div');
+    tip.className = 'vessel-tooltip';
+    tip.innerHTML = `<span class="tooltip-flag">${flag}</span><span class="tooltip-name">${name}</span>${typeLabel ? `<span class="tooltip-type">${typeLabel}</span>` : ''}`;
+    el.appendChild(tip);
+  });
+
+  el.addEventListener('mouseleave', () => {
+    const tip = el.querySelector('.vessel-tooltip');
+    if (tip) tip.remove();
+  });
 }
 
 export function removeVesselMarker(mmsi) {
   if (markers[mmsi]) {
-    map.removeLayer(markers[mmsi]);
+    markers[mmsi].marker.remove();
     delete markers[mmsi];
   }
 }
 
-export function getAllMarkers() {
-  return markers;
-}
+export function getAllMarkers() { return markers; }
 
 export function showTrack(positions) {
   clearTrack();
-  if (!positions || positions.length === 0) return;
+  if (!positions || positions.length === 0 || !trackSource) return;
 
-  const latlngs = positions.map(p => [p.lat, p.lng]);
+  const coordinates = positions.map(p => [p.lng, p.lat]);
 
-  const totalPoints = latlngs.length;
-  const segments = [];
-  for (let i = 1; i < totalPoints; i++) {
-    const opacity = 0.2 + (0.8 * i / totalPoints);
-    segments.push(
-      L.polyline([latlngs[i - 1], latlngs[i]], {
-        color: '#3b82f6',
-        weight: 3,
-        opacity,
-      })
-    );
-  }
-
-  currentTrack = L.layerGroup(segments).addTo(map);
+  trackSource.setData({
+    type: 'Feature',
+    geometry: { type: 'LineString', coordinates },
+  });
 }
 
 export function clearTrack() {
-  if (currentTrack) {
-    map.removeLayer(currentTrack);
-    currentTrack = null;
+  if (trackSource) {
+    trackSource.setData({ type: 'FeatureCollection', features: [] });
   }
 }
 
-export function setSelectedMmsi(mmsi) {
-  selectedMmsi = mmsi;
-}
-
-export function getSelectedMmsi() {
-  return selectedMmsi;
-}
-
-function getColorForType(typeOrCode) {
-  const typeColors = {
-    'Cargo': '#2563eb',
-    'Tanker': '#dc2626',
-    'Passenger': '#16a34a',
-    'Fishing': '#ca8a04',
-  };
-  if (typeof typeOrCode === 'string') return typeColors[typeOrCode] || '#6b7280';
-  if (typeOrCode >= 70 && typeOrCode <= 79) return '#2563eb';
-  if (typeOrCode >= 80 && typeOrCode <= 89) return '#dc2626';
-  if (typeOrCode >= 60 && typeOrCode <= 69) return '#16a34a';
-  if (typeOrCode === 30) return '#ca8a04';
-  return '#6b7280';
-}
+export function setSelectedMmsi(mmsi) { selectedMmsi = mmsi; }
+export function getSelectedMmsi() { return selectedMmsi; }
 
 export function filterMarkersByType(typeLabel) {
-  for (const [mmsi, marker] of Object.entries(markers)) {
-    const data = marker._vesselData;
-    if (typeLabel === 'all') {
-      marker.addTo(map);
+  for (const [mmsi, entry] of Object.entries(markers)) {
+    const label = entry.vessel.vessel_type_label || 'Other';
+    if (typeLabel === 'all' || label === typeLabel) {
+      entry.element.style.display = '';
     } else {
-      const label = data.vessel_type_label || 'Other';
-      if (label === typeLabel) {
-        marker.addTo(map);
-      } else {
-        map.removeLayer(marker);
-      }
+      entry.element.style.display = 'none';
     }
   }
+}
+
+export function setMapClickHandler(fn) {
+  map._onMapClick = fn;
 }

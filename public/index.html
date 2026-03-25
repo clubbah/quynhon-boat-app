@@ -3,53 +3,87 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quy Nhon Vessel Tracker</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <title>Quy Nhon Life — Live Vessel Tracking</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
-  <header id="top-bar">
-    <h1 id="app-title">Quy Nhon Vessel Tracker</h1>
-    <div id="top-bar-right">
-      <span id="vessel-count">0 vessels</span>
-      <select id="type-filter">
-        <option value="all" data-i18n="filter_all">All Types</option>
-        <option value="Cargo">Cargo</option>
-        <option value="Tanker">Tanker</option>
-        <option value="Passenger">Passenger</option>
-        <option value="Fishing">Fishing</option>
-        <option value="Other">Other</option>
-      </select>
-      <button id="lang-toggle">VI</button>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <h1 class="site-title" id="app-title">Quy Nhon Life</h1>
+      <nav class="header-controls">
+        <select id="type-filter">
+          <option value="all" data-i18n="filter_all">All Types</option>
+          <option value="Cargo">Cargo</option>
+          <option value="Tanker">Tanker</option>
+          <option value="Passenger">Passenger</option>
+          <option value="Fishing">Fishing</option>
+          <option value="Other">Other</option>
+        </select>
+        <button id="lang-toggle">VI</button>
+      </nav>
     </div>
   </header>
 
-  <div id="map"></div>
+  <main class="page-content">
+    <section class="hero">
+      <p class="hero-description" id="hero-description">Live vessel tracking in Quy Nhon Bay</p>
+      <div class="vessel-stats" id="vessel-stats">
+        <span class="stat-total" id="stat-total">0 vessels</span>
+        <span class="stat-item stat-cargo" id="stat-cargo"></span>
+        <span class="stat-item stat-tanker" id="stat-tanker"></span>
+        <span class="stat-item stat-passenger" id="stat-passenger"></span>
+        <span class="stat-item stat-fishing" id="stat-fishing"></span>
+      </div>
+    </section>
 
-  <aside id="info-panel" class="hidden">
-    <button id="panel-close">&times;</button>
-    <div id="panel-essential">
-      <h2 id="panel-name"></h2>
-      <div id="panel-type"></div>
-      <div id="panel-flag"></div>
-      <div id="panel-speed"></div>
-      <div id="panel-destination"></div>
-      <div id="panel-status"></div>
-    </div>
-    <button id="panel-expand-btn" data-i18n="show_details">Show Details</button>
-    <div id="panel-expanded" class="hidden">
-      <div id="panel-dimensions"></div>
-      <div id="panel-draught"></div>
-      <div id="panel-imo"></div>
-      <div id="panel-mmsi"></div>
-      <div id="panel-callsign"></div>
-      <div id="panel-eta"></div>
-      <div id="panel-course"></div>
-      <div id="panel-updated"></div>
-    </div>
-  </aside>
+    <section class="map-wrapper">
+      <div id="map"></div>
+    </section>
+  </main>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <footer class="site-footer">
+    <p id="footer-text">Quy Nhon Life &mdash; Real-time AIS vessel data</p>
+  </footer>
+
+  <!-- Vessel Card (popup on click) -->
+  <div id="vessel-card" class="vessel-card hidden">
+    <button id="card-close" class="card-close">&times;</button>
+    <div class="card-header">
+      <span class="card-flag" id="card-flag"></span>
+      <div class="card-title-group">
+        <h2 class="card-name" id="card-name"></h2>
+        <span class="card-type-badge" id="card-type-badge"></span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="card-section">
+        <h3 class="card-section-title" id="card-section-position">Position</h3>
+        <div class="card-row"><span class="card-label" id="label-speed">Speed</span><span class="card-value" id="card-speed"></span></div>
+        <div class="card-row"><span class="card-label" id="label-course">Course / Heading</span><span class="card-value" id="card-course"></span></div>
+        <div class="card-row"><span class="card-label" id="label-status">Status</span><span class="card-value" id="card-status"></span></div>
+      </div>
+      <div class="card-section">
+        <h3 class="card-section-title" id="card-section-voyage">Voyage</h3>
+        <div class="card-row"><span class="card-label" id="label-destination">Destination</span><span class="card-value" id="card-destination"></span></div>
+        <div class="card-row"><span class="card-label" id="label-eta">ETA</span><span class="card-value" id="card-eta"></span></div>
+      </div>
+      <div class="card-section">
+        <h3 class="card-section-title" id="card-section-physical">Vessel Details</h3>
+        <div class="card-row"><span class="card-label" id="label-dimensions">Dimensions</span><span class="card-value" id="card-dimensions"></span></div>
+        <div class="card-row"><span class="card-label" id="label-draught">Draught</span><span class="card-value" id="card-draught"></span></div>
+        <div class="card-row"><span class="card-label" id="label-imo">IMO</span><span class="card-value" id="card-imo"></span></div>
+        <div class="card-row"><span class="card-label" id="label-mmsi">MMSI</span><span class="card-value" id="card-mmsi"></span></div>
+        <div class="card-row"><span class="card-label" id="label-callsign">Call Sign</span><span class="card-value" id="card-callsign"></span></div>
+      </div>
+    </div>
+    <div class="card-footer">
+      <span id="card-updated"></span>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script type="module" src="/js/app.js"></script>
 </body>
 </html>
