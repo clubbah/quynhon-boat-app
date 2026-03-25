@@ -424,20 +424,24 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 .spot-float {
   display: none;
   position: fixed;
-  bottom: 80px;
+  bottom: 24px;
   right: 16px;
   z-index: 9999;
-  width: 52px;
-  height: 52px;
+  gap: 8px;
+  padding: 12px 18px;
   background: #0d9488;
   color: #fff;
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  border: 2px solid rgba(255,255,255,0.6);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Noto Sans', sans-serif;
+  letter-spacing: -0.01em;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
 }
-.spot-float:active { transform: scale(0.95); }
+.spot-float svg { flex-shrink: 0; }
+.spot-float:active { transform: scale(0.97); }
 @media (max-width: 1024px) { .spot-float { display: flex; } }
 @media (pointer: coarse) { .spot-float { display: flex; } }
 
