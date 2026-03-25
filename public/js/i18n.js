@@ -60,6 +60,8 @@ const translations = {
     status_fishing_status: 'Fishing',
     status_sailing: 'Under Way Sailing',
     status_unknown: 'Unknown',
+    spot_title: "What's That Boat?",
+    spot_desc: 'Point your phone at any vessel to identify it',
   },
   vi: {
     app_title: 'Quy Nh\u01A1n Life',
@@ -122,6 +124,8 @@ const translations = {
     status_fishing_status: '\u0110ang \u0111\u00E1nh c\u00E1',
     status_sailing: '\u0110ang ch\u00E8o bu\u1ED3m',
     status_unknown: 'Kh\u00F4ng r\u00F5',
+    spot_title: '\u0110\u00F3 l\u00E0 t\u00E0u g\u00EC?',
+    spot_desc: 'Ch\u1EC9 \u0111i\u1EC7n tho\u1EA1i v\u00E0o t\u00E0u \u0111\u1EC3 nh\u1EADn d\u1EA1ng',
   },
   ko: {
     app_title: 'Quy Nhon Life',
@@ -184,6 +188,8 @@ const translations = {
     status_fishing_status: '\uC870\uC5C5 \uC911',
     status_sailing: '\uBC94\uC120 \uD56D\uD589',
     status_unknown: '\uBBF8\uC0C1',
+    spot_title: '\uC800 \uBC30\uB294 \uBB50\uC9C0?',
+    spot_desc: '\uD734\uB300\uD3F0\uC744 \uC120\uBC15\uC73C\uB85C \uAC00\uB9AC\uCF1C \uC2DD\uBCC4\uD558\uC138\uC694',
   },
   zh: {
     app_title: 'Quy Nhon Life',
@@ -246,6 +252,8 @@ const translations = {
     status_fishing_status: '\u4F5C\u4E1A\u4E2D',
     status_sailing: '\u5E06\u8239\u822A\u884C',
     status_unknown: '\u4E0D\u660E',
+    spot_title: '\u90A3\u662F\u4EC0\u4E48\u8239?',
+    spot_desc: '\u5C06\u624B\u673A\u5BF9\u51C6\u8239\u8236\u8FDB\u884C\u8BC6\u522B',
   },
   ja: {
     app_title: 'Quy Nhon Life',
@@ -308,6 +316,8 @@ const translations = {
     status_fishing_status: '\u64CD\u696D\u4E2D',
     status_sailing: '\u5E06\u8D70\u822A\u884C',
     status_unknown: '\u4E0D\u660E',
+    spot_title: '\u3042\u306E\u8239\u306F\u4F55?',
+    spot_desc: '\u30B9\u30DE\u30DB\u3092\u8239\u306B\u5411\u3051\u3066\u8B58\u5225',
   },
 };
 

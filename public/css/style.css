@@ -235,6 +235,67 @@ body {
   flex-shrink: 0;
 }
 
+/* ─── Spot CTA ─── */
+.spot-cta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: clamp(12px, 2vw, 20px);
+  text-decoration: none;
+  color: var(--ink);
+  transition: border-color 0.2s, transform 0.15s;
+  cursor: pointer;
+}
+.spot-cta:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.spot-cta:active { transform: scale(0.99); }
+
+.spot-cta-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(0, 113, 227, 0.08);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.spot-cta-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.spot-cta-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.spot-cta-desc {
+  display: block;
+  font-size: 13px;
+  color: var(--ink-tertiary);
+  margin-top: 1px;
+}
+
+.spot-cta-arrow {
+  font-size: 18px;
+  color: var(--ink-quaternary);
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+.spot-cta:hover .spot-cta-arrow { transform: translateX(3px); color: var(--accent); }
+
 /* ─── Map ─── */
 .map-wrapper {
   border-radius: 12px;
