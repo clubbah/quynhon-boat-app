@@ -420,27 +420,32 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 /* ════════════════════════════════════════
    MOBILE FAB
    ════════════════════════════════════════ */
-.spot-fab {
-  display: flex !important;
-  position: fixed;
-  bottom: 80px;
-  right: 20px;
-  z-index: 9999;
-  width: 56px;
-  height: 56px;
-  background-color: #0d9488;
-  color: #ffffff;
+/* Mobile spot button — inline, always works */
+.spot-mobile {
+  display: none;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  gap: 10px;
+  margin: 20px auto;
+  padding: 14px 24px;
+  max-width: 400px;
+  background: var(--teal);
+  color: #fff;
   text-decoration: none;
-  border: 2px solid #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  border-left: 4px solid var(--teal-deep);
 }
-.spot-fab svg { display: block; }
-.spot-fab:hover { background-color: #0a7c72; }
-/* Hide FAB on large desktops with mouse */
-@media (min-width: 769px) and (pointer: fine) {
-  .spot-fab { display: none !important; }
+.spot-mobile:hover { background: var(--teal-deep); }
+.spot-mobile svg { flex-shrink: 0; }
+
+/* Show only on mobile / touch */
+@media (max-width: 1024px) {
+  .spot-mobile { display: flex; }
+}
+@media (pointer: coarse) {
+  .spot-mobile { display: flex; }
 }
 
 /* ════════════════════════════════════════
@@ -453,7 +458,6 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 
   .vessel-below { flex-direction: column; gap: 0; }
   .spot-feature { display: none; }
-  .spot-fab { display: flex; }
   .votd-strip { border-left: none; border-top: 1px solid var(--rule); padding: 12px 0; }
 
   .explore-grid { grid-template-columns: 1fr; }

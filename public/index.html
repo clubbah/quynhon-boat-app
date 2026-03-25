@@ -156,11 +156,6 @@
 
   </main>
 
-  <!-- TEST: Inline spot link -->
-  <div style="text-align:center; padding:20px; background:#0d9488; margin:20px auto; max-width:300px;">
-    <a href="/spot?key=test123" style="color:white; font-size:18px; font-weight:bold; text-decoration:none;">TEST: Identify a Vessel</a>
-  </div>
-
   <footer class="site-footer">
     <p id="footer-text">Quy Nhon Life &mdash; Tracking the waters of central Vietnam</p>
   </footer>
@@ -199,9 +194,10 @@
     <div class="card-footer"><span id="card-updated"></span></div>
   </div>
 
-  <!-- Mobile FAB -->
-  <a class="spot-fab" href="/spot?key=test123" title="Identify a vessel">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+  <!-- Mobile spot button (inline, not fixed) -->
+  <a class="spot-mobile" href="/spot?key=test123">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="18" r="1"/><line x1="9" y1="6" x2="15" y2="6"/></svg>
+    <span data-i18n="spot_title">See a boat? Identify it instantly.</span>
   </a>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
