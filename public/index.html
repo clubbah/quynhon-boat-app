@@ -68,11 +68,11 @@
 
       <!-- Legend overlay -->
       <div class="map-legend" id="map-legend">
-        <div class="legend-item"><span class="legend-dot" style="background:#2563eb"></span>Cargo</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#dc2626"></span>Tanker</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#16a34a"></span>Passenger</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#ca8a04"></span>Fishing</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#6b7280"></span>Other</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#2563eb"></span><span data-i18n="legend_cargo">Cargo</span></div>
+        <div class="legend-item"><span class="legend-dot" style="background:#dc2626"></span><span data-i18n="legend_tanker">Tanker</span></div>
+        <div class="legend-item"><span class="legend-dot" style="background:#16a34a"></span><span data-i18n="legend_passenger">Passenger</span></div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ca8a04"></span><span data-i18n="legend_fishing">Fishing</span></div>
+        <div class="legend-item"><span class="legend-dot" style="background:#6b7280"></span><span data-i18n="legend_other">Other</span></div>
       </div>
 
       <!-- Recenter button -->
@@ -89,30 +89,30 @@
       <div class="activity-grid">
         <!-- Port Stats -->
         <div class="activity-card">
-          <h3 class="activity-title">Port Overview</h3>
+          <h3 class="activity-title" data-i18n="port_overview">Port Overview</h3>
           <div class="stat-grid" id="port-stat-grid">
             <div class="port-stat">
               <span class="port-stat-value" id="ps-total">--</span>
-              <span class="port-stat-label">Total Vessels</span>
+              <span class="port-stat-label" data-i18n="total_vessels">Total Vessels</span>
             </div>
             <div class="port-stat">
               <span class="port-stat-value" id="ps-moving">--</span>
-              <span class="port-stat-label">Underway</span>
+              <span class="port-stat-label" data-i18n="underway">Underway</span>
             </div>
             <div class="port-stat">
               <span class="port-stat-value" id="ps-anchored">--</span>
-              <span class="port-stat-label">Anchored</span>
+              <span class="port-stat-label" data-i18n="anchored">Anchored</span>
             </div>
             <div class="port-stat">
               <span class="port-stat-value" id="ps-recent">--</span>
-              <span class="port-stat-label">Active Today</span>
+              <span class="port-stat-label" data-i18n="active_today">Active Today</span>
             </div>
           </div>
         </div>
 
         <!-- Vessel of the Day -->
         <div class="activity-card" id="votd-card">
-          <h3 class="activity-title">Largest Vessel</h3>
+          <h3 class="activity-title" data-i18n="largest_vessel">Largest Vessel</h3>
           <div class="votd-content" id="votd-content">
             <div class="votd-name" id="votd-name">--</div>
             <div class="votd-details" id="votd-details"></div>
@@ -122,17 +122,17 @@
 
       <!-- Recent Activity -->
       <div class="activity-card activity-full">
-        <h3 class="activity-title">Recent Activity</h3>
+        <h3 class="activity-title" data-i18n="recent_activity">Recent Activity</h3>
         <div class="activity-table-wrap">
           <table class="activity-table" id="activity-table">
             <thead>
               <tr>
-                <th>Vessel</th>
-                <th>Type</th>
-                <th>Flag</th>
-                <th>Status</th>
-                <th>Destination</th>
-                <th>Updated</th>
+                <th data-i18n="th_vessel">Vessel</th>
+                <th data-i18n="th_type">Type</th>
+                <th data-i18n="th_flag">Flag</th>
+                <th data-i18n="th_status">Status</th>
+                <th data-i18n="th_destination">Destination</th>
+                <th data-i18n="th_updated">Updated</th>
               </tr>
             </thead>
             <tbody id="activity-tbody"></tbody>

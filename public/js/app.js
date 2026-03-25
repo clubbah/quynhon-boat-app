@@ -113,18 +113,39 @@ function initControls() {
   document.getElementById('lang-toggle').addEventListener('click', () => {
     const next = toggleLang();
     document.getElementById('lang-toggle').textContent = next === 'en' ? 'VI' : 'EN';
-    document.getElementById('app-title').textContent = t('app_title');
-    document.getElementById('hero-description').textContent = t('hero_description');
-    document.getElementById('footer-text').textContent = t('footer_text');
-    document.getElementById('search-input').placeholder = t('search_placeholder');
-    updateStats();
-
-    const filterAll = document.querySelector('#type-filter option[value="all"]');
-    if (filterAll) filterAll.textContent = t('filter_all');
-
-    const sel = getSelectedMmsi();
-    if (sel && vessels[sel]) showPanel(vessels[sel]);
+    translatePage();
   });
+}
+
+function translatePage() {
+  // Core elements
+  document.getElementById('app-title').textContent = t('app_title');
+  document.getElementById('hero-description').textContent = t('hero_description');
+  document.getElementById('footer-text').textContent = t('footer_text');
+  document.getElementById('search-input').placeholder = t('search_placeholder');
+
+  // All data-i18n elements
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+
+  // Filter dropdown options
+  const filterOptions = {
+    all: 'filter_all', Cargo: 'filter_cargo', Tanker: 'filter_tanker',
+    Passenger: 'filter_passenger', Fishing: 'filter_fishing', Other: 'filter_other',
+  };
+  document.querySelectorAll('#type-filter option').forEach(opt => {
+    const key = filterOptions[opt.value];
+    if (key) opt.textContent = t(key);
+  });
+
+  // Refresh dynamic content
+  updateStats();
+  fetchPortStats();
+
+  // Update vessel card if open
+  const sel = getSelectedMmsi();
+  if (sel && vessels[sel]) showPanel(vessels[sel]);
 
   document.getElementById('type-filter').addEventListener('change', (e) => {
     filterMarkersByType(e.target.value);
