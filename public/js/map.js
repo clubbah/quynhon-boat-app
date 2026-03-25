@@ -16,7 +16,7 @@ let pendingUpdates = []; // buffer updates until map loads
 export function initMap() {
   map = new maplibregl.Map({
     container: 'map',
-    style: `https://api.maptiler.com/maps/hybrid/style.json?key=${MAPTILER_KEY}`,
+    style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,
     center: MAP_CENTER,
     zoom: DEFAULT_ZOOM,
     pitch: DEFAULT_PITCH,
