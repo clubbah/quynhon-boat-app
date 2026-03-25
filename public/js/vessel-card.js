@@ -5,11 +5,16 @@ const $ = (id) => document.getElementById(id);
 
 export function showPanel(vessel) {
   const card = $('vessel-card');
-  const flag = getFlagEmoji(vessel.flag_country);
+  const countryCode = (vessel.flag_country || '').toLowerCase();
   const typeLabel = vessel.vessel_type_label || 'Other';
   const color = getColorForType(typeLabel);
 
-  $('card-flag').textContent = flag;
+  const flagEl = $('card-flag');
+  if (countryCode) {
+    flagEl.innerHTML = `<img src="https://flagcdn.com/32x24/${countryCode}.png" alt="${countryCode}" style="width:32px;height:24px;border-radius:3px;object-fit:cover;" />`;
+  } else {
+    flagEl.textContent = '\u{1F6A2}';
+  }
   $('card-name').textContent = vessel.name || vessel.mmsi;
   $('card-type-badge').textContent = typeLabel;
   $('card-type-badge').style.background = color;
