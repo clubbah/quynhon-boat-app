@@ -340,7 +340,13 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 }
 .activity-table tr:last-child td { border-bottom: none; }
 .activity-table tr:hover td { background: var(--teal-wash); }
-.activity-table .vessel-name-cell { font-weight: 600; color: var(--ink); }
+.activity-table .vessel-name-cell { font-weight: 600; }
+.vessel-link {
+  color: var(--ink); text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s, color 0.15s;
+}
+.vessel-link:hover { color: var(--teal); border-bottom-color: var(--teal); }
 .activity-table .flag-cell img {
   width: 20px; height: 15px; object-fit: cover; vertical-align: middle;
 }

@@ -344,7 +344,7 @@ async function fetchPortStats() {
       const flagImg = cc ? `<img src="https://flagcdn.com/20x15/${cc}.png" />` : '';
       const time = v.updated_at ? new Date(v.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
       return `<tr>
-        <td class="vessel-name-cell">${v.name || v.mmsi}</td>
+        <td class="vessel-name-cell"><a class="vessel-link" data-mmsi="${v.mmsi}" href="#">${v.name || v.mmsi}</a></td>
         <td>${tType(v.vessel_type_label)}</td>
         <td class="flag-cell">${flagImg}</td>
         <td>${tStatus(v.nav_status_label, v.speed)}</td>
@@ -352,6 +352,19 @@ async function fetchPortStats() {
         <td class="time-cell">${time}</td>
       </tr>`;
     }).join('');
+
+    // Make vessel names clickable
+    tbody.querySelectorAll('.vessel-link').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const mmsi = link.dataset.mmsi;
+        const vessel = vessels[mmsi];
+        if (vessel) {
+          onVesselClick(vessel);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
+    });
   } catch (err) {
     console.error('Port stats fetch failed:', err);
   }
