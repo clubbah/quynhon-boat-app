@@ -1,6 +1,6 @@
 import { initMap, updateVesselMarker, showTrack, clearTrack, setSelectedMmsi, getSelectedMmsi, filterMarkersByType, setMapClickHandler, flyToVessel, recenterMap } from './map.js';
 import { showPanel, hidePanel, initPanel } from './vessel-card.js';
-import { t, toggleLang, tType, tStatus } from './i18n.js';
+import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js';
 
 // State
 let vessels = {};
@@ -110,10 +110,28 @@ function updateLiveIndicator() {
 }
 
 function initControls() {
-  document.getElementById('lang-toggle').addEventListener('click', () => {
-    const next = toggleLang();
-    document.getElementById('lang-toggle').textContent = next === 'en' ? 'VI' : 'EN';
+  // Build language flag switcher
+  const switcher = document.getElementById('lang-switcher');
+  const languages = getLanguages();
+  const current = getLang();
+
+  switcher.innerHTML = languages.map(l =>
+    `<img class="lang-flag${l.code === current ? ' active' : ''}" src="https://flagcdn.com/24x18/${l.flag}.png" alt="${l.label}" title="${l.label}" data-lang="${l.code}" />`
+  ).join('');
+
+  switcher.addEventListener('click', (e) => {
+    const flag = e.target.closest('.lang-flag');
+    if (!flag) return;
+    const lang = flag.dataset.lang;
+    setLang(lang);
+    switcher.querySelectorAll('.lang-flag').forEach(f => f.classList.remove('active'));
+    flag.classList.add('active');
     translatePage();
+  });
+
+  // Recenter button
+  document.getElementById('map-recenter').addEventListener('click', () => {
+    recenterMap();
   });
 }
 
@@ -127,16 +145,6 @@ function translatePage() {
   // All data-i18n elements
   document.querySelectorAll('[data-i18n]').forEach(el => {
     el.textContent = t(el.dataset.i18n);
-  });
-
-  // Filter dropdown options
-  const filterOptions = {
-    all: 'filter_all', Cargo: 'filter_cargo', Tanker: 'filter_tanker',
-    Passenger: 'filter_passenger', Fishing: 'filter_fishing', Other: 'filter_other',
-  };
-  document.querySelectorAll('#type-filter option').forEach(opt => {
-    const key = filterOptions[opt.value];
-    if (key) opt.textContent = t(key);
   });
 
   // Refresh dynamic content
