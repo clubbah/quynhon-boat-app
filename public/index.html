@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quy Nhon Life — Live Vessel Tracking</title>
+  <title>Quy Nhon Life — Your Guide to Coastal Vietnam</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,108 +13,129 @@
 </head>
 <body>
 
-  <header class="site-header">
-    <div class="header-inner">
-      <div class="lang-switcher" id="lang-switcher"></div>
-    </div>
-  </header>
-
-  <main class="page-content">
-    <section class="hero">
-      <h1 class="site-title" id="app-title">Quy Nhon Life</h1>
-      <p class="hero-description" id="hero-description">Live vessel tracking in Quy Nhon</p>
-      <div class="vessel-stats" id="vessel-stats">
-        <div class="stat-badge">
-          <span class="stat-total" id="stat-total">0 vessels</span>
-          <span class="badge-sep"></span>
-          <span class="stat-live" id="stat-live"></span>
-        </div>
+  <!-- ── Masthead ── -->
+  <header class="masthead">
+    <div class="masthead-inner">
+      <div class="masthead-left">
+        <h1 class="masthead-title" id="app-title">Quy Nhon Life</h1>
+        <p class="masthead-sub" id="hero-description">Your guide to coastal life in Quy Nhon</p>
       </div>
-    </section>
-
-    <!-- Context Row: Weather + Spot -->
-    <div class="context-row">
-      <section class="weather-bar" id="weather-bar">
-        <div class="weather-main">
+      <div class="masthead-right">
+        <div class="masthead-weather" id="weather-bar">
           <span class="weather-icon" id="weather-icon"></span>
           <span class="weather-temp" id="weather-temp">--</span>
           <span class="weather-desc" id="weather-desc"></span>
-        </div>
-        <div class="weather-details">
           <span class="weather-detail" id="weather-wind"></span>
           <span class="weather-detail" id="weather-humidity"></span>
           <span class="weather-detail" id="weather-waves"></span>
-        </div>
-        <div class="weather-sun">
           <span class="weather-detail" id="weather-sunrise"></span>
           <span class="weather-detail" id="weather-sunset"></span>
         </div>
-      </section>
-
-      <a class="spot-feature" id="spot-cta" href="/spot?key=test123">
-        <span class="spot-feature-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="3"/><circle cx="12" cy="18" r="1"/><line x1="9" y1="6" x2="15" y2="6"/></svg>
-        </span>
-        <span class="spot-feature-text">
-          <span class="spot-feature-title" data-i18n="spot_title">See a boat? Identify it instantly.</span>
-          <span class="spot-feature-link"><span data-i18n="spot_cta">Identify a vessel</span> &rarr;</span>
-        </span>
-      </a>
+        <div class="lang-switcher" id="lang-switcher"></div>
+      </div>
     </div>
+  </header>
 
-    <section class="map-wrapper">
-      <div id="map"></div>
+  <main>
 
-      <!-- Map hint -->
-      <div class="map-hint" id="map-hint" data-i18n="map_hint">Tap any vessel for details</div>
+    <!-- ── Live Vessels Section ── -->
+    <section class="section section--vessels">
+      <div class="section-inner">
+        <div class="section-header">
+          <span class="section-label">Live Vessels</span>
+          <div class="vessel-stats" id="vessel-stats">
+            <div class="stat-badge">
+              <span class="stat-total" id="stat-total">0 vessels</span>
+              <span class="badge-sep"></span>
+              <span class="stat-live" id="stat-live"></span>
+            </div>
+          </div>
+        </div>
 
-      <!-- Search bar overlay -->
-      <div class="map-search" id="map-search">
-        <input type="text" id="search-input" placeholder="Search vessel name..." autocomplete="off" />
-        <div class="search-results hidden" id="search-results"></div>
+        <div class="port-strip">
+          <div class="port-strip-item"><span class="port-strip-value" id="ps-total">--</span> <span class="port-strip-label" data-i18n="total_vessels">vessels</span></div>
+          <span class="port-strip-sep">&middot;</span>
+          <div class="port-strip-item"><span class="port-strip-value" id="ps-moving">--</span> <span class="port-strip-label" data-i18n="underway">underway</span></div>
+          <span class="port-strip-sep">&middot;</span>
+          <div class="port-strip-item"><span class="port-strip-value" id="ps-anchored">--</span> <span class="port-strip-label" data-i18n="anchored">anchored</span></div>
+          <span class="port-strip-sep">&middot;</span>
+          <div class="port-strip-item"><span class="port-strip-value" id="ps-recent">--</span> <span class="port-strip-label" data-i18n="active_today">active today</span></div>
+        </div>
       </div>
 
-      <!-- Legend overlay -->
-      <div class="map-legend" id="map-legend">
-        <div class="legend-item"><span class="legend-dot" style="background:#2563eb"></span><span data-i18n="legend_cargo">Cargo</span></div>
-        <div class="legend-item"><span class="legend-dot" style="background:#dc2626"></span><span data-i18n="legend_tanker">Tanker</span></div>
-        <div class="legend-item"><span class="legend-dot" style="background:#16a34a"></span><span data-i18n="legend_passenger">Passenger</span></div>
-        <div class="legend-item"><span class="legend-dot" style="background:#ca8a04"></span><span data-i18n="legend_fishing">Fishing</span></div>
-        <div class="legend-item"><span class="legend-dot" style="background:#6b7280"></span><span data-i18n="legend_other">Other</span></div>
+      <!-- Map: full bleed -->
+      <div class="map-wrapper">
+        <div id="map"></div>
+        <div class="map-hint" id="map-hint" data-i18n="map_hint">Tap any vessel for details</div>
+        <div class="map-search" id="map-search">
+          <input type="text" id="search-input" placeholder="Search vessel name..." autocomplete="off" />
+          <div class="search-results hidden" id="search-results"></div>
+        </div>
+        <div class="map-legend" id="map-legend">
+          <div class="legend-item"><span class="legend-dot" style="background:#2563eb"></span><span data-i18n="legend_cargo">Cargo</span></div>
+          <div class="legend-item"><span class="legend-dot" style="background:#dc2626"></span><span data-i18n="legend_tanker">Tanker</span></div>
+          <div class="legend-item"><span class="legend-dot" style="background:#16a34a"></span><span data-i18n="legend_passenger">Passenger</span></div>
+          <div class="legend-item"><span class="legend-dot" style="background:#ca8a04"></span><span data-i18n="legend_fishing">Fishing</span></div>
+          <div class="legend-item"><span class="legend-dot" style="background:#6b7280"></span><span data-i18n="legend_other">Other</span></div>
+        </div>
+        <button class="map-recenter" id="map-recenter" title="Recenter on Quy Nhon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+          </svg>
+        </button>
       </div>
 
-      <!-- Recenter button -->
-      <button class="map-recenter" id="map-recenter" title="Recenter on Quy Nhon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
-        </svg>
-      </button>
+      <!-- Spot + Largest vessel -->
+      <div class="section-inner vessel-below">
+        <a class="spot-feature" id="spot-cta" href="/spot?key=test123">
+          <span class="spot-feature-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="18" r="1"/><line x1="9" y1="6" x2="15" y2="6"/></svg>
+          </span>
+          <span class="spot-feature-text">
+            <span class="spot-feature-title" data-i18n="spot_title">See a boat? Identify it instantly.</span>
+            <span class="spot-feature-desc" data-i18n="spot_desc">Use your phone to point at any vessel nearby, from the beach, the port, or your balcony, and find out its name, flag, speed, and more.</span>
+            <span class="spot-feature-link"><span data-i18n="spot_cta">Identify a vessel</span> &rarr;</span>
+          </span>
+        </a>
+        <div class="votd-strip" id="votd-card">
+          <span class="votd-label" data-i18n="largest_vessel">Largest vessel</span>
+          <span class="votd-name" id="votd-name">--</span>
+          <span class="votd-details" id="votd-details"></span>
+        </div>
+      </div>
     </section>
-  </main>
 
-    <!-- Below Map: Port Activity -->
-    <section class="port-activity" id="port-activity">
-      <!-- Port Stats Strip -->
-      <div class="port-strip">
-        <div class="port-strip-item"><span class="port-strip-value" id="ps-total">--</span> <span class="port-strip-label" data-i18n="total_vessels">vessels</span></div>
-        <span class="port-strip-sep">&middot;</span>
-        <div class="port-strip-item"><span class="port-strip-value" id="ps-moving">--</span> <span class="port-strip-label" data-i18n="underway">underway</span></div>
-        <span class="port-strip-sep">&middot;</span>
-        <div class="port-strip-item"><span class="port-strip-value" id="ps-anchored">--</span> <span class="port-strip-label" data-i18n="anchored">anchored</span></div>
-        <span class="port-strip-sep">&middot;</span>
-        <div class="port-strip-item"><span class="port-strip-value" id="ps-recent">--</span> <span class="port-strip-label" data-i18n="active_today">active today</span></div>
+    <!-- ── Explore Section (Coming Soon) ── -->
+    <section class="section section--explore">
+      <div class="section-inner">
+        <span class="section-label">Explore Quy Nhon</span>
+        <div class="explore-grid">
+          <div class="explore-card">
+            <span class="explore-emoji">&#127860;</span>
+            <span class="explore-card-title">Eat &amp; Drink</span>
+            <span class="explore-card-desc">Local restaurants, seafood spots, and coffee shops</span>
+            <span class="explore-card-tag">Coming soon</span>
+          </div>
+          <div class="explore-card">
+            <span class="explore-emoji">&#127958;</span>
+            <span class="explore-card-title">Beach Guide</span>
+            <span class="explore-card-desc">Best beaches, swimming conditions, and hidden coves</span>
+            <span class="explore-card-tag">Coming soon</span>
+          </div>
+          <div class="explore-card">
+            <span class="explore-emoji">&#128652;</span>
+            <span class="explore-card-title">Getting Around</span>
+            <span class="explore-card-desc">Transport tips, routes, and local travel advice</span>
+            <span class="explore-card-tag">Coming soon</span>
+          </div>
+        </div>
       </div>
+    </section>
 
-      <!-- Largest Vessel -->
-      <div class="votd-strip" id="votd-card">
-        <span class="votd-label" data-i18n="largest_vessel">Largest vessel</span>
-        <span class="votd-name" id="votd-name">--</span>
-        <span class="votd-details" id="votd-details"></span>
-      </div>
-
-      <!-- Recent Activity -->
-      <div class="activity-card activity-full">
-        <h3 class="activity-title" data-i18n="recent_activity">Recent Activity</h3>
+    <!-- ── Recent Activity Section ── -->
+    <section class="section section--activity" id="port-activity">
+      <div class="section-inner">
+        <span class="section-label" data-i18n="recent_activity">Recent Activity</span>
         <div class="activity-table-wrap">
           <table class="activity-table" id="activity-table">
             <thead>
@@ -132,13 +153,14 @@
         </div>
       </div>
     </section>
+
   </main>
 
   <footer class="site-footer">
     <p id="footer-text">Quy Nhon Life &mdash; Tracking the waters of central Vietnam</p>
   </footer>
 
-  <!-- Vessel Card (popup on click) -->
+  <!-- Vessel Card -->
   <div id="vessel-card" class="vessel-card hidden">
     <button id="card-close" class="card-close">&times;</button>
     <div class="card-header">
@@ -169,12 +191,10 @@
         <div class="card-row"><span class="card-label" id="label-callsign">Call Sign</span><span class="card-value" id="card-callsign"></span></div>
       </div>
     </div>
-    <div class="card-footer">
-      <span id="card-updated"></span>
-    </div>
+    <div class="card-footer"><span id="card-updated"></span></div>
   </div>
 
-  <!-- Mobile FAB for spot feature -->
+  <!-- Mobile FAB -->
   <a class="spot-fab" href="/spot?key=test123" title="Identify a vessel">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
   </a>

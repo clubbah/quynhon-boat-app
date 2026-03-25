@@ -1,7 +1,7 @@
 const translations = {
   en: {
     app_title: 'Quy Nhon Life',
-    hero_description: 'Live vessel tracking in Quy Nhon',
+    hero_description: 'Your guide to coastal life in Quy Nhon',
     vessels: 'vessels',
     speed: 'Speed',
     destination: 'Destination',
@@ -88,7 +88,7 @@ const translations = {
   },
   vi: {
     app_title: 'Quy Nh\u01A1n Life',
-    hero_description: 'Theo d\u00F5i t\u00E0u tr\u1EF1c ti\u1EBFp t\u1EA1i Quy Nh\u01A1n',
+    hero_description: 'C\u1EA9m nang cu\u1ED9c s\u1ED1ng ven bi\u1EC3n Quy Nh\u01A1n',
     vessels: 't\u00E0u',
     speed: 'T\u1ED1c \u0111\u1ED9',
     destination: '\u0110i\u1EC3m \u0111\u1EBFn',
@@ -175,7 +175,7 @@ const translations = {
   },
   ko: {
     app_title: 'Quy Nhon Life',
-    hero_description: '\uADC0\uB2CC \uC2E4\uC2DC\uAC04 \uC120\uBC15 \uCD94\uC801',
+    hero_description: '\uADC0\uB2CC \uD574\uC548 \uC0DD\uD65C \uAC00\uC774\uB4DC',
     vessels: '\uC120\uBC15',
     speed: '\uC18D\uB3C4',
     destination: '\uBAA9\uC801\uC9C0',
@@ -262,7 +262,7 @@ const translations = {
   },
   zh: {
     app_title: 'Quy Nhon Life',
-    hero_description: '\u5F52\u4EC1\u5B9E\u65F6\u8239\u8236\u8FFD\u8E2A',
+    hero_description: '\u5F52\u4EC1\u6D77\u5CB8\u751F\u6D3B\u6307\u5357',
     vessels: '\u8239\u8236',
     speed: '\u901F\u5EA6',
     destination: '\u76EE\u7684\u5730',
@@ -349,7 +349,7 @@ const translations = {
   },
   ja: {
     app_title: 'Quy Nhon Life',
-    hero_description: '\u30AF\u30A4\u30CB\u30E7\u30F3\u30EA\u30A2\u30EB\u30BF\u30A4\u30E0\u8239\u8236\u8FFD\u8DE1',
+    hero_description: '\u30AF\u30A4\u30CB\u30E7\u30F3\u6D77\u5CB8\u30E9\u30A4\u30D5\u30AC\u30A4\u30C9',
     vessels: '\u96BB',
     speed: '\u901F\u529B',
     destination: '\u76EE\u7684\u5730',
