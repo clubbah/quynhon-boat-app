@@ -1,6 +1,6 @@
 import { initMap, updateVesselMarker, showTrack, clearTrack, setSelectedMmsi, getSelectedMmsi, filterMarkersByType, setMapClickHandler, flyToVessel, recenterMap } from './map.js';
 import { showPanel, hidePanel, initPanel } from './vessel-card.js';
-import { t, toggleLang } from './i18n.js';
+import { t, toggleLang, tType, tStatus } from './i18n.js';
 
 // State
 let vessels = {};
@@ -308,9 +308,9 @@ async function fetchPortStats() {
       const time = v.updated_at ? new Date(v.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
       return `<tr>
         <td class="vessel-name-cell">${v.name || v.mmsi}</td>
-        <td>${v.vessel_type_label || '-'}</td>
+        <td>${tType(v.vessel_type_label)}</td>
         <td class="flag-cell">${flagImg}</td>
-        <td>${v.nav_status_label || (v.speed > 0.5 ? 'Moving' : 'Stopped')}</td>
+        <td>${tStatus(v.nav_status_label, v.speed)}</td>
         <td>${v.destination || '-'}</td>
         <td class="time-cell">${time}</td>
       </tr>`;

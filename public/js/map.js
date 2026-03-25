@@ -1,8 +1,8 @@
 import { getFlagEmoji, getColorForType, getCountryName } from './vessel-icons.js';
 
 const MAPTILER_KEY = 'CKY69E5ib1MMQDfWMRvg';
-const MAP_CENTER = [109.23, 13.76];
-const DEFAULT_ZOOM = 13;
+const MAP_CENTER = [109.22, 13.77]; // Quy Nhon port area
+const DEFAULT_ZOOM = window.innerWidth < 768 ? 12.5 : 13;
 
 let map;
 let vesselData = {};    // mmsi → vessel

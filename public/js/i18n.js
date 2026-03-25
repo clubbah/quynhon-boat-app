@@ -56,6 +56,19 @@ const translations = {
     live_data: 'Live Data',
     moving: 'Moving',
     stopped: 'Stopped',
+    type_cargo: 'Cargo',
+    type_tanker: 'Tanker',
+    type_passenger: 'Passenger',
+    type_fishing: 'Fishing',
+    type_other: 'Other',
+    status_underway: 'Under Way',
+    status_anchored: 'At Anchor',
+    status_moored: 'Moored',
+    status_not_commanded: 'Not Under Command',
+    status_restricted: 'Restricted Maneuverability',
+    status_aground: 'Aground',
+    status_fishing_status: 'Fishing',
+    status_sailing: 'Under Way Sailing',
   },
   vi: {
     app_title: 'Quy Nh\u01A1n Life',
@@ -114,6 +127,19 @@ const translations = {
     live_data: 'Tr\u1EF1c Ti\u1EBFp',
     moving: '\u0110ang di chuy\u1EC3n',
     stopped: 'D\u1EEBng',
+    type_cargo: 'H\u00E0ng',
+    type_tanker: 'D\u1EA7u',
+    type_passenger: 'Kh\u00E1ch',
+    type_fishing: '\u0110\u00E1nh c\u00E1',
+    type_other: 'Kh\u00E1c',
+    status_underway: '\u0110ang ch\u1EA1y',
+    status_anchored: 'Neo \u0111\u1EADu',
+    status_moored: 'C\u1EADp c\u1EA3ng',
+    status_not_commanded: 'Kh\u00F4ng \u0111i\u1EC1u khi\u1EC3n',
+    status_restricted: 'H\u1EA1n ch\u1EBF c\u01A1 \u0111\u1ED9ng',
+    status_aground: 'M\u1EAFc c\u1EA1n',
+    status_fishing_status: '\u0110ang \u0111\u00E1nh c\u00E1',
+    status_sailing: '\u0110ang ch\u00E8o bu\u1ED3m',
   },
 };
 
@@ -130,6 +156,34 @@ export function getLang() {
 export function setLang(lang) {
   currentLang = lang;
   localStorage.setItem('lang', lang);
+}
+
+const TYPE_MAP = {
+  Cargo: 'type_cargo', Tanker: 'type_tanker', Passenger: 'type_passenger',
+  Fishing: 'type_fishing', Other: 'type_other',
+};
+
+const STATUS_MAP = {
+  'Under Way Using Engine': 'status_underway', 'Under Way': 'status_underway',
+  'At Anchor': 'status_anchored', 'Moored': 'status_moored',
+  'Not Under Command': 'status_not_commanded',
+  'Restricted Maneuverability': 'status_restricted', 'Aground': 'status_aground',
+  'Engaged In Fishing': 'status_fishing_status', 'Fishing': 'status_fishing_status',
+  'Under Way Sailing': 'status_sailing',
+};
+
+export function tType(typeLabel) {
+  const key = TYPE_MAP[typeLabel];
+  return key ? t(key) : (typeLabel || '-');
+}
+
+export function tStatus(statusLabel, speed) {
+  if (statusLabel) {
+    const key = STATUS_MAP[statusLabel];
+    if (key) return t(key);
+    return statusLabel;
+  }
+  return speed > 0.5 ? t('moving') : t('stopped');
 }
 
 export function toggleLang() {

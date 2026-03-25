@@ -686,6 +686,7 @@ body {
   .activity-table { font-size: 12px; }
   .activity-table th, .activity-table td { padding: 8px 8px; }
   .map-search { width: 180px; }
+  .map-recenter { bottom: 12px; right: 12px; }
   .map-legend { gap: 8px; padding: 5px 10px; }
   .legend-item { font-size: 10px; }
 
