@@ -114,6 +114,14 @@ function parseAisCatcherMessage(msg) {
   const mmsi = String(msg.mmsi || msg.MMSI);
   if (!mmsi || mmsi === 'undefined') return null;
 
+  // Filter out non-vessels: buoys, beacons, base stations, AtoN (Aids to Navigation)
+  // MMSI ranges: 99x = AtoN, 00x = base stations, 970-979 = SART/MOB/EPIRB
+  if (mmsi.startsWith('99') || mmsi.startsWith('00') || mmsi.startsWith('970') ||
+      mmsi.startsWith('971') || mmsi.startsWith('972')) return null;
+  // AIS ship types for navigation aids
+  const navAidTypes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
+  if (msg.shiptype != null && navAidTypes.includes(msg.shiptype)) return null;
+
   const name = (msg.shipname || msg.name || '').trim() || null;
   const flag_country = msg.country || getFlagCountry(mmsi);
   const updated_at = msg.timestamp || new Date().toISOString();
