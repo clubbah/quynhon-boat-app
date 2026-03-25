@@ -1,4 +1,4 @@
-import { t } from './i18n.js';
+import { t, tType, tStatus } from './i18n.js';
 import { getFlagEmoji, getColorForType } from './vessel-icons.js';
 
 const $ = (id) => document.getElementById(id);
@@ -16,7 +16,7 @@ export function showPanel(vessel) {
     flagEl.textContent = '\u{1F6A2}';
   }
   $('card-name').textContent = vessel.name || vessel.mmsi;
-  $('card-type-badge').textContent = typeLabel;
+  $('card-type-badge').textContent = tType(typeLabel);
   $('card-type-badge').style.background = color;
 
   // Position section
@@ -26,7 +26,7 @@ export function showPanel(vessel) {
   $('label-course').textContent = t('course') + ' / ' + t('heading');
   $('card-course').textContent = formatCourseHeading(vessel);
   $('label-status').textContent = t('status');
-  $('card-status').textContent = vessel.nav_status_label || t('no_data');
+  $('card-status').textContent = vessel.nav_status_label ? tStatus(vessel.nav_status_label, vessel.speed) : t('no_data');
 
   // Voyage section
   $('card-section-voyage').textContent = t('voyage_section');
