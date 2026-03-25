@@ -420,33 +420,26 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 /* ════════════════════════════════════════
    MOBILE FAB
    ════════════════════════════════════════ */
-/* Mobile spot button — inline, always works */
-.spot-mobile {
+/* Floating spot button — visible on mobile/tablet */
+.spot-float {
   display: none;
+  position: fixed;
+  bottom: 80px;
+  right: 16px;
+  z-index: 9999;
+  width: 52px;
+  height: 52px;
+  background: #0d9488;
+  color: #fff;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  margin: 20px auto;
-  padding: 14px 24px;
-  max-width: 400px;
-  background: var(--teal);
-  color: #fff;
   text-decoration: none;
-  font-size: 14px;
-  font-weight: 600;
-  font-family: inherit;
-  border-left: 4px solid var(--teal-deep);
+  border: 2px solid rgba(255,255,255,0.6);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
 }
-.spot-mobile:hover { background: var(--teal-deep); }
-.spot-mobile svg { flex-shrink: 0; }
-
-/* Show only on mobile / touch */
-@media (max-width: 1024px) {
-  .spot-mobile { display: flex; }
-}
-@media (pointer: coarse) {
-  .spot-mobile { display: flex; }
-}
+.spot-float:active { transform: scale(0.95); }
+@media (max-width: 1024px) { .spot-float { display: flex; } }
+@media (pointer: coarse) { .spot-float { display: flex; } }
 
 /* ════════════════════════════════════════
    MOBILE
@@ -457,7 +450,7 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
   .masthead-weather { justify-content: flex-start; }
 
   .vessel-below { flex-direction: column; gap: 0; }
-  .spot-feature { display: none; }
+  .spot-feature { border-left: 3px solid var(--teal); }
   .votd-strip { border-left: none; border-top: 1px solid var(--rule); padding: 12px 0; }
 
   .explore-grid { grid-template-columns: 1fr; }
