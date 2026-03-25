@@ -43,9 +43,27 @@ const COUNTRY_FLAGS = {
   AU: '\u{1F1E6}\u{1F1FA}', Australia: '\u{1F1E6}\u{1F1FA}',
 };
 
+const COUNTRY_NAMES = {
+  VN: 'Vietnam', CN: 'China', TW: 'Taiwan', JP: 'Japan', KR: 'South Korea',
+  SG: 'Singapore', ID: 'Indonesia', PH: 'Philippines', MY: 'Malaysia', TH: 'Thailand',
+  PA: 'Panama', LR: 'Liberia', MH: 'Marshall Islands', MT: 'Malta', BS: 'Bahamas',
+  HK: 'Hong Kong', US: 'United States', GB: 'United Kingdom', DE: 'Germany',
+  NL: 'Netherlands', FR: 'France', NO: 'Norway', DK: 'Denmark', RU: 'Russia',
+  IN: 'India', AU: 'Australia', KH: 'Cambodia', MM: 'Myanmar', LA: 'Laos',
+  BD: 'Bangladesh', LK: 'Sri Lanka', AE: 'UAE', SA: 'Saudi Arabia',
+  GR: 'Greece', IT: 'Italy', ES: 'Spain', TR: 'Turkey', BR: 'Brazil',
+  CY: 'Cyprus', BZ: 'Belize', AG: 'Antigua', KN: 'St Kitts', VC: 'St Vincent',
+  TO: 'Tonga', WS: 'Samoa', PW: 'Palau', FJ: 'Fiji', NZ: 'New Zealand',
+};
+
 export function getFlagEmoji(country) {
   if (!country) return '\u{1F6A2}';
   return COUNTRY_FLAGS[country] || '\u{1F6A2}';
+}
+
+export function getCountryName(code) {
+  if (!code) return '';
+  return COUNTRY_NAMES[code] || code;
 }
 
 export function getColorForType(typeLabel) {

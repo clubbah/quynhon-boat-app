@@ -164,14 +164,52 @@ body {
 .vessel-popup .maplibregl-popup-content {
   background: var(--navy);
   color: var(--gray-50);
-  padding: 6px 12px;
-  border-radius: 8px;
+  padding: 8px 14px;
+  border-radius: 10px;
   font-size: 13px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.4;
 }
 .vessel-popup .maplibregl-popup-tip {
   border-top-color: var(--navy);
+}
+.vt-row1 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+.vt-flag {
+  font-size: 18px;
+  line-height: 1;
+}
+.vt-name {
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.vt-row2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--gray-400);
+}
+.vt-sep {
+  opacity: 0.5;
+}
+.vt-type {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.vt-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
 /* Vessel Card */

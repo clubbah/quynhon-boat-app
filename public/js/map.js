@@ -1,4 +1,4 @@
-import { getFlagEmoji, getColorForType } from './vessel-icons.js';
+import { getFlagEmoji, getColorForType, getCountryName } from './vessel-icons.js';
 
 const MAPTILER_KEY = 'CKY69E5ib1MMQDfWMRvg';
 const MAP_CENTER = [109.23, 13.76];
@@ -182,11 +182,22 @@ export function initMap() {
       if (!e.features || !e.features[0]) return;
       const props = e.features[0].properties;
       const flag = getFlagEmoji(props.flag_country);
+      const countryName = getCountryName(props.flag_country);
       const name = props.name || props.mmsi;
       const typeLabel = props.vessel_type_label || '';
-      popup.setLngLat(e.lngLat)
-        .setHTML(`<span style="margin-right:4px">${flag}</span><strong>${name}</strong>${typeLabel ? ` <span style="color:#64748b;font-size:12px">${typeLabel}</span>` : ''}`)
-        .addTo(map);
+      const typeColor = ICON_COLORS[typeLabel.toLowerCase()] || ICON_COLORS.other;
+
+      const html = `<div class="vt-row1">
+        <span class="vt-flag">${flag}</span>
+        <span class="vt-name">${name}</span>
+      </div>
+      <div class="vt-row2">
+        ${countryName ? `<span class="vt-country">${countryName}</span>` : ''}
+        ${countryName && typeLabel ? '<span class="vt-sep">&middot;</span>' : ''}
+        ${typeLabel ? `<span class="vt-type"><span class="vt-dot" style="background:${typeColor}"></span>${typeLabel}</span>` : ''}
+      </div>`;
+
+      popup.setLngLat(e.lngLat).setHTML(html).addTo(map);
     });
 
     map.on('mouseleave', 'vessel-icons', () => {
