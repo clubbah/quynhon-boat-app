@@ -35,7 +35,21 @@ app.post('/api/ais-feed', (req, res) => {
   }
 
   try {
-    const messages = Array.isArray(req.body) ? req.body : [req.body];
+    // Log first incoming message to understand AIS-catcher format
+    const raw = req.body;
+    console.log('[AIS-Feed] Received:', JSON.stringify(raw).substring(0, 500));
+
+    // AIS-catcher may wrap messages in a top-level object
+    let messages;
+    if (Array.isArray(raw)) {
+      messages = raw;
+    } else if (raw.msgs && Array.isArray(raw.msgs)) {
+      messages = raw.msgs;
+    } else if (raw.values && Array.isArray(raw.values)) {
+      messages = raw.values;
+    } else {
+      messages = [raw];
+    }
     let count = 0;
 
     for (const msg of messages) {
