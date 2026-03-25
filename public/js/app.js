@@ -1,4 +1,4 @@
-import { initMap, updateVesselMarker, showTrack, clearTrack, setSelectedMmsi, getSelectedMmsi, filterMarkersByType, setMapClickHandler, flyToVessel, recenterMap } from './map.js';
+import { initMap, updateVesselMarker, showTrack, clearTrack, setSelectedMmsi, getSelectedMmsi, filterMarkersByType, setMapClickHandler, flyToVessel, recenterMap, highlightVessel, clearHighlight } from './map.js';
 import { showPanel, hidePanel, initPanel } from './vessel-card.js';
 import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js';
 
@@ -66,6 +66,9 @@ async function onVesselClick(vessel) {
   const hint = document.getElementById('map-hint');
   if (hint) hint.classList.add('hidden');
 
+  // Highlight selected vessel on map
+  highlightVessel(vessel.mmsi);
+
   // Smooth zoom to vessel
   if (current.lat && current.lng) {
     flyToVessel(current.lng, current.lat);
@@ -84,6 +87,7 @@ async function onVesselClick(vessel) {
 function onPanelClose() {
   hidePanel();
   clearTrack();
+  clearHighlight();
   setSelectedMmsi(null);
 }
 

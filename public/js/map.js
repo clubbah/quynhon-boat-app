@@ -126,6 +126,38 @@ export function initMap() {
         },
       });
 
+      // Selected vessel highlight
+      map.addSource('vessel-highlight', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      });
+      // Outer pulse ring
+      map.addLayer({
+        id: 'vessel-highlight-pulse',
+        type: 'circle',
+        source: 'vessel-highlight',
+        paint: {
+          'circle-radius': 24,
+          'circle-color': 'transparent',
+          'circle-stroke-color': '#f97316',
+          'circle-stroke-width': 2,
+          'circle-stroke-opacity': 0.6,
+        },
+      });
+      // Inner ring
+      map.addLayer({
+        id: 'vessel-highlight-ring',
+        type: 'circle',
+        source: 'vessel-highlight',
+        paint: {
+          'circle-radius': 16,
+          'circle-color': 'transparent',
+          'circle-stroke-color': '#f97316',
+          'circle-stroke-width': 3,
+          'circle-stroke-opacity': 0.9,
+        },
+      });
+
       // Track line source
       map.addSource('vessel-track', {
         type: 'geojson',
@@ -294,6 +326,27 @@ export function showTrack(positions) {
 export function clearTrack() {
   if (trackSource) {
     trackSource.setData({ type: 'FeatureCollection', features: [] });
+  }
+}
+
+export function highlightVessel(mmsi) {
+  if (!mapReady) return;
+  const src = map.getSource('vessel-highlight');
+  if (!src) return;
+  const v = vesselData[mmsi];
+  if (v && v.lat != null && v.lng != null) {
+    src.setData({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [v.lng, v.lat] },
+    });
+  }
+}
+
+export function clearHighlight() {
+  if (!mapReady) return;
+  const src = map.getSource('vessel-highlight');
+  if (src) {
+    src.setData({ type: 'FeatureCollection', features: [] });
   }
 }
 
