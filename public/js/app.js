@@ -136,8 +136,7 @@ function initControls() {
 }
 
 function translatePage() {
-  // Core elements
-  document.getElementById('app-title').textContent = t('app_title');
+  // Core elements (title never translates — stays "Quy Nhon Life")
   document.getElementById('hero-description').textContent = t('hero_description');
   document.getElementById('footer-text').textContent = t('footer_text');
   document.getElementById('search-input').placeholder = t('search_placeholder');
