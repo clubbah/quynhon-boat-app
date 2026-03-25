@@ -170,17 +170,16 @@ export function initMap() {
       map.getCanvas().style.cursor = '';
     });
 
-    // Tooltip popup on hover
+    // Tooltip popup on hover — use mousemove to update between adjacent vessels
     const popup = new maplibregl.Popup({
       closeButton: false,
       closeOnClick: false,
       offset: 12,
       className: 'vessel-popup',
     });
+    let hoveredMmsi = null;
 
-    map.on('mouseenter', 'vessel-icons', (e) => {
-      if (!e.features || !e.features[0]) return;
-      const props = e.features[0].properties;
+    function buildTooltipHtml(props) {
       const countryCode = (props.flag_country || '').toLowerCase();
       const countryName = getCountryName(props.flag_country);
       const name = props.name || props.mmsi;
@@ -190,7 +189,7 @@ export function initMap() {
         ? `<img class="vt-flag" src="https://flagcdn.com/24x18/${countryCode}.png" alt="${countryCode}" />`
         : '<span class="vt-flag">\u{1F6A2}</span>';
 
-      const html = `<div class="vt-row1">
+      return `<div class="vt-row1">
         ${flagImg}
         <span class="vt-name">${name}</span>
       </div>
@@ -199,11 +198,19 @@ export function initMap() {
         ${countryName && typeLabel ? '<span class="vt-sep">&middot;</span>' : ''}
         ${typeLabel ? `<span class="vt-type"><span class="vt-dot" style="background:${typeColor}"></span>${typeLabel}</span>` : ''}
       </div>`;
+    }
 
-      popup.setLngLat(e.lngLat).setHTML(html).addTo(map);
+    map.on('mousemove', 'vessel-icons', (e) => {
+      if (!e.features || !e.features[0]) return;
+      const props = e.features[0].properties;
+      if (props.mmsi !== hoveredMmsi) {
+        hoveredMmsi = props.mmsi;
+        popup.setLngLat(e.lngLat).setHTML(buildTooltipHtml(props)).addTo(map);
+      }
     });
 
     map.on('mouseleave', 'vessel-icons', () => {
+      hoveredMmsi = null;
       popup.remove();
     });
 
