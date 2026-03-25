@@ -378,7 +378,7 @@ const STATUS_MAP = {
   'At Anchor': 'status_anchored', 'Moored': 'status_moored',
   'Not Under Command': 'status_not_commanded',
   'Restricted Maneuverability': 'status_restricted', 'Aground': 'status_aground',
-  'Engaged In Fishing': 'status_fishing_status', 'Fishing': 'status_fishing_status',
+  'Engaged In Fishing': 'status_fishing_status', 'Engaged in Fishing': 'status_fishing_status', 'Fishing': 'status_fishing_status',
   'Under Way Sailing': 'status_sailing',
   'Unknown': 'status_unknown',
 };

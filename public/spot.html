@@ -372,7 +372,12 @@
 
     function translateStatus(label) {
       if (!label) return '--';
-      return statusMap[label] || label;
+      // Try exact match first, then case-insensitive
+      if (statusMap[label]) return statusMap[label];
+      for (const [key, val] of Object.entries(statusMap)) {
+        if (key.toLowerCase() === label.toLowerCase()) return val;
+      }
+      return label;
     }
 
     const TYPE_TRANSLATIONS = {
