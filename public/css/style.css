@@ -235,66 +235,65 @@ body {
   flex-shrink: 0;
 }
 
-/* ─── Spot CTA ─── */
-.spot-cta {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: var(--surface-elevated);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 14px 18px;
-  margin-bottom: clamp(12px, 2vw, 20px);
+/* ─── Spot Feature ─── */
+.spot-feature {
+  display: block;
+  max-width: 340px;
+  background: linear-gradient(135deg, #f0f5ff 0%, #e8f4f8 100%);
+  border: 1px solid rgba(0, 113, 227, 0.12);
+  border-radius: 16px;
+  padding: 20px;
+  margin: 0 auto clamp(16px, 2vw, 24px);
   text-decoration: none;
   color: var(--ink);
-  transition: border-color 0.2s, transform 0.15s;
+  transition: transform 0.2s, box-shadow 0.2s;
   cursor: pointer;
+  text-align: center;
 }
-.spot-cta:hover {
-  border-color: var(--accent);
-  transform: translateY(-1px);
+.spot-feature:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 113, 227, 0.1);
 }
-.spot-cta:active { transform: scale(0.99); }
 
-.spot-cta-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: rgba(0, 113, 227, 0.08);
+.spot-feature-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--accent);
-  flex-shrink: 0;
+  background: rgba(0, 113, 227, 0.1);
+  padding: 3px 10px;
+  border-radius: 980px;
+  margin-bottom: 10px;
 }
 
-.spot-cta-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.spot-cta-title {
+.spot-feature-title {
   display: block;
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--ink);
+  margin-bottom: 6px;
+  line-height: 1.3;
 }
 
-.spot-cta-desc {
+.spot-feature-desc {
   display: block;
   font-size: 13px;
   color: var(--ink-tertiary);
-  margin-top: 1px;
+  line-height: 1.5;
+  margin-bottom: 12px;
 }
 
-.spot-cta-arrow {
-  font-size: 18px;
-  color: var(--ink-quaternary);
-  flex-shrink: 0;
-  transition: transform 0.2s;
+.spot-feature-link {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  transition: gap 0.2s;
 }
-.spot-cta:hover .spot-cta-arrow { transform: translateX(3px); color: var(--accent); }
+.spot-feature:hover .spot-feature-link { text-decoration: underline; }
 
 /* ─── Map ─── */
 .map-wrapper {
