@@ -39,6 +39,24 @@
       </div>
     </section>
 
+    <!-- Weather Bar -->
+    <section class="weather-bar" id="weather-bar">
+      <div class="weather-main">
+        <span class="weather-icon" id="weather-icon"></span>
+        <span class="weather-temp" id="weather-temp">--</span>
+        <span class="weather-desc" id="weather-desc"></span>
+      </div>
+      <div class="weather-details">
+        <span class="weather-detail" id="weather-wind"></span>
+        <span class="weather-detail" id="weather-humidity"></span>
+        <span class="weather-detail" id="weather-waves"></span>
+      </div>
+      <div class="weather-sun">
+        <span class="weather-detail" id="weather-sunrise"></span>
+        <span class="weather-detail" id="weather-sunset"></span>
+      </div>
+    </section>
+
     <section class="map-wrapper">
       <div id="map"></div>
 
@@ -63,6 +81,64 @@
           <circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
         </svg>
       </button>
+    </section>
+  </main>
+
+    <!-- Below Map: Port Activity -->
+    <section class="port-activity" id="port-activity">
+      <div class="activity-grid">
+        <!-- Port Stats -->
+        <div class="activity-card">
+          <h3 class="activity-title">Port Overview</h3>
+          <div class="stat-grid" id="port-stat-grid">
+            <div class="port-stat">
+              <span class="port-stat-value" id="ps-total">--</span>
+              <span class="port-stat-label">Total Vessels</span>
+            </div>
+            <div class="port-stat">
+              <span class="port-stat-value" id="ps-moving">--</span>
+              <span class="port-stat-label">Underway</span>
+            </div>
+            <div class="port-stat">
+              <span class="port-stat-value" id="ps-anchored">--</span>
+              <span class="port-stat-label">Anchored</span>
+            </div>
+            <div class="port-stat">
+              <span class="port-stat-value" id="ps-recent">--</span>
+              <span class="port-stat-label">Active Today</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vessel of the Day -->
+        <div class="activity-card" id="votd-card">
+          <h3 class="activity-title">Largest Vessel</h3>
+          <div class="votd-content" id="votd-content">
+            <div class="votd-name" id="votd-name">--</div>
+            <div class="votd-details" id="votd-details"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="activity-card activity-full">
+        <h3 class="activity-title">Recent Activity</h3>
+        <div class="activity-table-wrap">
+          <table class="activity-table" id="activity-table">
+            <thead>
+              <tr>
+                <th>Vessel</th>
+                <th>Type</th>
+                <th>Flag</th>
+                <th>Status</th>
+                <th>Destination</th>
+                <th>Updated</th>
+              </tr>
+            </thead>
+            <tbody id="activity-tbody"></tbody>
+          </table>
+        </div>
+      </div>
     </section>
   </main>
 

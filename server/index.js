@@ -140,6 +140,80 @@ function parseAisCatcherMessage(msg) {
   };
 }
 
+// Weather + marine data (cached, refreshed every 15 min)
+let weatherCache = { data: null, fetchedAt: 0 };
+const WEATHER_TTL = 15 * 60 * 1000;
+
+async function fetchWeather() {
+  const now = Date.now();
+  if (weatherCache.data && (now - weatherCache.fetchedAt) < WEATHER_TTL) {
+    return weatherCache.data;
+  }
+  try {
+    const [weatherRes, marineRes] = await Promise.all([
+      fetch('https://api.open-meteo.com/v1/forecast?latitude=13.76&longitude=109.23&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,apparent_temperature,precipitation&daily=sunrise,sunset&timezone=Asia/Ho_Chi_Minh&forecast_days=1'),
+      fetch('https://marine-api.open-meteo.com/v1/marine?latitude=13.76&longitude=109.23&current=wave_height,wave_direction,wave_period,swell_wave_height&timezone=Asia/Ho_Chi_Minh'),
+    ]);
+    const weather = await weatherRes.json();
+    const marine = await marineRes.json();
+    weatherCache.data = { weather, marine };
+    weatherCache.fetchedAt = now;
+    return weatherCache.data;
+  } catch (err) {
+    console.error('[Weather] Fetch error:', err.message);
+    return weatherCache.data;
+  }
+}
+
+app.get('/api/weather', async (req, res) => {
+  const data = await fetchWeather();
+  if (data) {
+    res.json(data);
+  } else {
+    res.status(503).json({ error: 'Weather data unavailable' });
+  }
+});
+
+// Port stats — arrivals, departures, vessel of the day
+app.get('/api/port-stats', (req, res) => {
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const yesterday = new Date(now - 86400000).toISOString().split('T')[0];
+
+  // All current vessels
+  const allVessels = db.prepare('SELECT * FROM vessels').all();
+
+  // Vessels seen in last 24h (arrivals)
+  const recentVessels = db.prepare(
+    "SELECT * FROM vessels WHERE updated_at > ? ORDER BY updated_at DESC"
+  ).all(yesterday + 'T00:00:00');
+
+  // Moving vessels (speed > 0.5)
+  const moving = allVessels.filter(v => v.speed != null && v.speed > 0.5);
+
+  // Anchored vessels
+  const anchored = allVessels.filter(v => v.nav_status === 1 || v.nav_status === 5 || (v.speed != null && v.speed < 0.3));
+
+  // Vessel of the day — largest vessel currently visible
+  const vesselOfDay = allVessels
+    .filter(v => v.name && v.length)
+    .sort((a, b) => (b.length || 0) - (a.length || 0))[0] || null;
+
+  // Recent activity — last 10 updates
+  const recentActivity = db.prepare(
+    "SELECT mmsi, name, vessel_type_label, flag_country, speed, nav_status_label, destination, updated_at FROM vessels ORDER BY updated_at DESC LIMIT 10"
+  ).all();
+
+  res.json({
+    total: allVessels.length,
+    moving: moving.length,
+    anchored: anchored.length,
+    recentCount: recentVessels.length,
+    vesselOfDay,
+    recentActivity,
+  });
+});
+
 // HTTP + WebSocket server
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
