@@ -23,7 +23,7 @@
 html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Noto Sans', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
   background: var(--surface);
   color: var(--ink);
   min-height: 100vh;
@@ -436,7 +436,7 @@ body {
   border-radius: 12px;
   font-size: 13px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-  font-family: inherit;
+  font-family: 'Noto Sans', inherit;
   line-height: 1.4;
 }
 .vessel-popup .maplibregl-popup-tip {
