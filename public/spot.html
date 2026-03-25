@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>What's That Boat? — Quy Nhon Life</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --ink: #1d1d1f;
+      --ink-secondary: #424245;
+      --ink-tertiary: #6e6e73;
+      --ink-quaternary: #86868b;
+      --surface: #fbfbfd;
+      --surface-elevated: #ffffff;
+      --border: rgba(0,0,0,0.08);
+      --accent: #0071e3;
+      --live-green: #34c759;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { -webkit-font-smoothing: antialiased; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+      background: var(--surface);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 20px;
+      overflow-x: hidden;
+    }
+
+    .spot-header {
+      text-align: center;
+      padding: 40px 0 24px;
+      width: 100%;
+      max-width: 400px;
+    }
+    .spot-title {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 6px;
+    }
+    .spot-subtitle {
+      font-size: 15px;
+      color: var(--ink-tertiary);
+    }
+
+    /* Compass */
+    .compass-container {
+      position: relative;
+      width: 260px;
+      height: 260px;
+      margin: 20px auto;
+    }
+    .compass-ring {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: var(--surface-elevated);
+      position: relative;
+    }
+    .compass-label {
+      position: absolute;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-quaternary);
+    }
+    .compass-n { top: 8px; left: 50%; transform: translateX(-50%); color: var(--accent); }
+    .compass-s { bottom: 8px; left: 50%; transform: translateX(-50%); }
+    .compass-e { right: 10px; top: 50%; transform: translateY(-50%); }
+    .compass-w { left: 10px; top: 50%; transform: translateY(-50%); }
+
+    .compass-arrow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 4px;
+      height: 100px;
+      margin-left: -2px;
+      margin-top: -100px;
+      transform-origin: bottom center;
+      transition: transform 0.15s ease-out;
+    }
+    .compass-arrow::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -6px;
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-bottom: 20px solid var(--accent);
+    }
+    .compass-arrow::after {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: 0;
+      width: 4px;
+      height: 80px;
+      background: linear-gradient(to bottom, var(--accent), transparent);
+      border-radius: 2px;
+    }
+
+    .compass-heading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      background: var(--surface-elevated);
+      padding: 8px 14px;
+      border-radius: 12px;
+    }
+
+    /* Cone indicator dots for matched vessels */
+    .compass-dot {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* Status */
+    .spot-status {
+      text-align: center;
+      font-size: 14px;
+      color: var(--ink-tertiary);
+      margin: 16px 0;
+      min-height: 20px;
+    }
+    .spot-status.error { color: #dc2626; }
+
+    /* Start button */
+    .spot-start {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 980px;
+      font-size: 17px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      margin: 12px 0 24px;
+      transition: opacity 0.15s;
+    }
+    .spot-start:hover { opacity: 0.85; }
+    .spot-start:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Result card */
+    .spot-result {
+      width: 100%;
+      max-width: 400px;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 32px;
+      display: none;
+    }
+    .spot-result.visible { display: block; }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .result-flag {
+      width: 36px;
+      height: 27px;
+      border-radius: 4px;
+      object-fit: cover;
+    }
+    .result-name {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .result-type {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 2px 10px;
+      border-radius: 980px;
+      color: white;
+      margin-top: 2px;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .result-item {
+      text-align: center;
+      padding: 10px;
+      background: var(--surface);
+      border-radius: 10px;
+    }
+    .result-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+    }
+    .result-label {
+      font-size: 11px;
+      color: var(--ink-quaternary);
+      margin-top: 2px;
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-top: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .result-row:first-of-type { margin-top: 14px; }
+    .result-row-label { color: var(--ink-tertiary); }
+    .result-row-value { font-weight: 500; color: var(--ink); }
+
+    .result-distance {
+      text-align: center;
+      margin-top: 14px;
+      font-size: 13px;
+      color: var(--ink-quaternary);
+    }
+
+    .back-link {
+      display: inline-block;
+      color: var(--accent);
+      font-size: 15px;
+      font-weight: 500;
+      text-decoration: none;
+      margin-bottom: 32px;
+    }
+    .back-link:hover { text-decoration: underline; }
+
+    .no-match {
+      text-align: center;
+      padding: 24px;
+      color: var(--ink-tertiary);
+      font-size: 15px;
+    }
+    .no-match-icon { font-size: 40px; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+  <div class="spot-header">
+    <h1 class="spot-title">What's That Boat?</h1>
+    <p class="spot-subtitle">Point your phone at a vessel to identify it</p>
+  </div>
+
+  <div class="compass-container" id="compass-container">
+    <div class="compass-ring">
+      <span class="compass-label compass-n">N</span>
+      <span class="compass-label compass-s">S</span>
+      <span class="compass-label compass-e">E</span>
+      <span class="compass-label compass-w">W</span>
+      <div class="compass-arrow" id="compass-arrow"></div>
+      <div class="compass-heading" id="compass-heading">--°</div>
+    </div>
+  </div>
+
+  <p class="spot-status" id="spot-status">Tap the button to start</p>
+
+  <button class="spot-start" id="spot-start">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+    Start Spotting
+  </button>
+
+  <div class="spot-result" id="spot-result">
+    <div class="result-header">
+      <img class="result-flag" id="result-flag" src="" alt="" />
+      <div>
+        <div class="result-name" id="result-name"></div>
+        <span class="result-type" id="result-type"></span>
+      </div>
+    </div>
+    <div class="result-grid">
+      <div class="result-item">
+        <div class="result-value" id="result-speed">--</div>
+        <div class="result-label">Speed</div>
+      </div>
+      <div class="result-item">
+        <div class="result-value" id="result-bearing">--</div>
+        <div class="result-label">Bearing</div>
+      </div>
+      <div class="result-item">
+        <div class="result-value" id="result-distance">--</div>
+        <div class="result-label">Distance</div>
+      </div>
+      <div class="result-item">
+        <div class="result-value" id="result-heading">--</div>
+        <div class="result-label">Heading</div>
+      </div>
+    </div>
+    <div class="result-row">
+      <span class="result-row-label">Destination</span>
+      <span class="result-row-value" id="result-destination">--</span>
+    </div>
+    <div class="result-row">
+      <span class="result-row-label">Dimensions</span>
+      <span class="result-row-value" id="result-dimensions">--</span>
+    </div>
+    <div class="result-row">
+      <span class="result-row-label">Status</span>
+      <span class="result-row-value" id="result-status">--</span>
+    </div>
+  </div>
+
+  <div class="no-match" id="no-match" style="display:none">
+    <div class="no-match-icon">🌊</div>
+    <p>No vessel found in that direction.<br>Try pointing at a different angle.</p>
+  </div>
+
+  <a class="back-link" href="/">← Back to map</a>
+
+  <script>
+    const TYPE_COLORS = {
+      Cargo: '#2563eb', Tanker: '#dc2626', Passenger: '#16a34a',
+      Fishing: '#ca8a04', Other: '#86868b',
+    };
+
+    let userLat = null, userLng = null;
+    let compassHeading = null;
+    let vessels = [];
+    let active = false;
+    let matchInterval = null;
+
+    const $ = (id) => document.getElementById(id);
+
+    // Fetch vessels
+    async function loadVessels() {
+      try {
+        const res = await fetch('/api/vessels');
+        vessels = await res.json();
+      } catch (e) {
+        console.error('Failed to load vessels:', e);
+      }
+    }
+
+    // Haversine distance in km
+    function haversine(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    // Bearing from user to vessel (degrees)
+    function bearingTo(lat1, lon1, lat2, lon2) {
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
+      const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+                Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon);
+      return ((Math.atan2(y, x) * 180 / Math.PI) + 360) % 360;
+    }
+
+    // Angle difference (handles wrap-around)
+    function angleDiff(a, b) {
+      let d = ((b - a + 180) % 360) - 180;
+      return Math.abs(d < -180 ? d + 360 : d);
+    }
+
+    function findMatchingVessel() {
+      if (userLat == null || compassHeading == null || vessels.length === 0) return null;
+
+      const CONE_HALF = 15; // degrees each side
+      const MAX_DIST = 50;  // km
+
+      let best = null;
+      let bestDist = Infinity;
+
+      for (const v of vessels) {
+        if (v.lat == null || v.lng == null) continue;
+        const dist = haversine(userLat, userLng, v.lat, v.lng);
+        if (dist > MAX_DIST) continue;
+        const bearing = bearingTo(userLat, userLng, v.lat, v.lng);
+        const diff = angleDiff(compassHeading, bearing);
+        if (diff <= CONE_HALF && dist < bestDist) {
+          best = { ...v, dist, bearing };
+          bestDist = dist;
+        }
+      }
+      return best;
+    }
+
+    function showResult(vessel) {
+      $('no-match').style.display = 'none';
+      $('spot-result').classList.add('visible');
+
+      const cc = (vessel.flag_country || '').toLowerCase();
+      $('result-flag').src = cc ? `https://flagcdn.com/36x27/${cc}.png` : '';
+      $('result-flag').style.display = cc ? '' : 'none';
+      $('result-name').textContent = vessel.name || vessel.mmsi;
+
+      const type = vessel.vessel_type_label || 'Other';
+      $('result-type').textContent = type;
+      $('result-type').style.background = TYPE_COLORS[type] || TYPE_COLORS.Other;
+
+      $('result-speed').textContent = vessel.speed != null ? vessel.speed.toFixed(1) + ' kn' : '--';
+      $('result-bearing').textContent = Math.round(vessel.bearing) + '\u00B0';
+      $('result-distance').textContent = vessel.dist < 1 ? (vessel.dist * 1000).toFixed(0) + ' m' : vessel.dist.toFixed(1) + ' km';
+      $('result-heading').textContent = vessel.heading != null ? vessel.heading + '\u00B0' : '--';
+      $('result-destination').textContent = vessel.destination || '--';
+      $('result-dimensions').textContent = vessel.length && vessel.width ? `${vessel.length} x ${vessel.width} m` : '--';
+      $('result-status').textContent = vessel.nav_status_label || '--';
+    }
+
+    function showNoMatch() {
+      $('spot-result').classList.remove('visible');
+      $('no-match').style.display = 'block';
+    }
+
+    function updateCompass(heading) {
+      $('compass-arrow').style.transform = `rotate(${heading}deg)`;
+      $('compass-heading').textContent = Math.round(heading) + '\u00B0';
+    }
+
+    function startSpotting() {
+      const btn = $('spot-start');
+      const status = $('spot-status');
+
+      if (active) {
+        stopSpotting();
+        return;
+      }
+
+      btn.disabled = true;
+      status.textContent = 'Getting your location...';
+      status.className = 'spot-status';
+
+      // Get GPS
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          userLat = pos.coords.latitude;
+          userLng = pos.coords.longitude;
+          status.textContent = 'Location acquired. Getting compass...';
+          startCompass();
+        },
+        (err) => {
+          status.textContent = 'Could not get location. Please enable GPS.';
+          status.className = 'spot-status error';
+          btn.disabled = false;
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
+    function startCompass() {
+      const btn = $('spot-start');
+      const status = $('spot-status');
+
+      // iOS requires permission request
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+          .then(response => {
+            if (response === 'granted') {
+              attachCompass();
+            } else {
+              status.textContent = 'Compass permission denied.';
+              status.className = 'spot-status error';
+              btn.disabled = false;
+            }
+          })
+          .catch(() => {
+            status.textContent = 'Compass not available on this device.';
+            status.className = 'spot-status error';
+            btn.disabled = false;
+          });
+      } else if ('DeviceOrientationEvent' in window) {
+        attachCompass();
+      } else {
+        status.textContent = 'Compass not supported on this device.';
+        status.className = 'spot-status error';
+        btn.disabled = false;
+      }
+    }
+
+    function attachCompass() {
+      const btn = $('spot-start');
+      const status = $('spot-status');
+
+      window.addEventListener('deviceorientationabsolute', onOrientation, true);
+      window.addEventListener('deviceorientation', onOrientation, true);
+
+      active = true;
+      btn.disabled = false;
+      btn.textContent = 'Stop';
+      status.textContent = 'Point your phone at a vessel...';
+
+      loadVessels();
+      matchInterval = setInterval(() => {
+        loadVessels();
+        const match = findMatchingVessel();
+        if (match) {
+          showResult(match);
+        } else {
+          showNoMatch();
+        }
+      }, 1500);
+    }
+
+    function onOrientation(e) {
+      let heading = null;
+      if (e.webkitCompassHeading != null) {
+        // iOS Safari
+        heading = e.webkitCompassHeading;
+      } else if (e.alpha != null) {
+        // Android / others — alpha is relative to arbitrary, absolute gives true north
+        heading = e.absolute ? (360 - e.alpha) : e.alpha;
+      }
+      if (heading != null) {
+        compassHeading = heading;
+        updateCompass(heading);
+      }
+    }
+
+    function stopSpotting() {
+      active = false;
+      window.removeEventListener('deviceorientationabsolute', onOrientation, true);
+      window.removeEventListener('deviceorientation', onOrientation, true);
+      if (matchInterval) clearInterval(matchInterval);
+      $('spot-start').textContent = 'Start Spotting';
+      $('spot-status').textContent = 'Stopped';
+    }
+
+    $('spot-start').addEventListener('click', startSpotting);
+
+    // Preload vessels
+    loadVessels();
+  </script>
+</body>
+</html>

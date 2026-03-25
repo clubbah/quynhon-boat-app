@@ -23,6 +23,20 @@ const app = express();
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
+// "What's That Boat?" — private page
+app.get('/spot', (req, res) => {
+  if (req.query.key !== 'test123') {
+    return res.status(404).send('Not found');
+  }
+  res.sendFile(path.join(__dirname, '..', 'public', 'spot.html'));
+});
+
+// All vessels as JSON (for spot feature)
+app.get('/api/vessels', (req, res) => {
+  const vessels = getVesselsByArea(db);
+  res.json(vessels);
+});
+
 app.get('/api/vessels/:mmsi/track', (req, res) => {
   const track = getTrack(db, req.params.mmsi);
   res.json(track);
