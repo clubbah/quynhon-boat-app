@@ -30,7 +30,8 @@ app.get('/api/vessels/:mmsi/track', (req, res) => {
 
 // AIS-catcher HTTP feed endpoint
 app.post('/api/ais-feed', (req, res) => {
-  if (AIS_FEED_SECRET && req.headers['x-ais-secret'] !== AIS_FEED_SECRET) {
+  const token = req.headers['x-ais-secret'] || req.query.key;
+  if (AIS_FEED_SECRET && token !== AIS_FEED_SECRET) {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
