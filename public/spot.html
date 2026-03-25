@@ -83,7 +83,7 @@
       margin-left: -2px;
       margin-top: -100px;
       transform-origin: bottom center;
-      transition: transform 0.15s ease-out;
+      transition: transform 0.25s ease-out;
     }
     .compass-arrow::before {
       content: '';
@@ -344,9 +344,11 @@
 
     let userLat = null, userLng = null;
     let compassHeading = null;
+    let smoothedHeading = null;
     let vessels = [];
     let active = false;
     let matchInterval = null;
+    const SMOOTHING = 0.15; // lower = smoother (0.1 very smooth, 0.3 responsive)
 
     const $ = (id) => document.getElementById(id);
 
@@ -523,18 +525,27 @@
       }, 1500);
     }
 
+    // Smooth angle interpolation handling 0/360 wraparound
+    function lerpAngle(from, to, t) {
+      let diff = ((to - from + 540) % 360) - 180;
+      return ((from + diff * t) + 360) % 360;
+    }
+
     function onOrientation(e) {
       let heading = null;
       if (e.webkitCompassHeading != null) {
-        // iOS Safari
         heading = e.webkitCompassHeading;
       } else if (e.alpha != null) {
-        // Android / others — alpha is relative to arbitrary, absolute gives true north
         heading = e.absolute ? (360 - e.alpha) : e.alpha;
       }
       if (heading != null) {
-        compassHeading = heading;
-        updateCompass(heading);
+        if (smoothedHeading == null) {
+          smoothedHeading = heading;
+        } else {
+          smoothedHeading = lerpAngle(smoothedHeading, heading, SMOOTHING);
+        }
+        compassHeading = smoothedHeading;
+        updateCompass(smoothedHeading);
       }
     }
 
