@@ -29,8 +29,8 @@ app.get('/api/vessels/:mmsi/track', (req, res) => {
 });
 
 // AIS-catcher HTTP feed endpoint
-app.post('/api/ais-feed/:key?', (req, res) => {
-  const token = req.params.key || req.headers['x-ais-secret'] || req.query.key;
+function handleAisFeed(req, res) {
+  const token = req.params.key || req.headers['x-ais-secret'];
   if (AIS_FEED_SECRET && token !== AIS_FEED_SECRET) {
     return res.status(403).json({ error: 'Forbidden' });
   }
@@ -92,7 +92,9 @@ app.post('/api/ais-feed/:key?', (req, res) => {
     console.error('[AIS-Feed] Error:', err.message);
     res.status(400).json({ error: err.message });
   }
-});
+}
+app.post('/api/ais-feed', handleAisFeed);
+app.post('/api/ais-feed/:key', handleAisFeed);
 
 function parseAisCatcherMessage(msg) {
   const mmsi = String(msg.mmsi || msg.MMSI);
