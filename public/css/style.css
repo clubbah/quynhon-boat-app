@@ -181,8 +181,11 @@ body {
   margin-bottom: 3px;
 }
 .vt-flag {
-  font-size: 18px;
-  line-height: 1;
+  width: 24px;
+  height: 18px;
+  border-radius: 2px;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 .vt-name {
   font-weight: 700;

@@ -181,14 +181,17 @@ export function initMap() {
     map.on('mouseenter', 'vessel-icons', (e) => {
       if (!e.features || !e.features[0]) return;
       const props = e.features[0].properties;
-      const flag = getFlagEmoji(props.flag_country);
+      const countryCode = (props.flag_country || '').toLowerCase();
       const countryName = getCountryName(props.flag_country);
       const name = props.name || props.mmsi;
       const typeLabel = props.vessel_type_label || '';
       const typeColor = ICON_COLORS[typeLabel.toLowerCase()] || ICON_COLORS.other;
+      const flagImg = countryCode
+        ? `<img class="vt-flag" src="https://flagcdn.com/24x18/${countryCode}.png" alt="${countryCode}" />`
+        : '<span class="vt-flag">\u{1F6A2}</span>';
 
       const html = `<div class="vt-row1">
-        <span class="vt-flag">${flag}</span>
+        ${flagImg}
         <span class="vt-name">${name}</span>
       </div>
       <div class="vt-row2">
