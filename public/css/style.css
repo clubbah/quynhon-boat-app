@@ -422,15 +422,23 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
    ════════════════════════════════════════ */
 .spot-fab {
   display: flex !important;
-  position: fixed; bottom: 24px; right: 20px; z-index: 150;
-  width: 50px; height: 50px;
-  background: var(--teal); color: white;
-  align-items: center; justify-content: center;
-  box-shadow: 0 4px 16px rgba(13,148,136,0.35);
+  position: fixed;
+  bottom: 24px;
+  right: 20px;
+  z-index: 9999;
+  width: 56px;
+  height: 56px;
+  background-color: #0d9488;
+  color: #ffffff;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
   text-decoration: none;
+  border: 2px solid #ffffff;
 }
-.spot-fab:hover { background: var(--teal-deep); }
-/* Hide FAB on large desktops where the inline spot card is visible */
+.spot-fab svg { display: block; }
+.spot-fab:hover { background-color: #0a7c72; }
+/* Hide FAB on large desktops with mouse */
 @media (min-width: 769px) and (pointer: fine) {
   .spot-fab { display: none !important; }
 }
