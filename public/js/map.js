@@ -7,9 +7,11 @@ const DEFAULT_PITCH = 0;
 const DEFAULT_BEARING = 0;
 
 let map;
-let markers = {};       // mmsi → { marker, element, vessel }
+let markers = {};       // mmsi → { marker, vessel }
 let trackSource = null;
 let selectedMmsi = null;
+let mapReady = false;
+let pendingUpdates = []; // buffer updates until map loads
 
 export function initMap() {
   map = new maplibregl.Map({
@@ -27,15 +29,7 @@ export function initMap() {
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
 
   map.on('load', () => {
-    // Add terrain for 3D effect
-    map.addSource('terrain', {
-      type: 'raster-dem',
-      url: `https://api.maptiler.com/tiles/terrain-rgb/tiles.json?key=${MAPTILER_KEY}`,
-      tileSize: 256,
-    });
-    map.setTerrain({ source: 'terrain', exaggeration: 1.5 });
-
-    // Add track source (empty initially)
+    // Track line source
     map.addSource('vessel-track', {
       type: 'geojson',
       data: { type: 'FeatureCollection', features: [] },
@@ -52,6 +46,13 @@ export function initMap() {
     });
 
     trackSource = map.getSource('vessel-track');
+    mapReady = true;
+
+    // Process any buffered updates
+    for (const { vessel, onClick } of pendingUpdates) {
+      addOrUpdateMarker(vessel, onClick);
+    }
+    pendingUpdates = [];
   });
 
   // Close card on map click (not on marker)
@@ -69,37 +70,35 @@ export function initMap() {
 export function getMap() { return map; }
 
 export function updateVesselMarker(vessel, onClick) {
+  if (!mapReady) {
+    pendingUpdates.push({ vessel, onClick });
+    return;
+  }
+  addOrUpdateMarker(vessel, onClick);
+}
+
+function addOrUpdateMarker(vessel, onClick) {
   const { mmsi, lat, lng } = vessel;
   if (lat == null || lng == null) return;
 
   if (markers[mmsi]) {
-    // Update position and icon
-    markers[mmsi].marker.setLngLat([lng, lat]);
-    const newEl = createVesselElement(vessel);
-    attachTooltip(newEl, vessel);
-    const oldEl = markers[mmsi].element;
-    oldEl.replaceWith(newEl);
-    markers[mmsi].element = newEl;
-    markers[mmsi].vessel = vessel;
-    newEl.addEventListener('click', (e) => {
-      e.stopPropagation();
-      onClick(vessel);
-    });
-  } else {
-    const el = createVesselElement(vessel);
-    attachTooltip(el, vessel);
-
-    const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
-      .setLngLat([lng, lat])
-      .addTo(map);
-
-    el.addEventListener('click', (e) => {
-      e.stopPropagation();
-      onClick(vessel);
-    });
-
-    markers[mmsi] = { marker, element: el, vessel };
+    // Update position — remove old marker, create new one
+    markers[mmsi].marker.remove();
   }
+
+  const el = createVesselElement(vessel);
+  attachTooltip(el, vessel);
+
+  const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+    .setLngLat([lng, lat])
+    .addTo(map);
+
+  el.addEventListener('click', (e) => {
+    e.stopPropagation();
+    onClick(vessel);
+  });
+
+  markers[mmsi] = { marker, vessel };
 }
 
 function attachTooltip(el, vessel) {
@@ -155,9 +154,9 @@ export function filterMarkersByType(typeLabel) {
   for (const [mmsi, entry] of Object.entries(markers)) {
     const label = entry.vessel.vessel_type_label || 'Other';
     if (typeLabel === 'all' || label === typeLabel) {
-      entry.element.style.display = '';
+      entry.marker.getElement().style.display = '';
     } else {
-      entry.element.style.display = 'none';
+      entry.marker.getElement().style.display = 'none';
     }
   }
 }

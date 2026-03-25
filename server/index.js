@@ -84,7 +84,10 @@ function handleAisFeed(req, res) {
       }
 
       upsertVessel(db, vessel);
-      broadcast({ type: 'update', vessel: { ...vessel, ...getVesselFromDb(db, parsed.mmsi) } });
+      const fullVessel = getVesselFromDb(db, parsed.mmsi);
+      if (fullVessel && fullVessel.lat != null) {
+        broadcast({ type: 'update', vessel: fullVessel });
+      }
     }
 
     res.json({ ok: true, processed: count });
