@@ -116,8 +116,9 @@ function parseAisCatcherMessage(msg) {
 
   // Filter out non-vessels: buoys, beacons, base stations, AtoN (Aids to Navigation)
   // MMSI ranges: 99x = AtoN, 00x = base stations, 970-979 = SART/MOB/EPIRB
-  if (mmsi.startsWith('99') || mmsi.startsWith('00') || mmsi.startsWith('970') ||
-      mmsi.startsWith('971') || mmsi.startsWith('972')) return null;
+  if (mmsi.startsWith('99') || mmsi.startsWith('98') || mmsi.startsWith('97') ||
+      mmsi.startsWith('96') || mmsi.startsWith('94') || mmsi.startsWith('00') ||
+      mmsi.length < 9 || mmsi.length > 9) return null;
   // AIS ship types for navigation aids
   const navAidTypes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
   if (msg.shiptype != null && navAidTypes.includes(msg.shiptype)) return null;
