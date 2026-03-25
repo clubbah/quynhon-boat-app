@@ -357,6 +357,34 @@
     const lang = localStorage.getItem('lang') || 'en';
     const S = STRINGS[lang] || STRINGS.en;
 
+    // Status + type translations per language
+    const STATUS_TRANSLATIONS = {
+      en: { 'Under Way Using Engine': 'Under Way', 'At Anchor': 'At Anchor', 'Moored': 'Moored', 'Not Under Command': 'Not Under Command', 'Restricted Maneuverability': 'Restricted', 'Aground': 'Aground', 'Engaged In Fishing': 'Fishing', 'Under Way Sailing': 'Sailing', 'Unknown': 'Unknown' },
+      vi: { 'Under Way Using Engine': '\u0110ang h\u00E0nh tr\u00ECnh', 'At Anchor': 'Neo \u0111\u1EADu', 'Moored': 'C\u1EADp c\u1EA3ng', 'Not Under Command': 'Kh\u00F4ng \u0111i\u1EC1u khi\u1EC3n', 'Restricted Maneuverability': 'H\u1EA1n ch\u1EBF', 'Aground': 'M\u1EAFc c\u1EA1n', 'Engaged In Fishing': '\u0110ang \u0111\u00E1nh c\u00E1', 'Under Way Sailing': 'Ch\u00E8o bu\u1ED3m', 'Unknown': 'Kh\u00F4ng r\u00F5' },
+      ko: { 'Under Way Using Engine': '\uD56D\uD589 \uC911', 'At Anchor': '\uC815\uBC15', 'Moored': '\uACC4\uB958', 'Not Under Command': '\uC870\uC885 \uBD88\uB2A5', 'Restricted Maneuverability': '\uC870\uC885 \uC81C\uD55C', 'Aground': '\uC88C\uCD08', 'Engaged In Fishing': '\uC870\uC5C5 \uC911', 'Under Way Sailing': '\uBC94\uC120', 'Unknown': '\uBBF8\uC0C1' },
+      zh: { 'Under Way Using Engine': '\u822A\u884C\u4E2D', 'At Anchor': '\u951A\u6CCA', 'Moored': '\u9760\u6CCA', 'Not Under Command': '\u5931\u63A7', 'Restricted Maneuverability': '\u53D7\u9650', 'Aground': '\u642C\u6D45', 'Engaged In Fishing': '\u4F5C\u4E1A\u4E2D', 'Under Way Sailing': '\u5E06\u8239', 'Unknown': '\u4E0D\u660E' },
+      ja: { 'Under Way Using Engine': '\u822A\u884C\u4E2D', 'At Anchor': '\u9328\u6CCA', 'Moored': '\u4FC2\u7559', 'Not Under Command': '\u904B\u8EE2\u4E0D\u80FD', 'Restricted Maneuverability': '\u5236\u9650', 'Aground': '\u4E57\u63DA\u3052', 'Engaged In Fishing': '\u64CD\u696D\u4E2D', 'Under Way Sailing': '\u5E06\u8D70', 'Unknown': '\u4E0D\u660E' },
+    };
+    const statusMap = STATUS_TRANSLATIONS[lang] || STATUS_TRANSLATIONS.en;
+
+    function translateStatus(label) {
+      if (!label) return '--';
+      return statusMap[label] || label;
+    }
+
+    const TYPE_TRANSLATIONS = {
+      en: { Cargo: 'Cargo', Tanker: 'Tanker', Passenger: 'Passenger', Fishing: 'Fishing', Other: 'Other' },
+      vi: { Cargo: 'T\u00E0u h\u00E0ng', Tanker: 'T\u00E0u d\u1EA7u', Passenger: 'T\u00E0u kh\u00E1ch', Fishing: 'T\u00E0u c\u00E1', Other: 'Kh\u00E1c' },
+      ko: { Cargo: '\uD654\uBB3C\uC120', Tanker: '\uC720\uC870\uC120', Passenger: '\uC5EC\uAC1D\uC120', Fishing: '\uC5B4\uC120', Other: '\uAE30\uD0C0' },
+      zh: { Cargo: '\u8D27\u8239', Tanker: '\u6CB9\u8F6E', Passenger: '\u5BA2\u8239', Fishing: '\u6E14\u8239', Other: '\u5176\u4ED6' },
+      ja: { Cargo: '\u8CA8\u7269\u8239', Tanker: '\u30BF\u30F3\u30AB\u30FC', Passenger: '\u65C5\u5BA2\u8239', Fishing: '\u6F01\u8239', Other: '\u305D\u306E\u4ED6' },
+    };
+    const typeMap = TYPE_TRANSLATIONS[lang] || TYPE_TRANSLATIONS.en;
+
+    function translateType(label) {
+      return typeMap[label] || label || '--';
+    }
+
     const TYPE_COLORS = {
       Cargo: '#2563eb', Tanker: '#dc2626', Passenger: '#16a34a',
       Fishing: '#ca8a04', Other: '#86868b',
@@ -452,7 +480,7 @@
       $('result-name').textContent = vessel.name || vessel.mmsi;
 
       const type = vessel.vessel_type_label || 'Other';
-      $('result-type').textContent = type;
+      $('result-type').textContent = translateType(type);
       $('result-type').style.background = TYPE_COLORS[type] || TYPE_COLORS.Other;
 
       $('result-distance').textContent = vessel.dist < 1 ? (vessel.dist * 1000).toFixed(0) + ' m' : vessel.dist.toFixed(1) + ' km';
@@ -461,7 +489,7 @@
 
       $('result-destination').textContent = vessel.destination || '--';
       $('result-dimensions').textContent = vessel.length && vessel.width ? `${vessel.length} x ${vessel.width} m` : '--';
-      $('result-status').textContent = vessel.nav_status_label || '--';
+      $('result-status').textContent = translateStatus(vessel.nav_status_label);
     }
 
     function showNoMatch() {
