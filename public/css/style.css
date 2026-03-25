@@ -35,14 +35,8 @@ body {
 
 /* ─── Header ─── */
 .site-header {
-  background: rgba(251, 251, 253, 0.72);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-bottom: 1px solid var(--border);
-  padding: 0 clamp(16px, 4vw, 48px);
-  height: 52px;
-  position: sticky;
-  top: 0;
+  padding: clamp(12px, 2vw, 16px) clamp(16px, 4vw, 48px);
+  position: relative;
   z-index: 100;
 }
 
@@ -50,22 +44,8 @@ body {
   max-width: 980px;
   margin: 0 auto;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  height: 100%;
-}
-
-.site-title {
-  font-size: 21px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--ink);
-}
-
-.header-controls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 
 #type-filter {
@@ -123,30 +103,41 @@ body {
 
 /* ─── Hero ─── */
 .hero {
-  margin-bottom: clamp(16px, 3vw, 28px);
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
+  margin-bottom: clamp(20px, 3vw, 32px);
+  text-align: center;
+}
+
+.site-title {
+  font-size: clamp(40px, 8vw, 64px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  line-height: 1.05;
+  margin-bottom: 8px;
 }
 
 .hero-description {
-  font-size: clamp(14px, 2vw, 17px);
+  font-size: clamp(16px, 2.5vw, 21px);
   font-weight: 400;
   color: var(--ink-tertiary);
-  letter-spacing: -0.005em;
+  letter-spacing: -0.01em;
+  margin-bottom: 16px;
 }
 
 .vessel-stats {
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
 .stat-badge {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 10px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: 980px;
+  padding: 8px 18px;
 }
 
 .stat-total {
@@ -681,10 +672,7 @@ body {
 
 /* ─── Mobile ─── */
 @media (max-width: 768px) {
-  .site-header { height: 48px; }
-  .site-title { font-size: 18px; }
-
-  .hero { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .hero { margin-bottom: 20px; }
 
   .map-wrapper { height: 56vh; min-height: 320px; border-radius: 10px; }
 
