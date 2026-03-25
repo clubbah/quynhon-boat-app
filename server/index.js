@@ -23,11 +23,8 @@ const app = express();
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-// "What's That Boat?" — private page
+// "What's That Boat?" — public page
 app.get('/spot', (req, res) => {
-  if (req.query.key !== 'test123') {
-    return res.status(404).send('Not found');
-  }
   res.sendFile(path.join(__dirname, '..', 'public', 'spot.html'));
 });
 
