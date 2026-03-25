@@ -59,6 +59,7 @@ const translations = {
     status_aground: 'Aground',
     status_fishing_status: 'Fishing',
     status_sailing: 'Under Way Sailing',
+    status_unknown: 'Unknown',
   },
   vi: {
     app_title: 'Quy Nh\u01A1n Life',
@@ -120,6 +121,7 @@ const translations = {
     status_aground: 'M\u1EAFc c\u1EA1n',
     status_fishing_status: '\u0110ang \u0111\u00E1nh c\u00E1',
     status_sailing: '\u0110ang ch\u00E8o bu\u1ED3m',
+    status_unknown: 'Kh\u00F4ng r\u00F5',
   },
   ko: {
     app_title: 'Quy Nhon Life',
@@ -181,6 +183,7 @@ const translations = {
     status_aground: '\uC88C\uCD08',
     status_fishing_status: '\uC870\uC5C5 \uC911',
     status_sailing: '\uBC94\uC120 \uD56D\uD589',
+    status_unknown: '\uBBF8\uC0C1',
   },
   zh: {
     app_title: 'Quy Nhon Life',
@@ -242,6 +245,7 @@ const translations = {
     status_aground: '\u642C\u6D45',
     status_fishing_status: '\u4F5C\u4E1A\u4E2D',
     status_sailing: '\u5E06\u8239\u822A\u884C',
+    status_unknown: '\u4E0D\u660E',
   },
   ja: {
     app_title: 'Quy Nhon Life',
@@ -303,6 +307,7 @@ const translations = {
     status_aground: '\u4E57\u63DA\u3052',
     status_fishing_status: '\u64CD\u696D\u4E2D',
     status_sailing: '\u5E06\u8D70\u822A\u884C',
+    status_unknown: '\u4E0D\u660E',
   },
 };
 
@@ -350,6 +355,7 @@ const STATUS_MAP = {
   'Restricted Maneuverability': 'status_restricted', 'Aground': 'status_aground',
   'Engaged In Fishing': 'status_fishing_status', 'Fishing': 'status_fishing_status',
   'Under Way Sailing': 'status_sailing',
+  'Unknown': 'status_unknown',
 };
 
 export function tType(typeLabel) {
