@@ -78,22 +78,8 @@ function onPanelClose() {
 }
 
 function updateStats() {
-  const all = Object.values(vessels);
-  const total = all.length;
-
+  const total = Object.keys(vessels).length;
   document.getElementById('stat-total').textContent = `${total} ${t('vessels')}`;
-
-  const counts = { Cargo: 0, Tanker: 0, Passenger: 0, Fishing: 0 };
-  for (const v of all) {
-    const label = v.vessel_type_label || 'Other';
-    if (counts[label] !== undefined) counts[label]++;
-  }
-
-  document.getElementById('stat-cargo').textContent = counts.Cargo ? `${counts.Cargo} ${t('cargo')}` : '';
-  document.getElementById('stat-tanker').textContent = counts.Tanker ? `${counts.Tanker} ${t('tanker')}` : '';
-  document.getElementById('stat-passenger').textContent = counts.Passenger ? `${counts.Passenger} ${t('passenger')}` : '';
-  document.getElementById('stat-fishing').textContent = counts.Fishing ? `${counts.Fishing} ${t('fishing')}` : '';
-
   updateLiveIndicator();
 }
 
@@ -104,13 +90,16 @@ function updateLiveIndicator() {
     return;
   }
   const ago = Math.round((Date.now() - lastDataTime) / 1000);
-  if (ago < 10) {
-    el.innerHTML = '<span class="live-dot"></span> Live';
+  el.className = 'stat-live';
+  if (ago < 15) {
+    el.innerHTML = '<span class="live-dot"></span> Live Data';
   } else if (ago < 60) {
-    el.innerHTML = `<span class="live-dot stale"></span> ${ago}s ago`;
+    el.classList.add('stale-text');
+    el.innerHTML = `<span class="live-dot stale"></span> Updated ${ago}s ago`;
   } else {
+    el.classList.add('offline-text');
     const mins = Math.round(ago / 60);
-    el.innerHTML = `<span class="live-dot offline"></span> ${mins}m ago`;
+    el.innerHTML = `<span class="live-dot offline"></span> Last update ${mins}m ago`;
   }
 }
 
@@ -121,6 +110,7 @@ function initControls() {
     document.getElementById('app-title').textContent = t('app_title');
     document.getElementById('hero-description').textContent = t('hero_description');
     document.getElementById('footer-text').textContent = t('footer_text');
+    document.getElementById('search-input').placeholder = t('search_placeholder');
     updateStats();
 
     const filterAll = document.querySelector('#type-filter option[value="all"]');

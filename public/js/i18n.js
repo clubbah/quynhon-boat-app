@@ -29,6 +29,7 @@ const translations = {
     passenger: 'Passenger',
     fishing: 'Fishing',
     footer_text: 'Quy Nhon Life \u2014 Real-time AIS vessel data',
+    search_placeholder: 'Search vessel name...',
   },
   vi: {
     app_title: 'Quy Nh\u01A1n Life',
@@ -60,6 +61,7 @@ const translations = {
     passenger: 'Kh\u00E1ch',
     fishing: 'C\u00E1',
     footer_text: 'Quy Nh\u01A1n Life \u2014 D\u1EEF li\u1EC7u AIS t\u00E0u th\u1EF1c t\u1EBF',
+    search_placeholder: 'T\u00ECm t\u00E0u...',
   },
 };
 
