@@ -52,14 +52,22 @@
 
     <!-- Spot Feature -->
     <a class="spot-feature" id="spot-cta" href="/spot?key=test123">
-      <span class="spot-feature-badge" data-i18n="spot_badge">Try it</span>
-      <span class="spot-feature-title" data-i18n="spot_title">See a boat? Identify it instantly.</span>
-      <span class="spot-feature-desc" data-i18n="spot_desc">Use your phone to point at any vessel nearby, from the beach, the port, or your balcony, and find out its name, flag, speed, and more.</span>
-      <span class="spot-feature-link"><span data-i18n="spot_cta">Identify a vessel</span> &rarr;</span>
+      <span class="spot-feature-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="3"/><circle cx="12" cy="18" r="1"/><line x1="9" y1="6" x2="15" y2="6"/></svg>
+      </span>
+      <span class="spot-feature-text">
+        <span class="spot-feature-badge" data-i18n="spot_badge">Try it</span>
+        <span class="spot-feature-title" data-i18n="spot_title">See a boat? Identify it instantly.</span>
+        <span class="spot-feature-desc" data-i18n="spot_desc">Use your phone to point at any vessel nearby, from the beach, the port, or your balcony, and find out its name, flag, speed, and more.</span>
+        <span class="spot-feature-link"><span data-i18n="spot_cta">Identify a vessel</span> &rarr;</span>
+      </span>
     </a>
 
     <section class="map-wrapper">
       <div id="map"></div>
+
+      <!-- Map hint -->
+      <div class="map-hint" id="map-hint" data-i18n="map_hint">Tap any vessel for details</div>
 
       <!-- Search bar overlay -->
       <div class="map-search" id="map-search">
@@ -93,18 +101,22 @@
           <h3 class="activity-title" data-i18n="port_overview">Port Overview</h3>
           <div class="stat-grid" id="port-stat-grid">
             <div class="port-stat">
+              <svg class="port-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20l2-2h4l2-6h8l2 6h4"/><path d="M12 4v4"/><circle cx="12" cy="4" r="1"/></svg>
               <span class="port-stat-value" id="ps-total">--</span>
               <span class="port-stat-label" data-i18n="total_vessels">Total Vessels</span>
             </div>
             <div class="port-stat">
+              <svg class="port-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18h14M3 14l3.5-8h11L21 14"/><path d="M12 6V2"/></svg>
               <span class="port-stat-value" id="ps-moving">--</span>
               <span class="port-stat-label" data-i18n="underway">Underway</span>
             </div>
             <div class="port-stat">
+              <svg class="port-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4"/></svg>
               <span class="port-stat-value" id="ps-anchored">--</span>
               <span class="port-stat-label" data-i18n="anchored">Anchored</span>
             </div>
             <div class="port-stat">
+              <svg class="port-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
               <span class="port-stat-value" id="ps-recent">--</span>
               <span class="port-stat-label" data-i18n="active_today">Active Today</span>
             </div>

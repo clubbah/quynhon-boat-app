@@ -62,6 +62,10 @@ async function onVesselClick(vessel) {
   const current = vessels[vessel.mmsi] || vessel;
   showPanel(current);
 
+  // Hide map hint after first click
+  const hint = document.getElementById('map-hint');
+  if (hint) hint.classList.add('hidden');
+
   // Smooth zoom to vessel
   if (current.lat && current.lng) {
     flyToVessel(current.lng, current.lat);
