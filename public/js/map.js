@@ -312,3 +312,13 @@ export function filterMarkersByType(typeLabel) {
 export function setMapClickHandler(fn) {
   map._onMapClick = fn;
 }
+
+export function flyToVessel(lng, lat) {
+  if (!map) return;
+  map.flyTo({ center: [lng, lat], zoom: 15, duration: 1000 });
+}
+
+export function recenterMap() {
+  if (!map) return;
+  map.flyTo({ center: MAP_CENTER, zoom: DEFAULT_ZOOM, duration: 800 });
+}

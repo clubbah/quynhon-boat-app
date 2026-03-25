@@ -138,6 +138,29 @@ body {
 .stat-passenger::before { background: var(--passenger); }
 .stat-fishing::before { background: var(--fishing); }
 
+/* Live indicator */
+.stat-live {
+  font-size: 12px;
+  color: var(--gray-500);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  display: inline-block;
+  animation: pulse-live 2s ease-in-out infinite;
+}
+.live-dot.stale { background: #f59e0b; animation: none; }
+.live-dot.offline { background: var(--gray-400); animation: none; }
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
 /* Map */
 .map-wrapper {
   border-radius: var(--radius);
@@ -145,12 +168,117 @@ body {
   box-shadow: 0 4px 24px rgba(0,0,0,0.1);
   height: 70vh;
   min-height: 400px;
+  position: relative;
 }
 
 #map {
   width: 100%;
   height: 100%;
 }
+
+/* Map Search */
+.map-search {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  width: 220px;
+}
+
+.map-search input {
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--white);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--gray-900);
+  outline: none;
+}
+.map-search input:focus {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+}
+.map-search input::placeholder {
+  color: var(--gray-400);
+}
+
+.search-results {
+  margin-top: 4px;
+  background: var(--white);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  overflow: hidden;
+}
+.search-results.hidden { display: none; }
+
+.search-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  border-bottom: 1px solid var(--gray-100);
+}
+.search-item:last-child { border-bottom: none; }
+.search-item:hover { background: var(--gray-50); }
+.search-name { font-weight: 600; color: var(--navy); }
+.search-type { font-size: 11px; color: var(--gray-400); }
+
+/* Map Legend */
+.map-legend {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 10;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(4px);
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--gray-600);
+  white-space: nowrap;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Recenter Button */
+.map-recenter {
+  position: absolute;
+  bottom: 12px;
+  right: 56px;
+  z-index: 10;
+  width: 36px;
+  height: 36px;
+  background: var(--white);
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-600);
+  transition: background 0.15s;
+}
+.map-recenter:hover { background: var(--gray-100); }
 
 /* Footer */
 .site-footer {
@@ -355,6 +483,10 @@ body {
     min-height: 300px;
     border-radius: 12px;
   }
+
+  .map-search { width: 180px; }
+  .map-legend { gap: 8px; padding: 6px 10px; }
+  .legend-item { font-size: 10px; }
 
   .vessel-card {
     width: 100%;
