@@ -57,7 +57,7 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
   padding: 4px 0 4px;
   gap: 24px;
 }
@@ -87,8 +87,10 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  justify-content: center;
   gap: 8px;
   flex-shrink: 0;
+  align-self: center;
 }
 .masthead-weather {
   display: flex;
@@ -463,7 +465,14 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
    ════════════════════════════════════════ */
 @media (max-width: 768px) {
   .masthead-inner { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .masthead-logo { height: auto; max-width: 140px; display: block !important; }
+  .masthead-logo { height: auto; max-width: 180px; display: block !important; }
+
+  .port-strip {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 16px;
+  }
+  .port-strip-sep { display: none; }
   .masthead-right { align-items: flex-start; width: 100%; }
   .masthead-weather { justify-content: flex-start; }
 
@@ -477,8 +486,7 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
   .map-search { width: 160px; }
   .map-recenter { bottom: 10px; right: 10px; }
 
-  .port-strip { flex-direction: column; gap: 2px; }
-  .port-strip-sep { display: none; }
+  /* port-strip handled by grid rule above */
 
   /* Table → cards on mobile */
   .activity-table thead { display: none; }
