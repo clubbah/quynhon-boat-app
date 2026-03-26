@@ -61,6 +61,13 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
   padding: clamp(20px, 4vw, 40px) 0 clamp(16px, 2vw, 24px);
   gap: 24px;
 }
+.masthead-logo-link { display: block; line-height: 0; }
+.masthead-logo { height: clamp(48px, 8vw, 72px); width: auto; }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
 .masthead-title {
   font-family: 'DM Serif Display', Georgia, serif;
   font-size: clamp(32px, 6vw, 52px);
