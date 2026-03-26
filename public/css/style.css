@@ -372,6 +372,14 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
   font-size: 13px;
   font-style: italic;
 }
+.footer-links {
+  margin-top: 8px; font-size: 12px; font-style: normal;
+}
+.footer-links a {
+  color: var(--ink-4); text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+.footer-links a:hover { color: var(--teal); border-bottom-color: var(--teal); }
 
 /* ════════════════════════════════════════
    VESSEL POPUP + CARD
@@ -402,13 +410,14 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 .vessel-card.hidden { opacity: 0; pointer-events: none; transform: translateY(-48%) scale(0.97); }
 .card-close {
   position: absolute; top: 8px; right: 8px;
-  background: none; border: 1px solid var(--rule);
-  font-size: 14px; cursor: pointer; color: var(--ink-3);
-  width: 24px; height: 24px; display: flex;
+  background: var(--warm-2); border: 1px solid var(--rule-strong);
+  font-size: 20px; cursor: pointer; color: var(--ink-2);
+  width: 36px; height: 36px; display: flex;
   align-items: center; justify-content: center;
-  transition: background 0.15s;
+  transition: background 0.15s, color 0.15s;
+  font-weight: 700; z-index: 1;
 }
-.card-close:hover { background: var(--warm-2); }
+.card-close:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
 .card-header { display: flex; align-items: center; gap: 10px; padding: 14px 14px 10px; }
 .card-flag { flex-shrink: 0; }
 .card-title-group { flex: 1; min-width: 0; }

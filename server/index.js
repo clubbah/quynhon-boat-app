@@ -23,9 +23,15 @@ const app = express();
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-// "What's That Boat?" — public page
+// Static pages with clean URLs
 app.get('/spot', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'spot.html'));
+});
+app.get('/privacy', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'privacy.html'));
+});
+app.get('/terms', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'terms.html'));
 });
 
 // All vessels as JSON (for spot feature)
