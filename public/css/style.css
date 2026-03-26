@@ -62,7 +62,7 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
   gap: 24px;
 }
 .masthead-logo-link { display: block; line-height: 0; }
-.masthead-logo { height: clamp(72px, 12vw, 120px); width: auto; }
+.masthead-logo { height: clamp(72px, 12vw, 120px); width: auto; max-width: 100%; }
 .visually-hidden {
   position: absolute; width: 1px; height: 1px;
   padding: 0; margin: -1px; overflow: hidden;
@@ -463,6 +463,8 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
    ════════════════════════════════════════ */
 @media (max-width: 768px) {
   .masthead-inner { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .masthead-logo { height: clamp(56px, 18vw, 80px); }
+  .masthead-sub { display: none; }
   .masthead-right { align-items: flex-start; width: 100%; }
   .masthead-weather { justify-content: flex-start; }
 
