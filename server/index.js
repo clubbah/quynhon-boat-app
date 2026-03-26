@@ -217,10 +217,9 @@ app.get('/api/port-stats', (req, res) => {
   ).all(yesterday + 'T00:00:00');
 
   // Moving vessels (speed > 0.5)
+  // Speed-based movement detection (more reliable than AIS nav_status)
   const moving = allVessels.filter(v => v.speed != null && v.speed > 0.5);
-
-  // Anchored vessels
-  const anchored = allVessels.filter(v => v.nav_status === 1 || v.nav_status === 5 || (v.speed != null && v.speed < 0.3));
+  const anchored = allVessels.filter(v => v.speed == null || v.speed <= 0.5);
 
   // Vessel of the day — largest vessel currently visible
   const vesselOfDay = allVessels

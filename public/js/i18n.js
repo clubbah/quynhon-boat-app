@@ -546,6 +546,14 @@ export function tType(typeLabel) {
 }
 
 export function tStatus(statusLabel, speed) {
+  // Speed-based override: if AIS says "Under Way" but speed is near zero, show as stopped
+  if (speed != null && speed <= 0.5) {
+    // Check if status claims movement but vessel is actually stationary
+    const movingStatuses = ['Under Way Using Engine', 'Under Way Sailing'];
+    if (!statusLabel || movingStatuses.includes(statusLabel)) {
+      return t('stopped');
+    }
+  }
   if (statusLabel) {
     const key = STATUS_MAP[statusLabel];
     if (key) return t(key);
