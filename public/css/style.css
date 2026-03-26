@@ -62,7 +62,7 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
   gap: 24px;
 }
 .masthead-logo-link { display: block; line-height: 0; }
-.masthead-logo { height: clamp(48px, 8vw, 72px); width: auto; }
+.masthead-logo { height: clamp(72px, 12vw, 120px); width: auto; }
 .visually-hidden {
   position: absolute; width: 1px; height: 1px;
   padding: 0; margin: -1px; overflow: hidden;
