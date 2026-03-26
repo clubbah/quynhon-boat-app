@@ -464,17 +464,30 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
    MOBILE
    ════════════════════════════════════════ */
 @media (max-width: 768px) {
-  .masthead-inner { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .masthead-inner { flex-direction: column; align-items: center; gap: 12px; text-align: center; }
   .masthead-logo { height: auto; max-width: 180px; display: block !important; }
+  .masthead-right { align-items: center; width: 100%; }
+  .masthead-weather { justify-content: center; }
+  .lang-switcher { justify-content: center; }
+
+  .section-header { flex-direction: column; align-items: center; text-align: center; }
+  .section-label { text-align: center; }
 
   .port-strip {
     display: grid !important;
     grid-template-columns: 1fr 1fr;
     gap: 4px 16px;
+    justify-items: center;
+    text-align: center;
   }
   .port-strip-sep { display: none; }
-  .masthead-right { align-items: flex-start; width: 100%; }
-  .masthead-weather { justify-content: flex-start; }
+
+  .vessel-below { align-items: center; text-align: center; }
+  .spot-feature { text-align: left; }
+  .votd-strip { align-items: center; text-align: center; border-left: none; }
+
+  .explore-grid { text-align: center; }
+  .explore-card { align-items: center; text-align: center; }
 
   .vessel-below { flex-direction: column; gap: 0; }
   .spot-feature { border-left: 3px solid var(--teal); }
