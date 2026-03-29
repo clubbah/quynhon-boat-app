@@ -1,6 +1,6 @@
 import { initMap, updateVesselMarker, showTrack, clearTrack, setSelectedMmsi, getSelectedMmsi, filterMarkersByType, setMapClickHandler, flyToVessel, recenterMap, highlightVessel, clearHighlight } from './map.js';
 import { showPanel, hidePanel, initPanel } from './vessel-card.js';
-import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js?v=15';
+import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js?v=16';
 
 // State
 let vessels = {};
@@ -308,9 +308,192 @@ async function fetchWeather() {
       document.getElementById('weather-sunset').innerHTML =
         `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/></svg> ${sunset}`;
     }
+
+    // Sunset prediction
+    updateSunsetPrediction(data);
   } catch (err) {
     console.error('Weather fetch failed:', err);
   }
+}
+
+function updateSunsetPrediction(data) {
+  const w = data.weather;
+  if (!w?.hourly || !w?.daily) return;
+
+  const sunsetISO = w.daily.sunset?.[0];
+  if (!sunsetISO) return;
+
+  const sunsetDate = new Date(sunsetISO);
+  const sunsetHour = sunsetDate.getHours();
+  const sunsetTimeStr = sunsetISO.split('T')[1]; // "17:45" etc.
+
+  // Find the hourly index closest to sunset hour
+  const times = w.hourly.time || [];
+  let idx = -1;
+  for (let i = 0; i < times.length; i++) {
+    const h = new Date(times[i]).getHours();
+    if (h === sunsetHour) { idx = i; break; }
+  }
+  // Fallback: try the hour before sunset
+  if (idx < 0) {
+    for (let i = 0; i < times.length; i++) {
+      const h = new Date(times[i]).getHours();
+      if (h === sunsetHour - 1) { idx = i; break; }
+    }
+  }
+  if (idx < 0) return;
+
+  const cloudLow = w.hourly.cloud_cover_low?.[idx] ?? 50;
+  const cloudMid = w.hourly.cloud_cover_mid?.[idx] ?? 50;
+  const cloudHigh = w.hourly.cloud_cover_high?.[idx] ?? 50;
+  const cloudTotal = w.hourly.cloud_cover?.[idx] ?? 50;
+  const visibility = w.hourly.visibility?.[idx] ?? 20000; // meters
+  const precipProb = w.hourly.precipitation_probability?.[idx] ?? 0;
+  const humidity = w.current?.relative_humidity_2m ?? 70;
+
+  // Score calculation
+  let score = 0;
+  const factors = [];
+
+  // Low clouds (15-50% ideal — they light up orange/pink)
+  if (cloudLow >= 15 && cloudLow <= 50) {
+    score += 30;
+    factors.push({ label: t('sunset_f_clouds'), status: 'good' });
+  } else if (cloudLow > 50 && cloudLow <= 70) {
+    score += 12;
+    factors.push({ label: t('sunset_f_clouds'), status: 'neutral' });
+  } else if (cloudLow < 15) {
+    score += 5; // Clear sky — no canvas for color
+    factors.push({ label: t('sunset_f_clouds'), status: 'neutral' });
+  } else {
+    factors.push({ label: t('sunset_f_clouds'), status: 'poor' });
+  }
+
+  // Mid-level clouds (10-40% ideal — catch afterglow)
+  if (cloudMid >= 10 && cloudMid <= 40) {
+    score += 20;
+  } else if (cloudMid > 40 && cloudMid <= 60) {
+    score += 8;
+  }
+
+  // High cirrus adds some wispy drama
+  if (cloudHigh >= 10 && cloudHigh <= 50) {
+    score += 10;
+  }
+
+  // Overcast penalty
+  if (cloudTotal > 85) {
+    score -= 40;
+    factors.push({ label: t('sunset_f_overcast'), status: 'poor' });
+  }
+
+  // Visibility: lower = more haze = more vivid scattering
+  const visKm = visibility / 1000;
+  if (visKm >= 5 && visKm <= 20) {
+    score += 15; // Haze present — vivid colors
+    factors.push({ label: t('sunset_f_haze'), status: 'good' });
+  } else if (visKm > 20) {
+    score += 5; // Very clear — less scattering
+    factors.push({ label: t('sunset_f_haze'), status: 'neutral' });
+  } else {
+    score += 2; // Too hazy / foggy
+    factors.push({ label: t('sunset_f_haze'), status: 'poor' });
+  }
+
+  // No rain
+  if (precipProb <= 10) {
+    score += 15;
+    factors.push({ label: t('sunset_f_clear'), status: 'good' });
+  } else if (precipProb <= 30) {
+    score += 8;
+    factors.push({ label: t('sunset_f_clear'), status: 'neutral' });
+  } else {
+    factors.push({ label: t('sunset_f_clear'), status: 'poor' });
+  }
+
+  // Tropical humidity boost
+  if (humidity >= 65 && humidity <= 85) {
+    score += 10;
+    factors.push({ label: t('sunset_f_humidity'), status: 'good' });
+  } else if (humidity > 85) {
+    score += 4;
+    factors.push({ label: t('sunset_f_humidity'), status: 'neutral' });
+  } else {
+    score += 2;
+    factors.push({ label: t('sunset_f_humidity'), status: 'neutral' });
+  }
+
+  // Clamp 0-100
+  score = Math.max(0, Math.min(100, score));
+
+  // Determine rating
+  let level, ratingText, icon, desc;
+  if (score >= 80) {
+    level = 'spectacular'; ratingText = t('sunset_spectacular'); icon = '🔥';
+    desc = t('sunset_desc_spectacular');
+  } else if (score >= 60) {
+    level = 'vivid'; ratingText = t('sunset_vivid'); icon = '✨';
+    desc = t('sunset_desc_vivid');
+  } else if (score >= 40) {
+    level = 'nice'; ratingText = t('sunset_nice'); icon = '🌅';
+    desc = t('sunset_desc_nice');
+  } else {
+    level = 'ordinary'; ratingText = t('sunset_ordinary'); icon = '🌥️';
+    desc = t('sunset_desc_ordinary');
+  }
+
+  // Check if sunset has already passed today
+  const now = new Date();
+  if (now > sunsetDate) {
+    // Check if we have tomorrow's sunset
+    const tomorrowSunset = w.daily.sunset?.[1];
+    if (tomorrowSunset) {
+      // Use tomorrow's data instead — find the hourly index for tomorrow's sunset hour
+      const tmrDate = new Date(tomorrowSunset);
+      const tmrHour = tmrDate.getHours();
+      let tmrIdx = -1;
+      for (let i = 0; i < times.length; i++) {
+        const d = new Date(times[i]);
+        if (d.getDate() === tmrDate.getDate() && d.getHours() === tmrHour) {
+          tmrIdx = i; break;
+        }
+      }
+      if (tmrIdx >= 0) {
+        // Re-run with tomorrow's data (recursive call would be complex, so just show "tomorrow" label)
+        document.getElementById('sunset-time').textContent = `${t('sunset_tomorrow')} ${tomorrowSunset.split('T')[1]}`;
+      } else {
+        document.getElementById('sunset-time').textContent = `${t('sunset_tomorrow')} ${tomorrowSunset.split('T')[1]}`;
+      }
+    } else {
+      document.getElementById('sunset-time').textContent = sunsetTimeStr;
+    }
+  } else {
+    document.getElementById('sunset-time').textContent = sunsetTimeStr;
+  }
+
+  // Ring color based on level
+  const ringFill = document.getElementById('sunset-ring-fill');
+  const ringColors = { spectacular: '#dc2626', vivid: '#ea580c', nice: '#ca8a04', ordinary: '#8ca5ad' };
+  ringFill.style.stroke = ringColors[level];
+
+  // Animate ring
+  const circumference = 2 * Math.PI * 17; // r=17
+  const offset = circumference - (score / 100) * circumference;
+  ringFill.style.strokeDashoffset = offset;
+
+  // Update DOM
+  document.getElementById('sunset-rating-icon').textContent = icon;
+  const ratingEl = document.getElementById('sunset-rating');
+  ratingEl.textContent = ratingText;
+  ratingEl.dataset.level = level;
+  document.getElementById('sunset-score-num').textContent = score;
+  document.getElementById('sunset-desc').textContent = desc;
+
+  // Factors
+  const factorsEl = document.getElementById('sunset-factors');
+  factorsEl.innerHTML = factors.map(f =>
+    `<span class="sunset-factor"><span class="sunset-factor-dot ${f.status}"></span>${f.label}</span>`
+  ).join('');
 }
 
 async function fetchPortStats() {

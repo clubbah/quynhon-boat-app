@@ -179,7 +179,7 @@ async function fetchWeather() {
   }
   try {
     const [weatherRes, marineRes] = await Promise.all([
-      fetch('https://api.open-meteo.com/v1/forecast?latitude=13.76&longitude=109.23&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,apparent_temperature,precipitation&daily=sunrise,sunset&timezone=Asia/Ho_Chi_Minh&forecast_days=1'),
+      fetch('https://api.open-meteo.com/v1/forecast?latitude=13.76&longitude=109.23&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,apparent_temperature,precipitation&hourly=cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,visibility,precipitation_probability&daily=sunrise,sunset&timezone=Asia/Ho_Chi_Minh&forecast_days=2'),
       fetch('https://marine-api.open-meteo.com/v1/marine?latitude=13.76&longitude=109.23&current=wave_height,wave_direction,wave_period,swell_wave_height&timezone=Asia/Ho_Chi_Minh'),
     ]);
     const weather = await weatherRes.json();
