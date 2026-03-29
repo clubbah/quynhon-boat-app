@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
-  <link rel="stylesheet" href="/css/style.css?v=15" />
+  <link rel="stylesheet" href="/css/style.css?v=16" />
 </head>
 <body>
 
@@ -64,6 +64,28 @@
           <span class="port-strip-sep">&middot;</span>
           <div class="port-strip-item"><span class="port-strip-value" id="ps-recent">--</span> <span class="port-strip-label" data-i18n="active_today">active today</span></div>
         </div>
+        <!-- Sunset Prediction -->
+        <div class="sunset-strip" id="sunset-section">
+          <span class="section-label"><span data-i18n="sunset_label">Tonight's Sunset Prediction</span><span class="sunset-info-wrap"><span class="sunset-info-icon" id="sunset-info-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span><span class="sunset-info-tooltip" id="sunset-info-tooltip" data-i18n="sunset_info">Quy Nhon Life uses a proprietary prediction model that analyzes cloud layers, atmospheric haze, humidity, and precipitation to forecast how colorful tonight's sunset will be.</span></span></span>
+          <div class="sunset-card" id="sunset-card">
+            <div class="sunset-main">
+              <span class="sunset-icon" id="sunset-rating-icon"></span>
+              <div class="sunset-info">
+                <span class="sunset-time" id="sunset-time"></span>
+                <span class="sunset-rating" id="sunset-rating"></span>
+              </div>
+              <div class="sunset-score-ring" id="sunset-score-ring">
+                <svg viewBox="0 0 40 40" class="sunset-ring-svg">
+                  <circle cx="20" cy="20" r="17" class="sunset-ring-bg" />
+                  <circle cx="20" cy="20" r="17" class="sunset-ring-fill" id="sunset-ring-fill" />
+                </svg>
+                <span class="sunset-score-num" id="sunset-score-num"></span>
+              </div>
+            </div>
+            <p class="sunset-desc" id="sunset-desc"></p>
+            <div class="sunset-factors" id="sunset-factors"></div>
+          </div>
+        </div>
       </div>
 
       <!-- Map: full bleed -->
@@ -104,37 +126,6 @@
           <span class="votd-label" data-i18n="largest_vessel">Largest vessel</span>
           <span class="votd-name" id="votd-name">--</span>
           <span class="votd-details" id="votd-details"></span>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── Sunset Prediction Section ── -->
-    <section class="section section--sunset" id="sunset-section">
-      <div class="section-inner">
-        <span class="section-label" data-i18n="sunset_label">Tonight's Sunset Prediction</span>
-        <span class="sunset-info-wrap">
-          <span class="sunset-info-icon" id="sunset-info-icon">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-          </span>
-          <span class="sunset-info-tooltip" id="sunset-info-tooltip" data-i18n="sunset_info">Quy Nhon Life uses a proprietary prediction model that analyzes cloud layers, atmospheric haze, humidity, and precipitation to forecast how colorful tonight's sunset will be.</span>
-        </span>
-        <div class="sunset-card" id="sunset-card">
-          <div class="sunset-main">
-            <span class="sunset-icon" id="sunset-rating-icon"></span>
-            <div class="sunset-info">
-              <span class="sunset-time" id="sunset-time"></span>
-              <span class="sunset-rating" id="sunset-rating"></span>
-            </div>
-            <div class="sunset-score-ring" id="sunset-score-ring">
-              <svg viewBox="0 0 40 40" class="sunset-ring-svg">
-                <circle cx="20" cy="20" r="17" class="sunset-ring-bg" />
-                <circle cx="20" cy="20" r="17" class="sunset-ring-fill" id="sunset-ring-fill" />
-              </svg>
-              <span class="sunset-score-num" id="sunset-score-num"></span>
-            </div>
-          </div>
-          <p class="sunset-desc" id="sunset-desc"></p>
-          <div class="sunset-factors" id="sunset-factors"></div>
         </div>
       </div>
     </section>
@@ -237,6 +228,6 @@
   </a>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script type="module" src="/js/app.js?v=16"></script>
+  <script type="module" src="/js/app.js?v=17"></script>
 </body>
 </html>

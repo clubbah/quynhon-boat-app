@@ -290,7 +290,15 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 /* ════════════════════════════════════════
    SUNSET PREDICTION
    ════════════════════════════════════════ */
-.section--sunset { background: var(--white); animation: fadeUp 0.5s ease-out 0.15s both; }
+.sunset-strip {
+  border-top: 1px solid var(--rule);
+  padding-bottom: clamp(14px, 2vw, 20px);
+}
+.sunset-strip .section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
 
 .sunset-info-wrap {
   position: relative;
@@ -341,7 +349,7 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 }
 
 .sunset-card {
-  padding: 20px 0 clamp(20px, 3vw, 32px);
+  padding: 0;
 }
 
 .sunset-main {
@@ -456,6 +464,7 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 
 @media (max-width: 768px) {
   .sunset-main { gap: 12px; }
+  .sunset-strip .section-label { justify-content: center; }
   .sunset-card { text-align: center; }
   .sunset-main { justify-content: center; }
   .sunset-factors { justify-content: center; }

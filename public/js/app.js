@@ -1,6 +1,6 @@
 import { initMap, updateVesselMarker, showTrack, clearTrack, setSelectedMmsi, getSelectedMmsi, filterMarkersByType, setMapClickHandler, flyToVessel, recenterMap, highlightVessel, clearHighlight } from './map.js';
 import { showPanel, hidePanel, initPanel } from './vessel-card.js';
-import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js?v=16';
+import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js?v=17';
 
 // State
 let vessels = {};
@@ -16,6 +16,9 @@ setMapClickHandler(onPanelClose);
 
 // Live indicator update
 setInterval(updateLiveIndicator, 5000);
+
+// Apply saved language on load (translates data-i18n elements + dynamic content)
+if (getLang() !== 'en') translatePage();
 
 // Weather + port stats
 fetchWeather();
@@ -157,19 +160,11 @@ function translatePage() {
   // Refresh dynamic content
   updateStats();
   fetchPortStats();
+  fetchWeather(); // Re-render sunset prediction in new language
 
   // Update vessel card if open
   const sel = getSelectedMmsi();
   if (sel && vessels[sel]) showPanel(vessels[sel]);
-
-  document.getElementById('type-filter').addEventListener('change', (e) => {
-    filterMarkersByType(e.target.value);
-  });
-
-  // Recenter button
-  document.getElementById('map-recenter').addEventListener('click', () => {
-    recenterMap();
-  });
 }
 
 function initSearch() {
