@@ -422,14 +422,6 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 .sunset-factor-dot.neutral { background: #ca8a04; }
 .sunset-factor-dot.poor { background: #dc2626; }
 
-@media (max-width: 768px) {
-  .sunset-main { gap: 12px; }
-  .sunset-strip .section-label { justify-content: center; }
-  .sunset-card { text-align: center; }
-  .sunset-main { justify-content: center; }
-  .sunset-factors { justify-content: center; }
-  .sunset-desc { text-align: center; }
-}
 
 /* ════════════════════════════════════════
    EXPLORE SECTION
@@ -645,6 +637,13 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
   .vessel-below { flex-direction: column; gap: 0; }
   .spot-feature { border-left: 3px solid var(--teal); }
   .votd-strip { border-left: none; border-top: 1px solid var(--rule); padding: 12px 0; }
+
+  .sunset-strip { text-align: center; }
+  .sunset-strip .section-label { justify-content: center; flex-wrap: wrap; }
+  .sunset-main { justify-content: center; gap: 12px; }
+  .sunset-info { flex: none; }
+  .sunset-desc { text-align: center; }
+  .sunset-factors { justify-content: center; }
 
   .explore-grid { grid-template-columns: 1fr; }
 
