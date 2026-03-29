@@ -390,46 +390,6 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 .sunset-rating[data-level="nice"] { color: #ca8a04; }
 .sunset-rating[data-level="ordinary"] { color: var(--ink-4); }
 
-.sunset-score-ring {
-  position: relative;
-  width: 48px;
-  height: 48px;
-  flex-shrink: 0;
-}
-
-.sunset-ring-svg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-
-.sunset-ring-bg {
-  fill: none;
-  stroke: var(--rule-strong);
-  stroke-width: 3;
-}
-
-.sunset-ring-fill {
-  fill: none;
-  stroke: var(--teal);
-  stroke-width: 3;
-  stroke-linecap: square;
-  stroke-dasharray: 106.81;
-  stroke-dashoffset: 106.81;
-  transition: stroke-dashoffset 1s ease-out, stroke 0.3s;
-}
-
-.sunset-score-num {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-}
 
 .sunset-desc {
   margin-top: 10px;

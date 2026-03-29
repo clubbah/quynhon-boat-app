@@ -1,6 +1,6 @@
 import { initMap, updateVesselMarker, showTrack, clearTrack, setSelectedMmsi, getSelectedMmsi, filterMarkersByType, setMapClickHandler, flyToVessel, recenterMap, highlightVessel, clearHighlight } from './map.js';
 import { showPanel, hidePanel, initPanel } from './vessel-card.js';
-import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js?v=17';
+import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js?v=18';
 
 // State
 let vessels = {};
@@ -466,22 +466,11 @@ function updateSunsetPrediction(data) {
     document.getElementById('sunset-time').textContent = sunsetTimeStr;
   }
 
-  // Ring color based on level
-  const ringFill = document.getElementById('sunset-ring-fill');
-  const ringColors = { spectacular: '#dc2626', vivid: '#ea580c', nice: '#ca8a04', ordinary: '#8ca5ad' };
-  ringFill.style.stroke = ringColors[level];
-
-  // Animate ring
-  const circumference = 2 * Math.PI * 17; // r=17
-  const offset = circumference - (score / 100) * circumference;
-  ringFill.style.strokeDashoffset = offset;
-
   // Update DOM
   document.getElementById('sunset-rating-icon').textContent = icon;
   const ratingEl = document.getElementById('sunset-rating');
   ratingEl.textContent = ratingText;
   ratingEl.dataset.level = level;
-  document.getElementById('sunset-score-num').textContent = score;
   document.getElementById('sunset-desc').textContent = desc;
 
   // Factors
