@@ -10,92 +10,140 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
   <style>
     :root {
-      --ink: #1d1d1f;
-      --ink-secondary: #424245;
-      --ink-tertiary: #6e6e73;
-      --ink-quaternary: #86868b;
-      --surface: #fbfbfd;
-      --surface-elevated: #ffffff;
-      --border: rgba(0,0,0,0.08);
-      --accent: #0071e3;
-      --live-green: #34c759;
+      --ink: #1a2e35;
+      --ink-2: #2d4a54;
+      --ink-3: #5a7d87;
+      --ink-4: #8ca5ad;
+      --teal: #0d9488;
+      --teal-deep: #0a7c72;
+      --warm: #fafafa;
+      --white: #ffffff;
+      --rule: rgba(13, 148, 136, 0.12);
+      --cargo: #2563eb;
+      --tanker: #dc2626;
+      --passenger: #16a34a;
+      --fishing: #ca8a04;
+      --other: #8ca5ad;
     }
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     html { -webkit-font-smoothing: antialiased; }
     body {
-      font-family: 'Noto Sans', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-      background: var(--surface);
+      font-family: 'Noto Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--warm);
       color: var(--ink);
       min-height: 100vh;
-      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
     }
 
-    .spot-page {
-      max-width: 400px;
-      margin: 0 auto;
-      padding-top: 24px;
-      padding-bottom: 32px;
+    /* ── Top bar ── */
+    .spot-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--rule);
+      background: var(--white);
     }
-
     .spot-back {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      color: var(--accent);
-      font-size: 15px;
-      font-weight: 500;
+      color: var(--teal);
+      font-size: 14px;
+      font-weight: 600;
       text-decoration: none;
-      margin-bottom: 20px;
     }
     .spot-back:hover { text-decoration: underline; }
-
-    .spot-header {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .spot-title {
-      font-size: 28px;
+    .spot-topbar-title {
+      font-size: 14px;
       font-weight: 700;
-      letter-spacing: -0.03em;
-      margin-bottom: 4px;
+      color: var(--ink);
     }
-    .spot-subtitle {
-      font-size: 15px;
-      color: var(--ink-tertiary);
+    .spot-reset-btn {
+      display: none;
+      align-items: center;
+      gap: 4px;
+      background: none;
+      border: 1px solid var(--rule);
+      color: var(--ink-3);
+      font-size: 12px;
+      font-weight: 600;
+      font-family: inherit;
+      padding: 5px 10px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
     }
+    .spot-reset-btn.visible { display: inline-flex; }
+    .spot-reset-btn:hover { color: var(--teal); border-color: var(--teal); }
 
-    /* Scanning indicator */
-    .spot-scanner {
-      text-align: center;
-      padding: 20px 0;
+    /* ── Live map ── */
+    .spot-map-wrap {
+      position: relative;
+      height: 45vh;
+      min-height: 260px;
+      flex-shrink: 0;
+    }
+    #spot-map { width: 100%; height: 100%; }
+    .spot-map-heading {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      background: rgba(26,46,53,0.85);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 5px 16px;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.02em;
       display: none;
     }
-    .spot-scanner.active { display: block; }
+    .spot-map-heading.visible { display: block; }
 
-    .scanner-ring {
-      width: 64px;
-      height: 64px;
-      margin: 0 auto 12px;
-      border-radius: 50%;
-      border: 3px solid var(--border);
-      border-top-color: var(--accent);
-      animation: spin 1.2s linear infinite;
+    /* ── Bottom panel ── */
+    .spot-panel {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 500px;
+      width: 100%;
+      margin: 0 auto;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
 
-    .scanner-heading {
-      font-size: 32px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      color: var(--ink);
-      font-variant-numeric: tabular-nums;
+    /* Calibration tip */
+    .calibration-tip {
+      display: none;
+      text-align: center;
+      padding: 16px;
+      background: var(--white);
+      border: 1px solid var(--rule);
     }
-    .scanner-label {
+    .calibration-tip.visible { display: block; }
+    .calibration-tip-icon { font-size: 36px; margin-bottom: 8px; }
+    .calibration-tip-text {
       font-size: 13px;
-      color: var(--ink-quaternary);
-      margin-top: 2px;
+      color: var(--ink-3);
+      line-height: 1.5;
+    }
+    .calibration-tip-text strong { color: var(--ink); }
+    .calibration-dismiss {
+      display: inline-block;
+      margin-top: 10px;
+      background: none;
+      border: none;
+      color: var(--teal);
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
     }
 
     /* Start button */
@@ -105,12 +153,11 @@
       justify-content: center;
       gap: 8px;
       width: 100%;
-      background: var(--accent);
+      background: var(--teal);
       color: white;
       border: none;
-      padding: 16px;
-      border-radius: 14px;
-      font-size: 17px;
+      padding: 14px;
+      font-size: 16px;
       font-weight: 600;
       font-family: inherit;
       cursor: pointer;
@@ -120,32 +167,43 @@
     .spot-start:disabled { opacity: 0.5; cursor: not-allowed; }
     .spot-start.stop-btn {
       background: none;
-      color: var(--ink-tertiary);
-      border: 1px solid var(--border);
-      font-size: 15px;
-      padding: 12px;
+      color: var(--ink-3);
+      border: 1px solid var(--rule);
+      font-size: 14px;
+      padding: 10px;
     }
 
     .spot-status {
       text-align: center;
-      font-size: 14px;
-      color: var(--ink-tertiary);
-      margin: 12px 0;
+      font-size: 13px;
+      color: var(--ink-3);
     }
     .spot-status.error { color: #dc2626; }
 
+    /* Scanner */
+    .spot-scanner {
+      text-align: center;
+      padding: 8px 0;
+      display: none;
+    }
+    .spot-scanner.active { display: block; }
+    .scanner-label {
+      font-size: 12px;
+      color: var(--ink-4);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+    }
+
     /* Result card */
     .spot-result {
-      background: var(--surface-elevated);
-      border: 1px solid var(--border);
-      border-radius: 16px;
+      background: var(--white);
+      border: 1px solid var(--rule);
       overflow: hidden;
-      margin-top: 16px;
       display: none;
       animation: slideUp 0.3s ease-out;
     }
     .spot-result.visible { display: block; }
-
     @keyframes slideUp {
       from { opacity: 0; transform: translateY(12px); }
       to { opacity: 1; transform: translateY(0); }
@@ -155,103 +213,78 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 16px;
+      padding: 14px 16px;
     }
-    .result-flag {
-      width: 40px;
-      height: 30px;
-      border-radius: 4px;
-      object-fit: cover;
-      flex-shrink: 0;
-    }
+    .result-flag { width: 36px; height: 27px; object-fit: cover; flex-shrink: 0; }
     .result-info { flex: 1; min-width: 0; }
-    .result-name {
-      font-size: 19px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      line-height: 1.2;
-    }
+    .result-name { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
     .result-type {
-      display: inline-block;
-      font-size: 12px;
-      font-weight: 600;
-      padding: 2px 10px;
-      border-radius: 980px;
-      color: white;
-      margin-top: 4px;
+      display: inline-block; font-size: 10px; font-weight: 700;
+      padding: 1px 8px; color: white; margin-top: 4px; text-transform: uppercase;
+      letter-spacing: 0.03em;
     }
 
     .result-stats {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      border-top: 1px solid var(--border);
+      border-top: 1px solid var(--rule);
     }
-    .result-stat {
-      text-align: center;
-      padding: 12px 8px;
-    }
-    .result-stat + .result-stat { border-left: 1px solid var(--border); }
-    .result-stat-value {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--ink);
-      letter-spacing: -0.02em;
-      font-variant-numeric: tabular-nums;
-    }
-    .result-stat-label {
-      font-size: 11px;
-      color: var(--ink-quaternary);
-      margin-top: 2px;
-    }
+    .result-stat { text-align: center; padding: 10px 6px; }
+    .result-stat + .result-stat { border-left: 1px solid var(--rule); }
+    .result-stat-value { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .result-stat-label { font-size: 10px; color: var(--ink-4); margin-top: 2px; }
 
-    .result-details {
-      border-top: 1px solid var(--border);
-      padding: 8px 16px;
-    }
-    .result-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 6px 0;
-      font-size: 14px;
-    }
-    .result-row + .result-row { border-top: 1px solid var(--border); }
-    .result-row-label { color: var(--ink-tertiary); }
-    .result-row-value { font-weight: 500; color: var(--ink); }
+    .result-details { border-top: 1px solid var(--rule); padding: 6px 16px; }
+    .result-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; }
+    .result-row + .result-row { border-top: 1px solid var(--rule); }
+    .result-row-label { color: var(--ink-3); }
+    .result-row-value { font-weight: 500; }
 
     /* No match */
-    .no-match {
-      text-align: center;
-      padding: 32px 16px;
-      display: none;
-    }
+    .no-match { text-align: center; padding: 24px 16px; display: none; }
     .no-match.visible { display: block; }
-    .no-match-icon { font-size: 40px; margin-bottom: 8px; }
-    .no-match p {
-      color: var(--ink-tertiary);
-      font-size: 15px;
-      line-height: 1.5;
-    }
+    .no-match-icon { font-size: 36px; margin-bottom: 6px; }
+    .no-match p { color: var(--ink-3); font-size: 14px; line-height: 1.5; }
   </style>
 </head>
 <body>
-  <div class="spot-page">
-    <a class="spot-back" href="/">&larr; <span id="t-back">Back to map</span></a>
 
-    <div class="spot-header">
-      <h1 class="spot-title" id="t-title">What's That Boat?</h1>
-      <p class="spot-subtitle" id="t-subtitle">Point your phone at any vessel to identify it</p>
+  <!-- Top bar -->
+  <div class="spot-topbar">
+    <a class="spot-back" href="/">&larr; <span id="t-back">Back</span></a>
+    <span class="spot-topbar-title" id="t-title">What's That Boat?</span>
+    <button class="spot-reset-btn" id="spot-reset">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      <span id="t-reset">Reset</span>
+    </button>
+  </div>
+
+  <!-- Live map -->
+  <div class="spot-map-wrap">
+    <div id="spot-map"></div>
+    <div class="spot-map-heading" id="spot-heading-display"></div>
+  </div>
+
+  <!-- Bottom panel -->
+  <div class="spot-panel">
+
+    <!-- Calibration tip (shown before first start) -->
+    <div class="calibration-tip visible" id="calibration-tip">
+      <div class="calibration-tip-icon">&#128260;</div>
+      <p class="calibration-tip-text" id="t-calibration">
+        <strong>Tip:</strong> Before starting, wave your phone slowly in a figure-8 pattern to calibrate the compass. This greatly improves accuracy.
+      </p>
+      <button class="calibration-dismiss" id="calibration-dismiss"><span id="t-got-it">Got it</span></button>
     </div>
 
     <button class="spot-start" id="spot-start">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
       <span id="t-start">Start Spotting</span>
     </button>
 
     <p class="spot-status" id="spot-status"></p>
 
     <div class="spot-scanner" id="spot-scanner">
-      <div class="scanner-ring"></div>
-      <div class="scanner-heading" id="scanner-heading">--°</div>
       <div class="scanner-label" id="t-scanning">Scanning...</div>
     </div>
 
@@ -294,75 +327,80 @@
     </div>
 
     <div class="no-match" id="no-match">
-      <div class="no-match-icon">🌊</div>
+      <div class="no-match-icon">&#127754;</div>
       <p id="t-no-match">No vessel found in that direction.<br>Try pointing at a different angle.</p>
     </div>
   </div>
 
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script>
-    // i18n — reads language from localStorage (set by main site)
+    // ── i18n ──
     const STRINGS = {
       en: {
-        back: 'Back to map', title: "What's That Boat?",
-        subtitle: 'Point your phone at any vessel to identify it',
-        start: 'Start Spotting', stop: 'Stop', scanning: 'Scanning...',
-        distance: 'Distance', speed: 'Speed', bearing: 'Bearing',
-        destination: 'Destination', dimensions: 'Dimensions', status: 'Status',
+        back: 'Back', title: "What's That Boat?", start: 'Start Spotting', stop: 'Stop',
+        scanning: 'Scanning...', distance: 'Distance', speed: 'Speed', bearing: 'Bearing',
+        destination: 'Destination', dimensions: 'Dimensions', status: 'Status', reset: 'Reset',
         no_match: 'No vessel found in that direction.<br>Try pointing at a different angle.',
         getting_perms: 'Requesting permissions...', getting_loc: 'Getting your location...',
         point: 'Point your phone at a vessel...', no_gps: 'Could not get location. Please enable GPS.',
         no_compass_perm: 'Compass permission denied.', no_compass: 'Compass not supported on this device.',
+        calibration: '<strong>Tip:</strong> Before starting, wave your phone slowly in a figure-8 pattern to calibrate the compass. This greatly improves accuracy.',
+        got_it: 'Got it',
       },
       vi: {
-        back: 'Quay l\u1EA1i b\u1EA3n \u0111\u1ED3', title: '\u0110\u00F3 l\u00E0 t\u00E0u g\u00EC?',
-        subtitle: 'Ch\u1EC9 \u0111i\u1EC7n tho\u1EA1i v\u00E0o t\u00E0u \u0111\u1EC3 nh\u1EADn d\u1EA1ng',
+        back: 'Quay l\u1EA1i', title: '\u0110\u00F3 l\u00E0 t\u00E0u g\u00EC?',
         start: 'B\u1EAFt \u0111\u1EA7u', stop: 'D\u1EEBng', scanning: '\u0110ang qu\u00E9t...',
         distance: 'Kho\u1EA3ng c\u00E1ch', speed: 'T\u1ED1c \u0111\u1ED9', bearing: 'H\u01B0\u1EDBng',
         destination: '\u0110i\u1EC3m \u0111\u1EBFn', dimensions: 'K\u00EDch th\u01B0\u1EDBc', status: 'Tr\u1EA1ng th\u00E1i',
+        reset: '\u0110\u1EB7t l\u1EA1i',
         no_match: 'Kh\u00F4ng t\u00ECm th\u1EA5y t\u00E0u theo h\u01B0\u1EDBng n\u00E0y.<br>Th\u1EED ch\u1EC9 theo g\u00F3c kh\u00E1c.',
         getting_perms: '\u0110ang xin quy\u1EC1n...', getting_loc: '\u0110ang l\u1EA5y v\u1ECB tr\u00ED...',
         point: 'Ch\u1EC9 \u0111i\u1EC7n tho\u1EA1i v\u00E0o t\u00E0u...', no_gps: 'Kh\u00F4ng th\u1EC3 l\u1EA5y v\u1ECB tr\u00ED. Vui l\u00F2ng b\u1EADt GPS.',
         no_compass_perm: 'Quy\u1EC1n la b\u00E0n b\u1ECB t\u1EEB ch\u1ED1i.', no_compass: 'La b\u00E0n kh\u00F4ng h\u1ED7 tr\u1EE3 tr\u00EAn thi\u1EBFt b\u1ECB n\u00E0y.',
+        calibration: '<strong>M\u1EB9o:</strong> Tr\u01B0\u1EDBc khi b\u1EAFt \u0111\u1EA7u, v\u1EABy \u0111i\u1EC7n tho\u1EA1i theo h\u00ECnh s\u1ED1 8 \u0111\u1EC3 hi\u1EC7u ch\u1EC9nh la b\u00E0n.',
+        got_it: '\u0110\u00E3 hi\u1EC3u',
       },
       ko: {
-        back: '\uC9C0\uB3C4\uB85C \uB3CC\uC544\uAC00\uAE30', title: '\uC800 \uBC30\uB294 \uBB50\uC9C0?',
-        subtitle: '\uD734\uB300\uD3F0\uC744 \uC120\uBC15\uC73C\uB85C \uAC00\uB9AC\uCF1C \uC2DD\uBCC4\uD558\uC138\uC694',
+        back: '\uB4A4\uB85C', title: '\uC800 \uBC30\uB294 \uBB50\uC9C0?',
         start: '\uC2DC\uC791', stop: '\uC815\uC9C0', scanning: '\uC2A4\uCE94 \uC911...',
         distance: '\uAC70\uB9AC', speed: '\uC18D\uB3C4', bearing: '\uBC29\uC704',
         destination: '\uBAA9\uC801\uC9C0', dimensions: '\uCE58\uC218', status: '\uC0C1\uD0DC',
+        reset: '\uCD08\uAE30\uD654',
         no_match: '\uD574\uB2F9 \uBC29\uD5A5\uC5D0 \uC120\uBC15\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.<br>\uB2E4\uB978 \uAC01\uB3C4\uB85C \uC2DC\uB3C4\uD574 \uBCF4\uC138\uC694.',
         getting_perms: '\uAD8C\uD55C \uC694\uCCAD \uC911...', getting_loc: '\uC704\uCE58 \uD655\uC778 \uC911...',
         point: '\uC120\uBC15\uC744 \uD5A5\uD574 \uD734\uB300\uD3F0\uC744 \uAC00\uB9AC\uCF1C\uC138\uC694...', no_gps: '\uC704\uCE58\uB97C \uD655\uC778\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. GPS\uB97C \uCF1C\uC8FC\uC138\uC694.',
         no_compass_perm: '\uB098\uCE68\uBC18 \uAD8C\uD55C\uC774 \uAC70\uBD80\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', no_compass: '\uC774 \uAE30\uAE30\uC5D0\uC11C \uB098\uCE68\uBC18\uC744 \uC9C0\uC6D0\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.',
+        calibration: '<strong>\uD301:</strong> \uC2DC\uC791 \uC804\uC5D0 \uD734\uB300\uD3F0\uC744 8\uC790\uB85C \uD754\uB4E4\uC5B4 \uB098\uCE68\uBC18\uC744 \uBCF4\uC815\uD558\uC138\uC694.',
+        got_it: '\uD655\uC778',
       },
       zh: {
-        back: '\u8FD4\u56DE\u5730\u56FE', title: '\u90A3\u662F\u4EC0\u4E48\u8239?',
-        subtitle: '\u5C06\u624B\u673A\u5BF9\u51C6\u8239\u8236\u8FDB\u884C\u8BC6\u522B',
+        back: '\u8FD4\u56DE', title: '\u90A3\u662F\u4EC0\u4E48\u8239?',
         start: '\u5F00\u59CB', stop: '\u505C\u6B62', scanning: '\u626B\u63CF\u4E2D...',
         distance: '\u8DDD\u79BB', speed: '\u901F\u5EA6', bearing: '\u65B9\u4F4D',
         destination: '\u76EE\u7684\u5730', dimensions: '\u5C3A\u5BF8', status: '\u72B6\u6001',
+        reset: '\u91CD\u7F6E',
         no_match: '\u8BE5\u65B9\u5411\u672A\u53D1\u73B0\u8239\u8236\u3002<br>\u8BF7\u5C1D\u8BD5\u5176\u4ED6\u89D2\u5EA6\u3002',
         getting_perms: '\u8BF7\u6C42\u6743\u9650...', getting_loc: '\u83B7\u53D6\u4F4D\u7F6E...',
         point: '\u5C06\u624B\u673A\u5BF9\u51C6\u8239\u8236...', no_gps: '\u65E0\u6CD5\u83B7\u53D6\u4F4D\u7F6E\u3002\u8BF7\u5F00\u542FGPS\u3002',
         no_compass_perm: '\u6307\u5357\u9488\u6743\u9650\u88AB\u62D2\u7EDD\u3002', no_compass: '\u6B64\u8BBE\u5907\u4E0D\u652F\u6301\u6307\u5357\u9488\u3002',
+        calibration: '<strong>\u63D0\u793A\uFF1A</strong>\u5F00\u59CB\u524D\uFF0C\u5C06\u624B\u673A\u6162\u6162\u753B8\u5B57\u6765\u6821\u51C6\u6307\u5357\u9488\u3002',
+        got_it: '\u77E5\u9053\u4E86',
       },
       ja: {
-        back: '\u5730\u56F3\u306B\u623B\u308B', title: '\u3042\u306E\u8239\u306F\u4F55?',
-        subtitle: '\u30B9\u30DE\u30DB\u3092\u8239\u306B\u5411\u3051\u3066\u8B58\u5225',
+        back: '\u623B\u308B', title: '\u3042\u306E\u8239\u306F\u4F55?',
         start: '\u30B9\u30BF\u30FC\u30C8', stop: '\u505C\u6B62', scanning: '\u30B9\u30AD\u30E3\u30F3\u4E2D...',
         distance: '\u8DDD\u96E2', speed: '\u901F\u529B', bearing: '\u65B9\u4F4D',
         destination: '\u76EE\u7684\u5730', dimensions: '\u5BF8\u6CD5', status: '\u72B6\u614B',
+        reset: '\u30EA\u30BB\u30C3\u30C8',
         no_match: '\u305D\u306E\u65B9\u5411\u306B\u8239\u8236\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3002<br>\u5225\u306E\u89D2\u5EA6\u3092\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002',
         getting_perms: '\u6A29\u9650\u3092\u8981\u6C42\u4E2D...', getting_loc: '\u4F4D\u7F6E\u60C5\u5831\u3092\u53D6\u5F97\u4E2D...',
         point: '\u8239\u306B\u30B9\u30DE\u30DB\u3092\u5411\u3051\u3066\u304F\u3060\u3055\u3044...', no_gps: '\u4F4D\u7F6E\u60C5\u5831\u3092\u53D6\u5F97\u3067\u304D\u307E\u305B\u3093\u3002GPS\u3092\u6709\u52B9\u306B\u3057\u3066\u304F\u3060\u3055\u3044\u3002',
         no_compass_perm: '\u30B3\u30F3\u30D1\u30B9\u306E\u6A29\u9650\u304C\u62D2\u5426\u3055\u308C\u307E\u3057\u305F\u3002', no_compass: '\u3053\u306E\u30C7\u30D0\u30A4\u30B9\u3067\u306F\u30B3\u30F3\u30D1\u30B9\u975E\u5BFE\u5FDC\u3067\u3059\u3002',
+        calibration: '<strong>\u30D2\u30F3\u30C8\uFF1A</strong>\u958B\u59CB\u524D\u306B\u30B9\u30DE\u30DB\u30928\u306E\u5B57\u306B\u632F\u3063\u3066\u30B3\u30F3\u30D1\u30B9\u3092\u6821\u6B63\u3057\u3066\u304F\u3060\u3055\u3044\u3002',
+        got_it: '\u4E86\u89E3',
       },
     };
 
-    const lang = localStorage.getItem('lang') || 'en';
-    const S = STRINGS[lang] || STRINGS.en;
-
-    // Status + type translations per language
     const STATUS_TRANSLATIONS = {
       en: { 'Under Way Using Engine': 'Under Way', 'At Anchor': 'At Anchor', 'Moored': 'Moored', 'Not Under Command': 'Not Under Command', 'Restricted Maneuverability': 'Restricted', 'Aground': 'Aground', 'Engaged In Fishing': 'Fishing', 'Under Way Sailing': 'Sailing', 'Unknown': 'Unknown' },
       vi: { 'Under Way Using Engine': '\u0110ang h\u00E0nh tr\u00ECnh', 'At Anchor': 'Neo \u0111\u1EADu', 'Moored': 'C\u1EADp c\u1EA3ng', 'Not Under Command': 'Kh\u00F4ng \u0111i\u1EC1u khi\u1EC3n', 'Restricted Maneuverability': 'H\u1EA1n ch\u1EBF', 'Aground': 'M\u1EAFc c\u1EA1n', 'Engaged In Fishing': '\u0110ang \u0111\u00E1nh c\u00E1', 'Under Way Sailing': 'Ch\u00E8o bu\u1ED3m', 'Unknown': 'Kh\u00F4ng r\u00F5' },
@@ -370,17 +408,6 @@
       zh: { 'Under Way Using Engine': '\u822A\u884C\u4E2D', 'At Anchor': '\u951A\u6CCA', 'Moored': '\u9760\u6CCA', 'Not Under Command': '\u5931\u63A7', 'Restricted Maneuverability': '\u53D7\u9650', 'Aground': '\u642C\u6D45', 'Engaged In Fishing': '\u4F5C\u4E1A\u4E2D', 'Under Way Sailing': '\u5E06\u8239', 'Unknown': '\u4E0D\u660E' },
       ja: { 'Under Way Using Engine': '\u822A\u884C\u4E2D', 'At Anchor': '\u9328\u6CCA', 'Moored': '\u4FC2\u7559', 'Not Under Command': '\u904B\u8EE2\u4E0D\u80FD', 'Restricted Maneuverability': '\u5236\u9650', 'Aground': '\u4E57\u63DA\u3052', 'Engaged In Fishing': '\u64CD\u696D\u4E2D', 'Under Way Sailing': '\u5E06\u8D70', 'Unknown': '\u4E0D\u660E' },
     };
-    const statusMap = STATUS_TRANSLATIONS[lang] || STATUS_TRANSLATIONS.en;
-
-    function translateStatus(label) {
-      if (!label) return '--';
-      // Try exact match first, then case-insensitive
-      if (statusMap[label]) return statusMap[label];
-      for (const [key, val] of Object.entries(statusMap)) {
-        if (key.toLowerCase() === label.toLowerCase()) return val;
-      }
-      return label;
-    }
 
     const TYPE_TRANSLATIONS = {
       en: { Cargo: 'Cargo', Tanker: 'Tanker', Passenger: 'Passenger', Fishing: 'Fishing', Other: 'Other' },
@@ -389,32 +416,46 @@
       zh: { Cargo: '\u8D27\u8239', Tanker: '\u6CB9\u8F6E', Passenger: '\u5BA2\u8239', Fishing: '\u6E14\u8239', Other: '\u5176\u4ED6' },
       ja: { Cargo: '\u8CA8\u7269\u8239', Tanker: '\u30BF\u30F3\u30AB\u30FC', Passenger: '\u65C5\u5BA2\u8239', Fishing: '\u6F01\u8239', Other: '\u305D\u306E\u4ED6' },
     };
-    const typeMap = TYPE_TRANSLATIONS[lang] || TYPE_TRANSLATIONS.en;
-
-    function translateType(label) {
-      return typeMap[label] || label || '--';
-    }
 
     const TYPE_COLORS = {
       Cargo: '#2563eb', Tanker: '#dc2626', Passenger: '#16a34a',
-      Fishing: '#ca8a04', Other: '#86868b',
+      Fishing: '#ca8a04', Other: '#8ca5ad',
     };
 
+    const lang = localStorage.getItem('lang') || 'en';
+    const S = STRINGS[lang] || STRINGS.en;
+    const statusMap = STATUS_TRANSLATIONS[lang] || STATUS_TRANSLATIONS.en;
+    const typeMap = TYPE_TRANSLATIONS[lang] || TYPE_TRANSLATIONS.en;
+
+    function translateStatus(label) {
+      if (!label) return '--';
+      if (statusMap[label]) return statusMap[label];
+      for (const [key, val] of Object.entries(statusMap)) {
+        if (key.toLowerCase() === label.toLowerCase()) return val;
+      }
+      return label;
+    }
+    function translateType(label) { return typeMap[label] || label || '--'; }
+
+    // ── State ──
     let userLat = null, userLng = null;
     let compassHeading = null;
     let smoothedHeading = null;
     let vessels = [];
     let active = false;
     let matchInterval = null;
+    let geoWatchId = null;
+    let lastMatchMmsi = null;
     const SMOOTHING = 0.15;
+    const CONE_HALF = 25;  // ±25° matching cone (was ±15°)
+    const MAX_DIST = 50;   // km
 
     const $ = (id) => document.getElementById(id);
 
-    // Apply translations
+    // ── Apply translations ──
     function applyLang() {
       $('t-back').textContent = S.back;
       $('t-title').textContent = S.title;
-      $('t-subtitle').textContent = S.subtitle;
       $('t-start').textContent = S.start;
       $('t-scanning').textContent = S.scanning;
       $('t-distance').textContent = S.distance;
@@ -424,17 +465,177 @@
       $('t-dim-label').textContent = S.dimensions;
       $('t-status-label').textContent = S.status;
       $('t-no-match').innerHTML = S.no_match;
-      document.title = S.title + ' — Quy Nhon Life';
+      $('t-reset').textContent = S.reset;
+      $('t-calibration').innerHTML = S.calibration;
+      $('t-got-it').textContent = S.got_it;
+      document.title = S.title + ' \u2014 Quy Nhon Life';
     }
     applyLang();
 
-    async function loadVessels() {
-      try {
-        const res = await fetch('/api/vessels');
-        vessels = await res.json();
-      } catch (e) { console.error('Failed to load vessels:', e); }
+    // Dismiss calibration tip
+    $('calibration-dismiss').addEventListener('click', () => {
+      $('calibration-tip').classList.remove('visible');
+    });
+
+    // ── Map setup ──
+    const map = new maplibregl.Map({
+      container: 'spot-map',
+      style: `https://api.maptiler.com/maps/streets/style.json?key=CKY69E5ib1MMQDfWMRvg`,
+      center: [109.23, 13.76],
+      zoom: 13,
+      attributionControl: false,
+    });
+
+    map.on('load', () => {
+      // User position source
+      map.addSource('user-pos', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      });
+      // Pointing cone source
+      map.addSource('cone', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      });
+      // Vessel markers source
+      map.addSource('spot-vessels', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      });
+      // Matched vessel highlight
+      map.addSource('spot-match', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      });
+
+      // Cone layer (semi-transparent wedge)
+      map.addLayer({
+        id: 'cone-fill',
+        type: 'fill',
+        source: 'cone',
+        paint: {
+          'fill-color': '#0d9488',
+          'fill-opacity': 0.12,
+        },
+      });
+      map.addLayer({
+        id: 'cone-outline',
+        type: 'line',
+        source: 'cone',
+        paint: {
+          'line-color': '#0d9488',
+          'line-width': 1.5,
+          'line-opacity': 0.4,
+        },
+      });
+
+      // Vessel dots
+      map.addLayer({
+        id: 'spot-vessel-dots',
+        type: 'circle',
+        source: 'spot-vessels',
+        paint: {
+          'circle-radius': 5,
+          'circle-color': ['get', 'color'],
+          'circle-stroke-width': 1.5,
+          'circle-stroke-color': '#fff',
+        },
+      });
+
+      // Matched vessel ring
+      map.addLayer({
+        id: 'spot-match-ring',
+        type: 'circle',
+        source: 'spot-match',
+        paint: {
+          'circle-radius': 12,
+          'circle-color': 'transparent',
+          'circle-stroke-width': 3,
+          'circle-stroke-color': '#f97316',
+        },
+      });
+
+      // User dot (on top)
+      map.addLayer({
+        id: 'user-dot',
+        type: 'circle',
+        source: 'user-pos',
+        paint: {
+          'circle-radius': 7,
+          'circle-color': '#0071e3',
+          'circle-stroke-width': 2.5,
+          'circle-stroke-color': '#fff',
+        },
+      });
+    });
+
+    // ── Generate cone polygon ──
+    function makeConeGeoJSON(lng, lat, heading, halfAngle, radiusKm) {
+      const steps = 20;
+      const coords = [[lng, lat]];
+      const startAngle = heading - halfAngle;
+      const endAngle = heading + halfAngle;
+      for (let i = 0; i <= steps; i++) {
+        const angle = startAngle + (endAngle - startAngle) * (i / steps);
+        const rad = (angle * Math.PI) / 180;
+        const dLat = (radiusKm / 111.32) * Math.cos(rad);
+        const dLng = (radiusKm / (111.32 * Math.cos((lat * Math.PI) / 180))) * Math.sin(rad);
+        coords.push([lng + dLng, lat + dLat]);
+      }
+      coords.push([lng, lat]); // close polygon
+      return {
+        type: 'Feature',
+        geometry: { type: 'Polygon', coordinates: [coords] },
+      };
     }
 
+    // ── Update map layers ──
+    function updateMap() {
+      if (!map.isStyleLoaded()) return;
+
+      // User position
+      if (userLat != null) {
+        map.getSource('user-pos')?.setData({
+          type: 'FeatureCollection',
+          features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [userLng, userLat] } }],
+        });
+      }
+
+      // Cone
+      if (userLat != null && smoothedHeading != null && active) {
+        const cone = makeConeGeoJSON(userLng, userLat, smoothedHeading, CONE_HALF, 3);
+        map.getSource('cone')?.setData({ type: 'FeatureCollection', features: [cone] });
+      } else {
+        map.getSource('cone')?.setData({ type: 'FeatureCollection', features: [] });
+      }
+
+      // Vessel markers
+      const vesselFeatures = vessels
+        .filter(v => v.lat != null && v.lng != null)
+        .map(v => ({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [v.lng, v.lat] },
+          properties: {
+            color: TYPE_COLORS[v.vessel_type_label] || TYPE_COLORS.Other,
+            name: v.name || v.mmsi,
+          },
+        }));
+      map.getSource('spot-vessels')?.setData({ type: 'FeatureCollection', features: vesselFeatures });
+    }
+
+    function highlightMatch(vessel) {
+      if (!map.isStyleLoaded()) return;
+      if (vessel) {
+        map.getSource('spot-match')?.setData({
+          type: 'FeatureCollection',
+          features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [vessel.lng, vessel.lat] } }],
+        });
+      } else {
+        map.getSource('spot-match')?.setData({ type: 'FeatureCollection', features: [] });
+      }
+    }
+
+    // ── Geo math ──
     function haversine(lat1, lon1, lat2, lon2) {
       const R = 6371;
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -461,10 +662,18 @@
       return ((from + diff * t) + 360) % 360;
     }
 
+    // ── Vessel loading ──
+    async function loadVessels() {
+      try {
+        const res = await fetch('/api/vessels');
+        vessels = await res.json();
+        updateMap();
+      } catch (e) { console.error('Failed to load vessels:', e); }
+    }
+
+    // ── Matching ──
     function findMatchingVessel() {
       if (userLat == null || compassHeading == null || vessels.length === 0) return null;
-      const CONE_HALF = 15;
-      const MAX_DIST = 50;
       let best = null, bestDist = Infinity;
       for (const v of vessels) {
         if (v.lat == null || v.lng == null) continue;
@@ -480,6 +689,7 @@
       return best;
     }
 
+    // ── Display result ──
     function showResult(vessel) {
       $('no-match').classList.remove('visible');
       $('spot-result').classList.add('visible');
@@ -500,38 +710,64 @@
       $('result-destination').textContent = vessel.destination || '--';
       $('result-dimensions').textContent = vessel.length && vessel.width ? `${vessel.length} x ${vessel.width} m` : '--';
       $('result-status').textContent = translateStatus(vessel.nav_status_label);
+
+      highlightMatch(vessel);
+
+      // Haptic feedback on NEW match
+      if (vessel.mmsi !== lastMatchMmsi) {
+        lastMatchMmsi = vessel.mmsi;
+        if (navigator.vibrate) navigator.vibrate(80);
+      }
     }
 
     function showNoMatch() {
       $('spot-result').classList.remove('visible');
       $('no-match').classList.add('visible');
+      highlightMatch(null);
+      lastMatchMmsi = null;
     }
 
+    // ── Compass handler ──
     function onOrientation(e) {
       let heading = null;
+
+      // iOS: webkitCompassHeading gives true north directly
       if (e.webkitCompassHeading != null) {
         heading = e.webkitCompassHeading;
-      } else if (e.alpha != null) {
-        heading = e.absolute ? (360 - e.alpha) : e.alpha;
       }
+      // Android absolute orientation: (360 - alpha) gives true north
+      else if (e.absolute && e.alpha != null) {
+        heading = (360 - e.alpha) % 360;
+      }
+      // Android fallback: alpha alone (relative, less reliable)
+      else if (e.alpha != null) {
+        heading = (360 - e.alpha) % 360;
+      }
+
       if (heading != null) {
         smoothedHeading = smoothedHeading == null ? heading : lerpAngle(smoothedHeading, heading, SMOOTHING);
         compassHeading = smoothedHeading;
-        $('scanner-heading').textContent = Math.round(smoothedHeading) + '\u00B0';
+        const display = $('spot-heading-display');
+        display.textContent = Math.round(smoothedHeading) + '\u00B0';
+        updateMap();
       }
     }
 
+    // ── Start / Stop ──
     async function startSpotting() {
       const btn = $('spot-start');
       const status = $('spot-status');
 
       if (active) { stopSpotting(); return; }
 
+      // Hide calibration tip
+      $('calibration-tip').classList.remove('visible');
+
       btn.disabled = true;
       status.textContent = S.getting_perms;
       status.className = 'spot-status';
 
-      // iOS compass permission (must be in direct user gesture)
+      // iOS compass permission (must be from direct user gesture)
       if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
         try {
           const response = await DeviceOrientationEvent.requestPermission();
@@ -556,35 +792,47 @@
 
       status.textContent = S.getting_loc;
 
-      navigator.geolocation.getCurrentPosition(
+      // Use watchPosition for continuous GPS updates
+      geoWatchId = navigator.geolocation.watchPosition(
         (pos) => {
           userLat = pos.coords.latitude;
           userLng = pos.coords.longitude;
 
-          window.addEventListener('deviceorientationabsolute', onOrientation, true);
-          window.addEventListener('deviceorientation', onOrientation, true);
+          // On first fix, start everything
+          if (!active) {
+            // Listen for compass — try absolute first (Android), then fallback
+            window.addEventListener('deviceorientationabsolute', onOrientation, true);
+            window.addEventListener('deviceorientation', onOrientation, true);
 
-          active = true;
-          btn.disabled = false;
-          $('t-start').textContent = S.stop;
-          btn.classList.add('stop-btn');
-          status.textContent = S.point;
-          $('spot-scanner').classList.add('active');
+            active = true;
+            btn.disabled = false;
+            $('t-start').textContent = S.stop;
+            btn.classList.add('stop-btn');
+            status.textContent = S.point;
+            $('spot-scanner').classList.add('active');
+            $('spot-heading-display').classList.add('visible');
+            $('spot-reset').classList.add('visible');
 
-          loadVessels();
-          matchInterval = setInterval(() => {
+            // Center map on user
+            map.flyTo({ center: [userLng, userLat], zoom: 14, duration: 1000 });
+
             loadVessels();
-            const match = findMatchingVessel();
-            if (match) showResult(match);
-            else showNoMatch();
-          }, 1500);
+            matchInterval = setInterval(() => {
+              loadVessels();
+              const match = findMatchingVessel();
+              if (match) showResult(match);
+              else showNoMatch();
+            }, 1500);
+          }
+
+          updateMap();
         },
         () => {
           status.textContent = S.no_gps;
           status.className = 'spot-status error';
           btn.disabled = false;
         },
-        { enableHighAccuracy: true, timeout: 10000 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 2000 }
       );
     }
 
@@ -593,13 +841,44 @@
       window.removeEventListener('deviceorientationabsolute', onOrientation, true);
       window.removeEventListener('deviceorientation', onOrientation, true);
       if (matchInterval) clearInterval(matchInterval);
+      if (geoWatchId != null) {
+        navigator.geolocation.clearWatch(geoWatchId);
+        geoWatchId = null;
+      }
       $('t-start').textContent = S.start;
       $('spot-start').classList.remove('stop-btn');
       $('spot-scanner').classList.remove('active');
+      $('spot-heading-display').classList.remove('visible');
+      $('spot-reset').classList.remove('visible');
       $('spot-status').textContent = '';
+      $('spot-result').classList.remove('visible');
+      $('no-match').classList.remove('visible');
+      highlightMatch(null);
+      lastMatchMmsi = null;
+
+      // Clear cone
+      if (map.isStyleLoaded()) {
+        map.getSource('cone')?.setData({ type: 'FeatureCollection', features: [] });
+      }
     }
 
+    // ── Reset / Recalibrate ──
+    function resetSpotting() {
+      // Stop everything, clear state, restart
+      smoothedHeading = null;
+      compassHeading = null;
+      userLat = null;
+      userLng = null;
+      stopSpotting();
+      // Small delay then restart
+      setTimeout(() => startSpotting(), 300);
+    }
+
+    // ── Event listeners ──
     $('spot-start').addEventListener('click', startSpotting);
+    $('spot-reset').addEventListener('click', resetSpotting);
+
+    // Load vessels for map display even before starting
     loadVessels();
   </script>
 </body>
