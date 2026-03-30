@@ -449,33 +449,19 @@ function updateSunsetPrediction(data) {
     desc = t('sunset_desc_ordinary');
   }
 
-  // Check if sunset has already passed today
+  // Show contextual time label
   const now = new Date();
   if (now > sunsetDate) {
-    // Check if we have tomorrow's sunset
+    // Sunset has passed — show tomorrow's
     const tomorrowSunset = w.daily.sunset?.[1];
     if (tomorrowSunset) {
-      // Use tomorrow's data instead — find the hourly index for tomorrow's sunset hour
-      const tmrDate = new Date(tomorrowSunset);
-      const tmrHour = tmrDate.getHours();
-      let tmrIdx = -1;
-      for (let i = 0; i < times.length; i++) {
-        const d = new Date(times[i]);
-        if (d.getDate() === tmrDate.getDate() && d.getHours() === tmrHour) {
-          tmrIdx = i; break;
-        }
-      }
-      if (tmrIdx >= 0) {
-        // Re-run with tomorrow's data (recursive call would be complex, so just show "tomorrow" label)
-        document.getElementById('sunset-time').textContent = `${t('sunset_tomorrow')} ${tomorrowSunset.split('T')[1]}`;
-      } else {
-        document.getElementById('sunset-time').textContent = `${t('sunset_tomorrow')} ${tomorrowSunset.split('T')[1]}`;
-      }
+      document.getElementById('sunset-time').textContent = `${t('sunset_tomorrow')} ${tomorrowSunset.split('T')[1]}`;
     } else {
       document.getElementById('sunset-time').textContent = sunsetTimeStr;
     }
   } else {
-    document.getElementById('sunset-time').textContent = sunsetTimeStr;
+    // Sunset is still ahead today
+    document.getElementById('sunset-time').textContent = `${t('sunset_this_evening')} ${sunsetTimeStr}`;
   }
 
   // Update DOM
