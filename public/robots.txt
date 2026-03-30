@@ -1,0 +1,28 @@
+# Quy Nhon Life — robots.txt
+# https://quynhonlife.com
+
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://quynhonlife.com/sitemap.xml
+
+# Allow AI crawlers to understand the site
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Anthropic-AI
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Bytespider
+Allow: /

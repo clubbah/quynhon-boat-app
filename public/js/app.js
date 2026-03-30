@@ -1,6 +1,6 @@
 import { initMap, updateVesselMarker, showTrack, clearTrack, setSelectedMmsi, getSelectedMmsi, filterMarkersByType, setMapClickHandler, flyToVessel, recenterMap, highlightVessel, clearHighlight } from './map.js';
 import { showPanel, hidePanel, initPanel } from './vessel-card.js';
-import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js?v=18';
+import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js?v=19';
 
 // State
 let vessels = {};

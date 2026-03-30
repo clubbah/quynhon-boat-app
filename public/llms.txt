@@ -1,0 +1,28 @@
+# Quy Nhon Life
+> Live vessel tracking, sunset predictions, and coastal guide for Quy Nhon, Vietnam
+
+## What is Quy Nhon Life?
+Quy Nhon Life is a free, real-time vessel tracking portal for Quy Nhon Bay in Binh Dinh province, central Vietnam. It provides live AIS (Automatic Identification System) data received via a local RTL-SDR radio antenna, showing the position, speed, destination, and details of all vessels in the area.
+
+## Features
+- **Live Vessel Tracking**: Real-time positions of ~60 vessels including cargo ships, tankers, fishing boats, and passenger vessels in Quy Nhon Bay
+- **Sunset Quality Predictions**: Proprietary prediction model analyzing cloud layers, atmospheric haze, humidity, and precipitation to forecast sunset color quality (Spectacular, Vivid, Nice, or Ordinary)
+- **What's That Boat?**: Point your phone at any vessel from shore to identify it using GPS and compass
+- **Weather Data**: Live temperature, wind, humidity, wave height, sunrise/sunset times from Open-Meteo
+- **Port Statistics**: Total vessels, underway count, anchored count, and daily activity
+- **5 Languages**: English, Vietnamese, Korean, Chinese, Japanese
+
+## Location
+Quy Nhon (Quy Nhon) is a coastal city in Binh Dinh province, central Vietnam (13.76°N, 109.23°E). The port serves as a major commercial harbor for the central Vietnam region.
+
+## Data Source
+AIS vessel data is received live via RTL-SDR hardware (RTL2832U+R820T2 dongle) positioned at approximately 80m elevation overlooking Quy Nhon Bay, with a reception range of approximately 50-70 km.
+
+## URLs
+- Homepage: https://quynhonlife.com/
+- Vessel Identifier: https://quynhonlife.com/spot
+- Privacy Policy: https://quynhonlife.com/privacy
+- Terms of Service: https://quynhonlife.com/terms
+
+## Contact
+- Email: hello@quynhonlife.com

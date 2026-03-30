@@ -3,15 +3,108 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quy Nhon Life — Your Guide to Coastal Vietnam</title>
+  <title>Quy Nhon Life — Live Vessel Tracking, Sunset Predictions &amp; Coastal Guide</title>
+  <meta name="description" content="Track vessels in real time in Quy Nhon Bay with live AIS data. Sunset quality predictions, weather, port statistics, and your guide to coastal life in central Vietnam.">
+  <meta name="keywords" content="Quy Nhon, vessel tracking, AIS, ships, Vietnam, Binh Dinh, port, sunset prediction, coastal guide, marine traffic">
+  <meta name="author" content="Quy Nhon Life">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://quynhonlife.com/">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Quy Nhon Life">
+  <meta property="og:title" content="Quy Nhon Life — Live Vessel Tracking &amp; Coastal Guide">
+  <meta property="og:description" content="Track vessels in real time in Quy Nhon Bay with live AIS data. Sunset quality predictions, weather, and your guide to coastal Vietnam.">
+  <meta property="og:url" content="https://quynhonlife.com/">
+  <meta property="og:image" content="https://quynhonlife.com/img/qnl-logo.png">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="vi_VN">
+  <meta property="og:locale:alternate" content="ko_KR">
+  <meta property="og:locale:alternate" content="zh_CN">
+  <meta property="og:locale:alternate" content="ja_JP">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Quy Nhon Life — Live Vessel Tracking &amp; Coastal Guide">
+  <meta name="twitter:description" content="Track vessels in real time in Quy Nhon Bay. Sunset predictions, weather, and coastal life in central Vietnam.">
+  <meta name="twitter:image" content="https://quynhonlife.com/img/qnl-logo.png">
+
+  <!-- hreflang for multilingual -->
+  <link rel="alternate" hreflang="en" href="https://quynhonlife.com/">
+  <link rel="alternate" hreflang="vi" href="https://quynhonlife.com/">
+  <link rel="alternate" hreflang="ko" href="https://quynhonlife.com/">
+  <link rel="alternate" hreflang="zh" href="https://quynhonlife.com/">
+  <link rel="alternate" hreflang="ja" href="https://quynhonlife.com/">
+  <link rel="alternate" hreflang="x-default" href="https://quynhonlife.com/">
+
+  <!-- Favicons -->
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/img/qnl-logo.png">
+
+  <!-- Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-6Q874P6V67"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-6Q874P6V67');</script>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
-  <link rel="stylesheet" href="/css/style.css?v=18" />
+  <link rel="stylesheet" href="/css/style.css?v=19" />
+
+  <!-- Schema.org Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Quy Nhon Life",
+    "url": "https://quynhonlife.com",
+    "description": "Live vessel tracking, sunset predictions, and a coastal lifestyle guide for Quy Nhon, Vietnam.",
+    "inLanguage": ["en", "vi", "ko", "zh", "ja"],
+    "publisher": {
+      "@type": "Organization",
+      "name": "Quy Nhon Life",
+      "url": "https://quynhonlife.com",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://quynhonlife.com/img/qnl-logo.png"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "hello@quynhonlife.com",
+        "contactType": "customer service"
+      }
+    },
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://quynhonlife.com/?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TouristDestination",
+    "name": "Quy Nhon",
+    "alternateName": ["Quy Nh\u01A1n", "Qui Nhon"],
+    "description": "A coastal city in Binh Dinh province, central Vietnam, known for its pristine beaches, seafood, and growing tourism scene.",
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 13.76,
+      "longitude": 109.23
+    },
+    "containedInPlace": {
+      "@type": "AdministrativeArea",
+      "name": "Binh Dinh Province",
+      "containedInPlace": {
+        "@type": "Country",
+        "name": "Vietnam"
+      }
+    },
+    "touristType": ["Beach tourism", "Cultural tourism", "Marine tourism"],
+    "url": "https://quynhonlife.com"
+  }
+  </script>
 </head>
 <body>
 
@@ -172,11 +265,24 @@
       </div>
     </section>
 
+    <!-- ── About Section (SEO content) ── -->
+    <section class="section section--about" id="about">
+      <div class="section-inner">
+        <span class="section-label" data-i18n="about_label">About Quy Nhon Life</span>
+        <div class="about-content">
+          <h2 class="about-heading" data-i18n="about_heading">Real-time vessel tracking for Quy Nhon, Vietnam</h2>
+          <p data-i18n="about_p1">Quy Nhon Life provides live AIS vessel tracking for Quy Nhon Bay and the surrounding waters of Binh Dinh province in central Vietnam. Our data comes directly from a local radio antenna receiving real AIS transponder signals from ships, fishing boats, tankers, and passenger vessels operating in the area.</p>
+          <p data-i18n="about_p2">Beyond vessel tracking, Quy Nhon Life offers sunset quality predictions based on atmospheric conditions, live weather data including wave height, and tools to identify vessels from the shore using your phone's GPS and compass.</p>
+          <p data-i18n="about_p3">Whether you are a tourist visiting Quy Nhon's beaches, a local resident curious about port activity, or a maritime professional tracking vessel movements, Quy Nhon Life is your free, real-time window into the waters of central Vietnam.</p>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <footer class="site-footer">
     <p id="footer-text">Quy Nhon Life &mdash; Tracking the waters of central Vietnam</p>
-    <p class="footer-links"><a href="/privacy">Privacy Policy</a> &middot; <a href="/terms">Terms of Service</a></p>
+    <p class="footer-links"><a href="/privacy">Privacy Policy</a> &middot; <a href="/terms">Terms of Service</a> &middot; <a href="mailto:hello@quynhonlife.com">Contact</a></p>
   </footer>
 
   <!-- Vessel Card -->
@@ -221,6 +327,6 @@
   </a>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script type="module" src="/js/app.js?v=18"></script>
+  <script type="module" src="/js/app.js?v=19"></script>
 </body>
 </html>
