@@ -1,0 +1,42 @@
+{
+  "name": "Quy Nhon Life",
+  "short_name": "QNL",
+  "description": "Live vessel tracking, sunset predictions, and coastal guide for Quy Nhon, Vietnam",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#0d9488",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["travel", "navigation", "weather"],
+  "icons": [
+    {
+      "src": "/img/icon-192.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/img/icon-512.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/img/icon-512.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Identify a Vessel",
+      "short_name": "Spot",
+      "url": "/spot",
+      "description": "Point your phone at a vessel to identify it"
+    }
+  ]
+}

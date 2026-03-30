@@ -37,9 +37,16 @@
   <link rel="alternate" hreflang="ja" href="https://quynhonlife.com/">
   <link rel="alternate" hreflang="x-default" href="https://quynhonlife.com/">
 
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0d9488">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Quy Nhon Life">
+
   <!-- Favicons -->
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="/img/qnl-logo.png">
+  <link rel="apple-touch-icon" href="/img/icon-192.svg">
 
   <!-- Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-6Q874P6V67"></script>
@@ -328,5 +335,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script type="module" src="/js/app.js?v=19"></script>
+  <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}</script>
 </body>
 </html>
