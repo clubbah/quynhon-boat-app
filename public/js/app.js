@@ -128,8 +128,10 @@ function updateCardHistory(data) {
   document.getElementById('label-first-seen').textContent = t('card_first_seen');
   document.getElementById('label-visits').textContent = t('card_visit_count');
 
+  const localeMap = { en: 'en-US', vi: 'vi-VN', ko: 'ko-KR', zh: 'zh-CN', ja: 'ja-JP' };
+  const locale = localeMap[getLang()] || 'en-US';
   const firstSeen = archive.first_seen
-    ? new Date(archive.first_seen).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
+    ? new Date(archive.first_seen).toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })
     : t('no_data');
   document.getElementById('card-first-seen').textContent = firstSeen;
   document.getElementById('card-visits').textContent = archive.visit_count || '1';
@@ -203,9 +205,15 @@ function translatePage() {
   fetchArchiveStats();
   fetchWeather(); // Re-render sunset prediction in new language
 
-  // Update vessel card if open
+  // Update vessel card if open (re-render + re-fetch history for new language)
   const sel = getSelectedMmsi();
-  if (sel && vessels[sel]) showPanel(vessels[sel]);
+  if (sel && vessels[sel]) {
+    showPanel(vessels[sel]);
+    fetch(`/api/vessels/${sel}/visits`)
+      .then(r => r.json())
+      .then(data => updateCardHistory(data))
+      .catch(() => {});
+  }
 }
 
 function initSearch() {

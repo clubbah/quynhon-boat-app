@@ -381,8 +381,9 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 }
 
 .sunset-time {
-  font-family: 'DM Serif Display', Georgia, serif;
+  font-family: 'Noto Sans', sans-serif;
   font-size: 20px;
+  font-weight: 600;
   color: var(--ink);
   line-height: 1.2;
 }
