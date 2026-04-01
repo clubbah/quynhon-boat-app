@@ -125,9 +125,12 @@ function parseAisCatcherMessage(msg) {
 
   // Filter out non-vessels: buoys, beacons, base stations, AtoN (Aids to Navigation)
   // MMSI ranges: 99x = AtoN, 00x = base stations, 970-979 = SART/MOB/EPIRB
+  // MMSI ranges: 99x=AtoN, 98x=craft assoc with parent, 97x=SART/MOB/EPIRB,
+  // 96x=Diver, 94x=local, 93x=AIS-SART, 91x=unassigned, 85x=unassigned, 00x=base stations
   if (mmsi.startsWith('99') || mmsi.startsWith('98') || mmsi.startsWith('97') ||
-      mmsi.startsWith('96') || mmsi.startsWith('94') || mmsi.startsWith('00') ||
-      mmsi.length !== 9) return null;
+      mmsi.startsWith('96') || mmsi.startsWith('94') || mmsi.startsWith('93') ||
+      mmsi.startsWith('91') || mmsi.startsWith('85') ||
+      mmsi.startsWith('00') || mmsi.length !== 9) return null;
   // Known fake/test MMSIs
   if (mmsi === '123456789' || mmsi === '000000000' || mmsi === '111111111') return null;
   // AIS ship types for navigation aids
