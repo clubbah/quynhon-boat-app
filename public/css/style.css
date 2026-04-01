@@ -171,9 +171,17 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 .live-dot.offline { background: var(--ink-4); animation: none; }
 @keyframes pulse-live { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
 
+/* Info row: port stats + sunset side-by-side on desktop */
+.info-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 32px;
+  padding: 10px 0 clamp(14px, 2vw, 20px);
+}
+
 .port-strip {
   display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
-  padding: 10px 0 clamp(14px, 2vw, 20px);
+  flex: 1; min-width: 0;
 }
 .port-strip-item { display: flex; align-items: baseline; gap: 3px; }
 .port-strip-value { font-size: 20px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -291,13 +299,17 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
    SUNSET PREDICTION
    ════════════════════════════════════════ */
 .sunset-strip {
-  border-top: 1px solid var(--rule);
-  padding-bottom: clamp(14px, 2vw, 20px);
+  border-top: none;
+  border-left: 1px solid var(--rule);
+  padding-left: 32px;
+  padding-bottom: 0;
+  flex: 1; min-width: 0;
 }
 .sunset-strip .section-label {
   display: inline-flex;
   align-items: center;
   gap: 0;
+  padding-top: 0;
 }
 
 .sunset-info-wrap {
@@ -666,6 +678,8 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
   .spot-feature { border-left: 3px solid var(--teal); }
   .votd-strip { border-left: none; border-top: 1px solid var(--rule); padding: 12px 0; }
 
+  .info-row { flex-direction: column; gap: 0; }
+  .sunset-strip { border-left: none; border-top: 1px solid var(--rule); padding-left: 0; padding-top: 10px; }
   .sunset-strip { text-align: center; }
   .sunset-strip .section-label { justify-content: center; flex-wrap: wrap; }
   .sunset-main { justify-content: center; gap: 12px; }

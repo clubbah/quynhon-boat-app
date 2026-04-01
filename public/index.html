@@ -56,7 +56,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
-  <link rel="stylesheet" href="/css/style.css?v=19" />
+  <link rel="stylesheet" href="/css/style.css?v=20" />
 
   <!-- Schema.org Structured Data -->
   <script type="application/ld+json">
@@ -155,28 +155,30 @@
           </div>
         </div>
 
-        <div class="port-strip">
-          <div class="port-strip-item"><span class="port-strip-value" id="ps-total">--</span> <span class="port-strip-label" data-i18n="total_vessels">vessels</span></div>
-          <span class="port-strip-sep">&middot;</span>
-          <div class="port-strip-item"><span class="port-strip-value" id="ps-moving">--</span> <span class="port-strip-label" data-i18n="underway">underway</span></div>
-          <span class="port-strip-sep">&middot;</span>
-          <div class="port-strip-item"><span class="port-strip-value" id="ps-anchored">--</span> <span class="port-strip-label" data-i18n="anchored">anchored</span></div>
-          <span class="port-strip-sep">&middot;</span>
-          <div class="port-strip-item"><span class="port-strip-value" id="ps-recent">--</span> <span class="port-strip-label" data-i18n="active_today">active today</span></div>
-        </div>
-        <!-- Sunset Prediction -->
-        <div class="sunset-strip" id="sunset-section">
-          <span class="section-label"><span data-i18n="sunset_label">Sunset Prediction</span><span class="sunset-info-wrap"><span class="sunset-info-icon" id="sunset-info-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span><span class="sunset-info-tooltip" id="sunset-info-tooltip" data-i18n="sunset_info">Quy Nhon Life uses a proprietary prediction model that analyzes cloud layers, atmospheric haze, humidity, and precipitation to forecast how colorful tonight's sunset will be.</span></span></span>
-          <div class="sunset-card" id="sunset-card">
-            <div class="sunset-main">
-              <span class="sunset-icon" id="sunset-rating-icon"></span>
-              <div class="sunset-info">
-                <span class="sunset-time" id="sunset-time"></span>
-                <span class="sunset-rating" id="sunset-rating"></span>
+        <div class="info-row">
+          <div class="port-strip">
+            <div class="port-strip-item"><span class="port-strip-value" id="ps-total">--</span> <span class="port-strip-label" data-i18n="total_vessels">vessels</span></div>
+            <span class="port-strip-sep">&middot;</span>
+            <div class="port-strip-item"><span class="port-strip-value" id="ps-moving">--</span> <span class="port-strip-label" data-i18n="underway">underway</span></div>
+            <span class="port-strip-sep">&middot;</span>
+            <div class="port-strip-item"><span class="port-strip-value" id="ps-anchored">--</span> <span class="port-strip-label" data-i18n="anchored">anchored</span></div>
+            <span class="port-strip-sep">&middot;</span>
+            <div class="port-strip-item"><span class="port-strip-value" id="ps-recent">--</span> <span class="port-strip-label" data-i18n="active_today">active today</span></div>
+          </div>
+          <!-- Sunset Prediction -->
+          <div class="sunset-strip" id="sunset-section">
+            <span class="section-label"><span data-i18n="sunset_label">Sunset Prediction</span><span class="sunset-info-wrap"><span class="sunset-info-icon" id="sunset-info-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span><span class="sunset-info-tooltip" id="sunset-info-tooltip" data-i18n="sunset_info">Quy Nhon Life uses a proprietary prediction model that analyzes cloud layers, atmospheric haze, humidity, and precipitation to forecast how colorful tonight's sunset will be.</span></span></span>
+            <div class="sunset-card" id="sunset-card">
+              <div class="sunset-main">
+                <span class="sunset-icon" id="sunset-rating-icon"></span>
+                <div class="sunset-info">
+                  <span class="sunset-time" id="sunset-time"></span>
+                  <span class="sunset-rating" id="sunset-rating"></span>
+                </div>
               </div>
+              <p class="sunset-desc" id="sunset-desc"></p>
+              <div class="sunset-factors" id="sunset-factors"></div>
             </div>
-            <p class="sunset-desc" id="sunset-desc"></p>
-            <div class="sunset-factors" id="sunset-factors"></div>
           </div>
         </div>
       </div>
