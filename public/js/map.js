@@ -106,7 +106,7 @@ export function initMap() {
         data: { type: 'FeatureCollection', features: [] },
       });
 
-      // Vessel layer — icons rotate with heading
+      // Vessel layer — icons rotate with heading, fade when stale
       map.addLayer({
         id: 'vessel-icons',
         type: 'symbol',
@@ -123,6 +123,9 @@ export function initMap() {
           'icon-rotation-alignment': 'map',
           'icon-allow-overlap': true,
           'icon-ignore-placement': true,
+        },
+        paint: {
+          'icon-opacity': ['case', ['==', ['get', 'stale'], 1], 0.35, 1],
         },
       });
 
@@ -275,22 +278,32 @@ function refreshVesselSource() {
   const source = map.getSource('vessels');
   if (!source) return;
 
+  const now = Date.now();
+  const STALE_MS = 15 * 60 * 1000; // 15 minutes
+
   const features = Object.values(vesselData)
     .filter(v => v.lat != null && v.lng != null)
-    .map(v => ({
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: [v.lng, v.lat] },
-      properties: {
-        mmsi: v.mmsi,
-        name: v.name || '',
-        flag_country: v.flag_country || '',
-        vessel_type_label: v.vessel_type_label || 'Other',
-        icon: getIconType(v.vessel_type_label),
-        heading: v.heading ?? v.course ?? 0,
-        speed: v.speed ?? 0,
-        length: v.length ?? 0,
-      },
-    }));
+    .map(v => {
+      const updatedAt = v.updated_at ? new Date(v.updated_at).getTime() : now;
+      const age = now - updatedAt;
+      const stale = age > STALE_MS ? 1 : 0;
+
+      return {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [v.lng, v.lat] },
+        properties: {
+          mmsi: v.mmsi,
+          name: v.name || '',
+          flag_country: v.flag_country || '',
+          vessel_type_label: v.vessel_type_label || 'Other',
+          icon: getIconType(v.vessel_type_label),
+          heading: v.heading ?? v.course ?? 0,
+          speed: v.speed ?? 0,
+          length: v.length ?? 0,
+          stale,
+        },
+      };
+    });
 
   source.setData({ type: 'FeatureCollection', features });
 }
@@ -376,3 +389,8 @@ export function recenterMap() {
   if (!map) return;
   map.flyTo({ center: MAP_CENTER, zoom: DEFAULT_ZOOM, duration: 800 });
 }
+
+// Refresh staleness visuals every 60 seconds
+setInterval(() => {
+  if (mapReady) refreshVesselSource();
+}, 60 * 1000);

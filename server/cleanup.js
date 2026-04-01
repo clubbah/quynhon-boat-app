@@ -1,5 +1,5 @@
 const DETAIL_WINDOW = 24 * 60 * 60 * 1000;     // Keep detailed positions for 24 hours
-const STALE_VESSEL_AGE = 6 * 60 * 60 * 1000;   // Remove from live map after 6 hours
+const STALE_VESSEL_AGE = 2 * 60 * 60 * 1000;   // Remove from live map after 2 hours
 
 export function startCleanup(db, pruneVessels, compressPositions, intervalMs = 10 * 60 * 1000) {
   const id = setInterval(() => {

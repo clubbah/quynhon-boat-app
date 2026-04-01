@@ -12,7 +12,7 @@ describe('startCleanup', () => {
 
     vi.advanceTimersByTime(1000);
     expect(mockPrune).toHaveBeenCalledTimes(1);
-    expect(mockPrune).toHaveBeenCalledWith(mockDb, 6 * 60 * 60 * 1000);
+    expect(mockPrune).toHaveBeenCalledWith(mockDb, 2 * 60 * 60 * 1000);
     expect(mockCompress).toHaveBeenCalledTimes(1);
     expect(mockCompress).toHaveBeenCalledWith(mockDb, 24 * 60 * 60 * 1000);
 

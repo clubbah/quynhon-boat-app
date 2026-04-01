@@ -330,12 +330,12 @@ function detectArrival(db, vessel) {
   }
 }
 
-// Check for departures every 30 minutes
+// Check for departures every 15 minutes
 setInterval(() => {
-  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   const staleVessels = db.prepare(
     "SELECT * FROM vessels WHERE updated_at < ? AND speed > 0.5"
-  ).all(twoHoursAgo);
+  ).all(oneHourAgo);
 
   for (const v of staleVessels) {
     if (recentlySeenMMSIs.has(v.mmsi) && v.name) {
@@ -355,7 +355,7 @@ setInterval(() => {
     }
     recentlySeenMMSIs.delete(v.mmsi);
   }
-}, 30 * 60 * 1000);
+}, 15 * 60 * 1000);
 
 // RTL-SDR feed via /api/ais-feed is the only data source
 console.log('[AIS] Using RTL-SDR feed via /api/ais-feed');
