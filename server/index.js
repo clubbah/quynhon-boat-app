@@ -143,6 +143,8 @@ function parseAisCatcherMessage(msg) {
   if (rawName && /[<>\\[\]{}|^]/.test(rawName)) return null;
   // Single-character names are placeholder/test data
   if (rawName && rawName.length === 1) return null;
+  // Names with no letters (just digits/dashes/dots/percent/spaces) are junk transponders
+  if (rawName && !/[A-Za-z]/.test(rawName)) return null;
 
   // Filter invalid call signs (real ones are alphanumeric, 4-7 chars)
   const rawCallsign = (msg.callsign ?? msg.call_sign ?? '').trim();
