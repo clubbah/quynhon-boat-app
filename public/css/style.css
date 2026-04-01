@@ -44,7 +44,8 @@ body {
 }
 .masthead { animation: fadeUp 0.5s ease-out; }
 .section--vessels { animation: fadeUp 0.5s ease-out 0.1s both; }
-.section--explore { animation: fadeUp 0.5s ease-out 0.2s both; }
+.section--pulse { animation: fadeUp 0.5s ease-out 0.2s both; }
+.section--explore { animation: fadeUp 0.5s ease-out 0.25s both; }
 .section--activity { animation: fadeUp 0.5s ease-out 0.3s both; }
 .site-footer { animation: fadeUp 0.4s ease-out 0.4s both; }
 
@@ -430,6 +431,65 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 .sunset-factor-dot.neutral { background: #ca8a04; }
 .sunset-factor-dot.poor { background: #dc2626; }
 
+
+/* ════════════════════════════════════════
+   PORT PULSE
+   ════════════════════════════════════════ */
+.section--pulse { background: var(--white); }
+.pulse-header {
+  display: flex; align-items: baseline; gap: 12px;
+}
+.pulse-stat {
+  font-size: var(--text-sm); color: var(--ink-4);
+  font-variant-numeric: tabular-nums;
+}
+.pulse-timeline {
+  padding-bottom: clamp(16px, 2vw, 24px);
+  display: flex; flex-direction: column; gap: 0;
+}
+.pulse-empty {
+  font-size: var(--text-sm); color: var(--ink-4);
+  padding: 12px 0; font-style: italic;
+}
+.pulse-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.pulse-item:last-child { border-bottom: none; }
+.pulse-event {
+  font-size: var(--text-xs); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  width: 64px; flex-shrink: 0; text-align: center;
+  padding: 3px 0;
+}
+.pulse-event.arrival { color: var(--passenger); background: rgba(22,163,74,0.08); }
+.pulse-event.departure { color: var(--tanker); background: rgba(220,38,38,0.08); }
+.pulse-vessel {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 8px;
+}
+.pulse-flag { width: 20px; height: 15px; object-fit: cover; flex-shrink: 0; }
+.pulse-name {
+  font-size: var(--text-base); font-weight: 600; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pulse-meta {
+  font-size: var(--text-sm); color: var(--ink-4);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pulse-time {
+  font-size: var(--text-sm); color: var(--ink-4);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0; text-align: right;
+}
+
+@media (max-width: 768px) {
+  .pulse-header { flex-direction: column; align-items: center; gap: 4px; }
+  .pulse-item { gap: 8px; }
+  .pulse-event { width: 52px; font-size: 9px; }
+  .pulse-name { font-size: 13px; }
+}
 
 /* ════════════════════════════════════════
    EXPLORE SECTION

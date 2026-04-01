@@ -5,7 +5,9 @@ import { createServer } from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { createDb, upsertVessel, appendPosition, getVesselsByArea, getTrack, pruneOldData } from './db.js';
+import { createDb, upsertVessel, appendPosition, getVesselsByArea, getTrack, pruneOldData,
+  upsertArchive, incrementVisitCount, logVisit, getRecentVisits, getVesselVisitHistory,
+  getArchiveStats, compressPositions } from './db.js';
 import { connectAisStream } from './ais-client.js';
 import { getVesselTypeLabel, getNavStatusLabel, getFlagCountry } from './ais-types.js';
 import { startCleanup } from './cleanup.js';
@@ -103,6 +105,7 @@ function handleAisFeed(req, res) {
       upsertVessel(db, vessel);
       const fullVessel = getVesselFromDb(db, parsed.mmsi);
       if (fullVessel && fullVessel.lat != null) {
+        detectArrival(db, fullVessel);
         broadcast({ type: 'update', vessel: fullVessel });
       }
     }
@@ -241,6 +244,26 @@ app.get('/api/port-stats', (req, res) => {
   });
 });
 
+// Port Pulse — recent arrivals and departures
+app.get('/api/port-pulse', (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+  const visits = getRecentVisits(db, limit);
+  res.json(visits);
+});
+
+// Vessel visit history
+app.get('/api/vessels/:mmsi/visits', (req, res) => {
+  const visits = getVesselVisitHistory(db, req.params.mmsi);
+  const archive = db.prepare('SELECT * FROM vessel_archive WHERE mmsi = ?').get(req.params.mmsi);
+  res.json({ archive, visits });
+});
+
+// Archive stats — overall port statistics
+app.get('/api/archive-stats', (req, res) => {
+  const stats = getArchiveStats(db);
+  res.json(stats);
+});
+
 // HTTP + WebSocket server
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
@@ -271,6 +294,69 @@ function broadcast(data) {
   }
 }
 
+// ── Arrival/Departure Detection ──
+// Track recently seen vessels to detect new arrivals
+const recentlySeenMMSIs = new Set();
+
+// On startup, populate from current vessels table
+for (const v of getVesselsByArea(db)) {
+  recentlySeenMMSIs.add(v.mmsi);
+}
+console.log(`[Visits] Loaded ${recentlySeenMMSIs.size} known vessels`);
+
+function detectArrival(db, vessel) {
+  if (!vessel.mmsi || !vessel.name) return;
+  const isNew = !recentlySeenMMSIs.has(vessel.mmsi);
+  recentlySeenMMSIs.add(vessel.mmsi);
+
+  // Update permanent archive
+  upsertArchive(db, vessel);
+
+  if (isNew) {
+    incrementVisitCount(db, vessel.mmsi);
+    logVisit(db, {
+      mmsi: vessel.mmsi,
+      name: vessel.name,
+      vessel_type_label: vessel.vessel_type_label || null,
+      flag_country: vessel.flag_country || null,
+      length: vessel.length || null,
+      width: vessel.width || null,
+      event: 'arrival',
+      timestamp: new Date().toISOString(),
+      destination: vessel.destination || null,
+    });
+    console.log(`[Visits] ARRIVAL: ${vessel.name} (${vessel.mmsi})`);
+    broadcast({ type: 'arrival', vessel });
+  }
+}
+
+// Check for departures every 30 minutes
+setInterval(() => {
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+  const staleVessels = db.prepare(
+    "SELECT * FROM vessels WHERE updated_at < ? AND speed > 0.5"
+  ).all(twoHoursAgo);
+
+  for (const v of staleVessels) {
+    if (recentlySeenMMSIs.has(v.mmsi) && v.name) {
+      logVisit(db, {
+        mmsi: v.mmsi,
+        name: v.name,
+        vessel_type_label: v.vessel_type_label || null,
+        flag_country: v.flag_country || null,
+        length: v.length || null,
+        width: v.width || null,
+        event: 'departure',
+        timestamp: new Date().toISOString(),
+        destination: v.destination || null,
+      });
+      console.log(`[Visits] DEPARTURE: ${v.name} (${v.mmsi})`);
+      broadcast({ type: 'departure', vessel: v });
+    }
+    recentlySeenMMSIs.delete(v.mmsi);
+  }
+}, 30 * 60 * 1000);
+
 // RTL-SDR feed via /api/ais-feed is the only data source
 console.log('[AIS] Using RTL-SDR feed via /api/ais-feed');
 
@@ -278,8 +364,8 @@ function getVesselFromDb(db, mmsi) {
   return db.prepare('SELECT * FROM vessels WHERE mmsi = ?').get(mmsi) || {};
 }
 
-// Cleanup
-startCleanup(db, pruneOldData);
+// Cleanup — prune stale vessels from live map, compress old positions to hourly summaries
+startCleanup(db, pruneOldData, compressPositions);
 
 // Start
 server.listen(PORT, () => {

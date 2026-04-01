@@ -56,7 +56,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
-  <link rel="stylesheet" href="/css/style.css?v=21" />
+  <link rel="stylesheet" href="/css/style.css?v=22" />
 
   <!-- Schema.org Structured Data -->
   <script type="application/ld+json">
@@ -208,6 +208,19 @@
       </div>
     </section>
 
+    <!-- ── Port Pulse Section ── -->
+    <section class="section section--pulse" id="port-pulse">
+      <div class="section-inner">
+        <div class="pulse-header">
+          <span class="section-label" data-i18n="port_pulse">Port Pulse</span>
+          <span class="pulse-stat" id="pulse-stat"></span>
+        </div>
+        <div class="pulse-timeline" id="pulse-timeline">
+          <div class="pulse-empty" id="pulse-empty" data-i18n="pulse_empty">Tracking arrivals and departures&hellip;</div>
+        </div>
+      </div>
+    </section>
+
     <!-- ── Explore Section (Coming Soon) ── -->
     <section class="section section--explore">
       <div class="section-inner">
@@ -308,6 +321,11 @@
         <div class="card-row"><span class="card-label" id="label-callsign">Call Sign</span><span class="card-value" id="card-callsign"></span></div>
       </div>
     </div>
+    <div class="card-section card-history" id="card-history-section" style="display:none">
+      <h3 class="card-section-title" id="card-section-history">History</h3>
+      <div class="card-row"><span class="card-label" id="label-first-seen">First Seen</span><span class="card-value" id="card-first-seen"></span></div>
+      <div class="card-row"><span class="card-label" id="label-visits">Visits</span><span class="card-value" id="card-visits"></span></div>
+    </div>
     <div class="card-footer"><span id="card-updated"></span></div>
   </div>
 
@@ -319,7 +337,7 @@
   </a>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script type="module" src="/js/app.js?v=21"></script>
+  <script type="module" src="/js/app.js?v=22"></script>
   <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}</script>
 </body>
 </html>

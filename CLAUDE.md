@@ -32,8 +32,8 @@ Local lifestyle portal for Quy Nhon, Vietnam — starting with real-time vessel 
 - **Recenter button** — returns map to Quy Nhon port
 - **Sunset Prediction** — proprietary scoring model using cloud layers, haze, humidity, precipitation. Ratings: Spectacular/Vivid/Nice/Ordinary. Tuned for tropical coastal conditions (clear sky + humidity = nice, not ordinary). Shows "This evening at HH:MM" or "Tomorrow at HH:MM" contextually. Info tooltip explains the model. Factor indicators (green/yellow/red dots). Updates every 15 min with weather data.
 - **"What's That Boat?" feature** — overhauled with live mini-map showing pointing cone, continuous GPS via watchPosition, ±25° matching cone, compass calibration tip, reset/recalibrate button, haptic vibration feedback on match, compatible with Android and iOS
-- **Weather bar** — temperature, conditions, wind, humidity, waves, sunrise/sunset, day/night icons
-- **Port stats** — total vessels, underway, anchored, active today
+- **Weather bar** — temperature, conditions, wind, humidity, waves, sunrise, day/night icons (in info-row left column, translated)
+- **Port stats** — total vessels, underway, anchored (3-column grid with hero numbers)
 - **Largest vessel** — highlights biggest vessel currently tracked
 - **Recent activity table** — clickable vessel names zoom to map
 - **5 languages** — English, Vietnamese, Korean, Chinese, Japanese (flag switcher)
@@ -123,12 +123,16 @@ RTL-SDR USB dongle (RTL2832U+R820T2) connected to laptop on 26th floor condo, wi
 - PM2 auto-restarts on crash: `pm2 startup` and `pm2 save` configured
 - PM2 process name: `vessel-tracker`
 - Cache busting: increment `?v=XX` on app.js, i18n.js, and style.css imports when deploying changes
-- Current versions: app.js?v=20, i18n.js?v=20, style.css?v=19
+- Current versions: app.js?v=21, i18n.js?v=21, style.css?v=21
 
 ## Design Decisions
 - **Editorial/magazine aesthetic** — DM Serif Display masthead, sharp corners, no border-radius pills
 - **Color palette** — Teal primary (#0d9488), warm ink tones, white background
 - **Fonts** — DM Serif Display (headings), Noto Sans (body — chosen for full Vietnamese/CJK diacritic support)
+- **Type scale (Major Third)** — 5 steps: 10px (xs/micro), 12px (sm/labels), 15px (base/body), 20px (lg/emphasis), 28px (xl/hero). CSS tokens: `--text-xs` through `--text-xl`
+- **Layout: compact masthead** — logo + language flags only, weather bar moved into info-row
+- **Layout: info-row** — weather + port stats (left) alongside sunset prediction (right), side-by-side on desktop, stacked on mobile
+- **No redundant data** — each data point has exactly one home (vessel count in grid only, sunset time in sunset card only, sunrise in weather bar only)
 - **Speed-based vessel status** — Uses speed > 0.5kn to determine "underway" instead of AIS nav_status (crews forget to update their transponder)
 - **Buoy/beacon filtering** — MMSI ranges 99x, 97x, 00x, 1111, 9999 filtered out as non-vessels
 - **Fake MMSI filtering** — 123456789, type-0 unnamed vessels excluded

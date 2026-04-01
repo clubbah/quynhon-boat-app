@@ -1,6 +1,6 @@
 import { initMap, updateVesselMarker, showTrack, clearTrack, setSelectedMmsi, getSelectedMmsi, filterMarkersByType, setMapClickHandler, flyToVessel, recenterMap, highlightVessel, clearHighlight } from './map.js';
 import { showPanel, hidePanel, initPanel } from './vessel-card.js';
-import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js?v=21';
+import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js?v=22';
 
 // State
 let vessels = {};
@@ -20,11 +20,14 @@ setInterval(updateLiveIndicator, 5000);
 // Apply saved language on load (translates data-i18n elements + dynamic content)
 if (getLang() !== 'en') translatePage();
 
-// Weather + port stats
+// Weather + port stats + port pulse
 fetchWeather();
 fetchPortStats();
+fetchPortPulse();
+fetchArchiveStats();
 setInterval(fetchWeather, 15 * 60 * 1000); // refresh every 15 min
 setInterval(fetchPortStats, 60 * 1000);     // refresh every 1 min
+setInterval(fetchPortPulse, 5 * 60 * 1000); // refresh every 5 min
 
 function initWebSocket() {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -52,6 +55,19 @@ function initWebSocket() {
         showPanel(vessels[v.mmsi]);
       }
     }
+
+    if (msg.type === 'arrival' || msg.type === 'departure') {
+      // Real-time arrival/departure — prepend to pulse timeline
+      const v = msg.vessel;
+      prependPulseItem({
+        mmsi: v.mmsi,
+        name: v.name || v.mmsi,
+        vessel_type_label: v.vessel_type_label,
+        flag_country: v.flag_country,
+        event: msg.type,
+        timestamp: new Date().toISOString(),
+      });
+    }
   });
 
   ws.addEventListener('close', () => {
@@ -78,11 +94,17 @@ async function onVesselClick(vessel) {
   }
 
   try {
-    const res = await fetch(`/api/vessels/${vessel.mmsi}/track`);
-    const track = await res.json();
+    const [trackRes, visitRes] = await Promise.all([
+      fetch(`/api/vessels/${vessel.mmsi}/track`),
+      fetch(`/api/vessels/${vessel.mmsi}/visits`),
+    ]);
+    const track = await trackRes.json();
     showTrack(track);
+
+    const visitData = await visitRes.json();
+    updateCardHistory(visitData);
   } catch (err) {
-    console.error('Failed to load track:', err);
+    console.error('Failed to load track/visits:', err);
     clearTrack();
   }
 }
@@ -92,6 +114,25 @@ function onPanelClose() {
   clearTrack();
   clearHighlight();
   setSelectedMmsi(null);
+}
+
+function updateCardHistory(data) {
+  const section = document.getElementById('card-history-section');
+  const archive = data?.archive;
+  if (!archive) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
+  document.getElementById('card-section-history').textContent = t('card_history');
+  document.getElementById('label-first-seen').textContent = t('card_first_seen');
+  document.getElementById('label-visits').textContent = t('card_visit_count');
+
+  const firstSeen = archive.first_seen
+    ? new Date(archive.first_seen).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
+    : t('no_data');
+  document.getElementById('card-first-seen').textContent = firstSeen;
+  document.getElementById('card-visits').textContent = archive.visit_count || '1';
 }
 
 function updateStats() {
@@ -158,6 +199,8 @@ function translatePage() {
   // Refresh dynamic content
   updateStats();
   fetchPortStats();
+  fetchPortPulse();
+  fetchArchiveStats();
   fetchWeather(); // Re-render sunset prediction in new language
 
   // Update vessel card if open
@@ -527,5 +570,116 @@ async function fetchPortStats() {
     });
   } catch (err) {
     console.error('Port stats fetch failed:', err);
+  }
+}
+
+// ── Port Pulse ──
+
+async function fetchPortPulse() {
+  try {
+    const res = await fetch('/api/port-pulse?limit=10');
+    const visits = await res.json();
+    renderPulseTimeline(visits);
+  } catch (err) {
+    console.error('Port pulse fetch failed:', err);
+  }
+}
+
+function renderPulseTimeline(visits) {
+  const timeline = document.getElementById('pulse-timeline');
+  const empty = document.getElementById('pulse-empty');
+
+  if (!visits || visits.length === 0) {
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  timeline.innerHTML = visits.map(v => buildPulseItemHTML(v)).join('');
+  bindPulseClicks(timeline);
+}
+
+function buildPulseItemHTML(v) {
+  const cc = (v.flag_country || '').toLowerCase();
+  const flagImg = cc ? `<img class="pulse-flag" src="https://flagcdn.com/20x15/${cc}.png" alt="${cc}" />` : '';
+  const eventLabel = v.event === 'arrival' ? t('pulse_arrival') : t('pulse_departure');
+  const eventClass = v.event === 'arrival' ? 'arrival' : 'departure';
+  const typeLabel = v.vessel_type_label ? tType(v.vessel_type_label) : '';
+  const time = v.timestamp ? formatPulseTime(v.timestamp) : '';
+
+  return `<div class="pulse-item">
+    <span class="pulse-event ${eventClass}">${eventLabel}</span>
+    <div class="pulse-vessel">
+      ${flagImg}
+      <a class="pulse-name vessel-link" data-mmsi="${v.mmsi}" href="#">${v.name || v.mmsi}</a>
+    </div>
+    <span class="pulse-meta">${typeLabel}</span>
+    <span class="pulse-time">${time}</span>
+  </div>`;
+}
+
+function prependPulseItem(visit) {
+  const timeline = document.getElementById('pulse-timeline');
+  const empty = document.getElementById('pulse-empty');
+  if (empty) empty.style.display = 'none';
+
+  const temp = document.createElement('div');
+  temp.innerHTML = buildPulseItemHTML(visit);
+  const item = temp.firstElementChild;
+
+  // Insert at top
+  if (timeline.firstChild) {
+    timeline.insertBefore(item, timeline.firstChild);
+  } else {
+    timeline.appendChild(item);
+  }
+
+  // Limit to 10 visible items
+  while (timeline.querySelectorAll('.pulse-item').length > 10) {
+    timeline.removeChild(timeline.lastElementChild);
+  }
+
+  bindPulseClicks(timeline);
+}
+
+function bindPulseClicks(container) {
+  container.querySelectorAll('.vessel-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const mmsi = link.dataset.mmsi;
+      const vessel = vessels[mmsi];
+      if (vessel) {
+        onVesselClick(vessel);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+  });
+}
+
+function formatPulseTime(isoStr) {
+  const date = new Date(isoStr);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.round(diffMs / 60000);
+
+  if (diffMins < 1) return t('pulse_just_now');
+  if (diffMins < 60) return `${diffMins}m`;
+  const diffHours = Math.round(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h`;
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+// ── Archive Stats ──
+
+async function fetchArchiveStats() {
+  try {
+    const res = await fetch('/api/archive-stats');
+    const stats = await res.json();
+    const el = document.getElementById('pulse-stat');
+    if (el && stats.totalUnique > 0) {
+      el.textContent = t('pulse_tracked_total').replace('{n}', stats.totalUnique);
+    }
+  } catch (err) {
+    console.error('Archive stats fetch failed:', err);
   }
 }

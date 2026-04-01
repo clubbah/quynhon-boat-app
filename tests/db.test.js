@@ -73,7 +73,7 @@ describe('appendPosition + getTrack', () => {
 });
 
 describe('pruneOldData', () => {
-  it('removes position history older than maxAgeMs', () => {
+  it('does not delete position history (handled by compressPositions now)', () => {
     const old = new Date(Date.now() - 7 * 60 * 60 * 1000).toISOString();
     const recent = new Date().toISOString();
 
@@ -83,8 +83,7 @@ describe('pruneOldData', () => {
     pruneOldData(db, 6 * 60 * 60 * 1000);
 
     const track = getTrack(db, '123');
-    expect(track).toHaveLength(1);
-    expect(track[0].lat).toBe(13.77);
+    expect(track).toHaveLength(2); // positions are preserved, not deleted
   });
 
   it('removes vessels not updated within maxAgeMs', () => {
