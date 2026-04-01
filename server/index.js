@@ -134,7 +134,15 @@ function parseAisCatcherMessage(msg) {
   const navAidTypes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
   if (msg.shiptype != null && navAidTypes.includes(msg.shiptype)) return null;
 
-  const name = (msg.shipname || msg.name || '').trim() || null;
+  // Filter garbled data: vessel names with special chars that real AIS names never contain
+  const rawName = (msg.shipname || msg.name || '').trim();
+  const name = rawName || null;
+  if (rawName && /[<>\\[\]{}|%^]/.test(rawName)) return null;
+
+  // Filter invalid call signs (real ones are alphanumeric, 4-7 chars)
+  const rawCallsign = (msg.callsign ?? msg.call_sign ?? '').trim();
+  if (rawCallsign && /[<>\\[\]{}|%^]/.test(rawCallsign)) return null;
+
   const flag_country = msg.country || getFlagCountry(mmsi);
   const updated_at = msg.timestamp || new Date().toISOString();
 
