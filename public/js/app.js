@@ -1,6 +1,6 @@
 import { initMap, updateVesselMarker, showTrack, clearTrack, setSelectedMmsi, getSelectedMmsi, filterMarkersByType, setMapClickHandler, flyToVessel, recenterMap, highlightVessel, clearHighlight } from './map.js';
 import { showPanel, hidePanel, initPanel } from './vessel-card.js';
-import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js?v=20';
+import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js?v=21';
 
 // State
 let vessels = {};
@@ -107,14 +107,14 @@ function updateLiveIndicator() {
   const ago = Math.round((Date.now() - lastDataTime) / 1000);
   el.className = 'stat-live';
   if (ago < 15) {
-    el.innerHTML = '<span class="live-dot"></span> Live Data';
+    el.innerHTML = `<span class="live-dot"></span> ${t('live_data')}`;
   } else if (ago < 60) {
     el.classList.add('stale-text');
-    el.innerHTML = `<span class="live-dot stale"></span> Updated ${ago}s ago`;
+    el.innerHTML = `<span class="live-dot stale"></span> ${t('updated_ago').replace('{n}', ago)}`;
   } else {
     el.classList.add('offline-text');
     const mins = Math.round(ago / 60);
-    el.innerHTML = `<span class="live-dot offline"></span> Last update ${mins}m ago`;
+    el.innerHTML = `<span class="live-dot offline"></span> ${t('last_update_ago').replace('{n}', mins)}`;
   }
 }
 
@@ -290,7 +290,7 @@ async function fetchWeather() {
 
     if (m && m.wave_height != null) {
       document.getElementById('weather-waves').innerHTML =
-        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg> ${m.wave_height.toFixed(1)}m waves`;
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg> ${m.wave_height.toFixed(1)}m ${t('waves')}`;
     }
 
     if (d) {

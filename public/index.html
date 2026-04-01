@@ -118,23 +118,10 @@
   <!-- ── Masthead ── -->
   <header class="masthead">
     <div class="masthead-inner">
-      <div class="masthead-left">
-        <a href="/" class="masthead-logo-link"><img src="/img/qnl-logo.png?v=4" alt="Quy Nhon Life" class="masthead-logo" /></a>
-        <h1 class="visually-hidden" id="app-title">Quy Nhon Life</h1>
-        <p class="visually-hidden" id="hero-description">Your guide to coastal life in Quy Nhon</p>
-      </div>
-      <div class="masthead-right">
-        <div class="masthead-weather" id="weather-bar">
-          <span class="weather-icon" id="weather-icon"></span>
-          <span class="weather-temp" id="weather-temp">--</span>
-          <span class="weather-desc" id="weather-desc"></span>
-          <span class="weather-detail" id="weather-wind"></span>
-          <span class="weather-detail" id="weather-humidity"></span>
-          <span class="weather-detail" id="weather-waves"></span>
-          <span class="weather-detail" id="weather-sunrise"></span>
-        </div>
-        <div class="lang-switcher" id="lang-switcher"></div>
-      </div>
+      <a href="/" class="masthead-logo-link"><img src="/img/qnl-logo.png?v=4" alt="Quy Nhon Life" class="masthead-logo" /></a>
+      <h1 class="visually-hidden" id="app-title">Quy Nhon Life</h1>
+      <p class="visually-hidden" id="hero-description">Your guide to coastal life in Quy Nhon</p>
+      <div class="lang-switcher" id="lang-switcher"></div>
     </div>
   </header>
 
@@ -143,17 +130,23 @@
     <!-- ── Live Vessels Section ── -->
     <section class="section section--vessels">
       <div class="section-inner">
-        <div class="section-header">
-          <span class="section-label">Live Vessels <span class="stat-live" id="stat-live"></span></span>
-        </div>
-
         <div class="info-row">
-          <div class="port-strip">
-            <div class="port-strip-item"><span class="port-strip-value" id="ps-total">--</span> <span class="port-strip-label" data-i18n="total_vessels">vessels</span></div>
-            <span class="port-strip-sep">&middot;</span>
-            <div class="port-strip-item"><span class="port-strip-value" id="ps-moving">--</span> <span class="port-strip-label" data-i18n="underway">underway</span></div>
-            <span class="port-strip-sep">&middot;</span>
-            <div class="port-strip-item"><span class="port-strip-value" id="ps-anchored">--</span> <span class="port-strip-label" data-i18n="anchored">anchored</span></div>
+          <div class="info-left">
+            <div class="weather-bar" id="weather-bar">
+              <span class="weather-icon" id="weather-icon"></span>
+              <span class="weather-temp" id="weather-temp">--</span>
+              <span class="weather-desc" id="weather-desc"></span>
+              <span class="weather-detail" id="weather-wind"></span>
+              <span class="weather-detail" id="weather-humidity"></span>
+              <span class="weather-detail" id="weather-waves"></span>
+              <span class="weather-detail" id="weather-sunrise"></span>
+            </div>
+            <div class="port-strip">
+              <div class="port-strip-item"><span class="port-strip-value" id="ps-total">--</span> <span class="port-strip-label" data-i18n="total_vessels">vessels</span></div>
+              <div class="port-strip-item"><span class="port-strip-value" id="ps-moving">--</span> <span class="port-strip-label" data-i18n="underway">underway</span></div>
+              <div class="port-strip-item"><span class="port-strip-value" id="ps-anchored">--</span> <span class="port-strip-label" data-i18n="anchored">anchored</span></div>
+            </div>
+            <span class="stat-live" id="stat-live"></span>
           </div>
           <!-- Sunset Prediction -->
           <div class="sunset-strip" id="sunset-section">
