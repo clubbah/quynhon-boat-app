@@ -531,7 +531,16 @@ async function fetchPortStats() {
       const v = data.vesselOfDay;
       const cc = (v.flag_country || '').toLowerCase();
       const flagImg = cc ? `<img src="https://flagcdn.com/20x15/${cc}.png" style="border-radius:2px;vertical-align:middle;margin-right:4px" />` : '';
-      document.getElementById('votd-name').innerHTML = flagImg + (v.name || v.mmsi);
+      const nameEl = document.getElementById('votd-name');
+      nameEl.innerHTML = flagImg + `<a class="vessel-link" data-mmsi="${v.mmsi}" href="#">${v.name || v.mmsi}</a>`;
+      nameEl.querySelector('.vessel-link').addEventListener('click', (e) => {
+        e.preventDefault();
+        const vessel = vessels[v.mmsi];
+        if (vessel) {
+          onVesselClick(vessel);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
       document.getElementById('votd-details').innerHTML = [
         v.vessel_type_label || '',
         v.length && v.width ? `${v.length} x ${v.width}m` : '',
