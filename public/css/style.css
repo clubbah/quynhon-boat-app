@@ -17,6 +17,12 @@
   --fishing: #ca8a04;
   --other: #8ca5ad;
   --live: #10b981;
+  /* Type scale (Major Third) */
+  --text-xs: 10px;
+  --text-sm: 12px;
+  --text-base: 15px;
+  --text-lg: 20px;
+  --text-xl: 28px;
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -101,9 +107,9 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 }
 .weather-icon { font-size: 18px; }
 .weather-temp { font-size: 15px; font-weight: 600; color: var(--ink); }
-.weather-desc { font-size: 13px; color: var(--ink-3); }
+.weather-desc { font-size: 12px; color: var(--ink-3); }
 .weather-detail {
-  font-size: 11px; color: var(--ink-4);
+  font-size: 12px; color: var(--ink-4);
   display: flex; align-items: center; gap: 3px; white-space: nowrap;
 }
 .weather-detail svg { width: 12px; height: 12px; opacity: 0.5; }
@@ -131,10 +137,10 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 
 .section-label {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   color: var(--teal);
   padding-top: clamp(20px, 3vw, 32px);
   margin-bottom: 12px;
@@ -150,16 +156,11 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 /* ════════════════════════════════════════
    VESSELS SECTION
    ════════════════════════════════════════ */
-.vessel-stats { display: flex; }
-.stat-badge {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 13px; color: var(--ink-2);
-}
-.stat-total { font-weight: 600; }
-.badge-sep { width: 1px; height: 12px; background: var(--rule-strong); }
 .stat-live {
-  font-size: 12px; font-weight: 600; color: var(--live);
-  display: flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 600; color: var(--live);
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-left: 8px; vertical-align: middle;
+  letter-spacing: 0.04em;
 }
 .stat-live.stale-text { color: #f59e0b; }
 .stat-live.offline-text { color: var(--ink-4); }
@@ -181,7 +182,7 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 
 .port-strip {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 12px 24px;
   flex: 1; min-width: 0;
 }
@@ -342,7 +343,7 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
   padding: 10px 14px;
   background: var(--ink);
   color: rgba(255,255,255,0.9);
-  font-size: 12px;
+  font-size: var(--text-sm);
   font-weight: 400;
   line-height: 1.5;
   letter-spacing: 0;
@@ -373,7 +374,7 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 }
 
 .sunset-icon {
-  font-size: 36px;
+  font-size: 28px;
   line-height: 1;
   flex-shrink: 0;
 }
@@ -387,13 +388,13 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 
 .sunset-time {
   font-family: 'DM Serif Display', Georgia, serif;
-  font-size: clamp(22px, 4vw, 28px);
+  font-size: 20px;
   color: var(--ink);
-  line-height: 1.1;
+  line-height: 1.2;
 }
 
 .sunset-rating {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -406,10 +407,10 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 
 
 .sunset-desc {
-  margin-top: 10px;
-  font-size: 13px;
+  margin-top: 8px;
+  font-size: 15px;
   color: var(--ink-3);
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .sunset-factors {
@@ -423,7 +424,7 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--ink-4);
 }
 

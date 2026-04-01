@@ -95,8 +95,6 @@ function onPanelClose() {
 }
 
 function updateStats() {
-  const total = Object.keys(vessels).length;
-  document.getElementById('stat-total').textContent = `${total} ${t('vessels')}`;
   updateLiveIndicator();
 }
 
@@ -300,8 +298,6 @@ async function fetchWeather() {
       const sunset = d.sunset?.[0]?.split('T')[1] || '';
       document.getElementById('weather-sunrise').innerHTML =
         `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="9" x2="12" y2="2"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/></svg> ${sunrise}`;
-      document.getElementById('weather-sunset').innerHTML =
-        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/></svg> ${sunset}`;
     }
 
     // Sunset prediction
@@ -486,7 +482,6 @@ async function fetchPortStats() {
     document.getElementById('ps-total').textContent = data.total;
     document.getElementById('ps-moving').textContent = data.moving;
     document.getElementById('ps-anchored').textContent = data.anchored;
-    document.getElementById('ps-recent').textContent = data.recentCount;
 
     // Vessel of the day
     if (data.vesselOfDay) {
