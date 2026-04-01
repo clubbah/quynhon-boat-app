@@ -141,10 +141,14 @@ function parseAisCatcherMessage(msg) {
   const rawName = (msg.shipname || msg.name || '').trim();
   const name = rawName || null;
   if (rawName && /[<>\\[\]{}|^]/.test(rawName)) return null;
+  // Single-character names are placeholder/test data
+  if (rawName && rawName.length === 1) return null;
 
   // Filter invalid call signs (real ones are alphanumeric, 4-7 chars)
   const rawCallsign = (msg.callsign ?? msg.call_sign ?? '').trim();
   if (rawCallsign && /[<>\\[\]{}|^]/.test(rawCallsign)) return null;
+  // Known test/default call signs
+  if (rawCallsign === '1234567') return null;
 
   const flag_country = msg.country || getFlagCountry(mmsi);
   const updated_at = msg.timestamp || new Date().toISOString();
