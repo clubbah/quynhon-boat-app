@@ -526,6 +526,19 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
   border: 1px solid var(--rule-strong);
   padding: 2px 8px;
 }
+.explore-card-cta {
+  display: inline-block; margin-top: 8px;
+  font-size: 12px; font-weight: 700;
+  color: var(--teal); letter-spacing: 0.02em;
+}
+a.explore-card {
+  text-decoration: none; color: inherit; cursor: pointer;
+}
+a.explore-card:hover { background: var(--warm); }
+a.explore-card:hover .explore-card-cta { text-decoration: underline; }
+.footer-affiliate {
+  margin-top: 6px; font-size: 11px; font-style: normal; color: var(--ink-4);
+}
 
 /* ════════════════════════════════════════
    ACTIVITY SECTION

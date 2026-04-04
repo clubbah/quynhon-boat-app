@@ -48,6 +48,9 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/img/icon-192.png">
 
+  <!-- Agoda Partner Verification -->
+  <meta name="agd-partner-manual-verification" />
+
   <!-- Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-6Q874P6V67"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-6Q874P6V67');</script>
@@ -221,27 +224,29 @@
       </div>
     </section>
 
-    <!-- ── Explore Section (Coming Soon) ── -->
+    <!-- ── Explore Section ── -->
     <section class="section section--explore">
       <div class="section-inner">
         <span class="section-label" data-i18n="explore_label">Explore Quy Nhon</span>
         <div class="explore-grid">
-          <div class="explore-card">
-            <span class="explore-emoji">&#127860;</span>
-            <span class="explore-card-title" data-i18n="explore_eat_title">Eat &amp; Drink</span>
-            <span class="explore-card-desc" data-i18n="explore_eat_desc">Local restaurants, seafood spots, and coffee shops</span>
-            <span class="explore-card-tag" data-i18n="explore_coming_soon">Coming soon</span>
-          </div>
+          <!-- HOTEL CARD: Replace href with your Agoda affiliate link when ready -->
+          <a class="explore-card" href="https://www.agoda.com/search?city=40895" target="_blank" rel="noopener noreferrer sponsored">
+            <span class="explore-emoji">&#127976;</span>
+            <span class="explore-card-title" data-i18n="explore_hotels_title">Stay in Quy Nhon</span>
+            <span class="explore-card-desc" data-i18n="explore_hotels_desc">Find hotels and guesthouses for every budget</span>
+            <span class="explore-card-cta" data-i18n="explore_hotels_cta">Book on Agoda →</span>
+          </a>
+          <!-- TOURS CARD: Replace href with your Klook affiliate link when ready -->
+          <a class="explore-card" href="https://www.klook.com/en-US/search/?query=quy+nhon" target="_blank" rel="noopener noreferrer sponsored">
+            <span class="explore-emoji">&#9973;</span>
+            <span class="explore-card-title" data-i18n="explore_tours_title">Boat Tours &amp; Day Trips</span>
+            <span class="explore-card-desc" data-i18n="explore_tours_desc">Island hopping, snorkeling, and bay cruises</span>
+            <span class="explore-card-cta" data-i18n="explore_tours_cta">Browse on Klook →</span>
+          </a>
           <div class="explore-card">
             <span class="explore-emoji">&#127958;</span>
             <span class="explore-card-title" data-i18n="explore_beach_title">Beach Guide</span>
             <span class="explore-card-desc" data-i18n="explore_beach_desc">Best beaches, swimming conditions, and hidden coves</span>
-            <span class="explore-card-tag" data-i18n="explore_coming_soon">Coming soon</span>
-          </div>
-          <div class="explore-card">
-            <span class="explore-emoji">&#128652;</span>
-            <span class="explore-card-title" data-i18n="explore_transport_title">Getting Around</span>
-            <span class="explore-card-desc" data-i18n="explore_transport_desc">Transport tips, routes, and local travel advice</span>
             <span class="explore-card-tag" data-i18n="explore_coming_soon">Coming soon</span>
           </div>
         </div>
@@ -288,6 +293,7 @@
   <footer class="site-footer">
     <p id="footer-text">Quy Nhon Life &mdash; Tracking the waters of central Vietnam</p>
     <p class="footer-links"><a href="/privacy">Privacy Policy</a> &middot; <a href="/terms">Terms of Service</a> &middot; <a href="mailto:hello@quynhonlife.com">Contact</a></p>
+    <p class="footer-affiliate">Some links earn us a small commission at no extra cost to you.</p>
   </footer>
 
   <!-- Vessel Card -->
