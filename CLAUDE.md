@@ -106,10 +106,11 @@ AIS-catcher.exe -N 8100
 
 **Window 2 — Relay script (pushes data to quynhonlife.com):**
 ```
-node -e "const http=require('http');const https=require('https');const SECRET='9b63b8fc0e7d17224a6749c6456b8469';setInterval(()=>{http.get('http://localhost:8100/api/ships.json',r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>{try{const ships=JSON.parse(d);const arr=Array.isArray(ships)?ships:Object.values(ships);console.log('[Relay]',arr.length,'ships');const body=JSON.stringify(arr);const req=https.request({hostname:'quynhonlife.com',path:'/api/ais-feed/'+SECRET,method:'POST',headers:{'Content-Type':'application/json','Content-Length':Buffer.byteLength(body)}},res=>console.log('[Relay] Server:',res.statusCode));req.on('error',e=>console.error('[Relay] Push error:',e.message));req.write(body);req.end();}catch(e){console.error('[Relay] Parse error:',e.message)}})}).on('error',e=>console.error('[Relay] Fetch error:',e.message))},60000);console.log('[Relay] Started, pushing every 60s...')"
+node -e "const http=require('http');const https=require('https');const SECRET='9b63b8fc0e7d17224a6749c6456b8469';function relay(){http.get('http://localhost:8100/api/ships.json',r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>{try{const raw=JSON.parse(d);let ships;if(raw.ships)ships=raw.ships;else if(Array.isArray(raw))ships=raw.filter(x=>typeof x==='object');else ships=Object.values(raw).find(v=>Array.isArray(v))||[];console.log('[Relay]',ships.length,'ships');if(!ships.length)return;const body=JSON.stringify(ships);const req=https.request({hostname:'quynhonlife.com',path:'/api/ais-feed/'+SECRET,method:'POST',headers:{'Content-Type':'application/json','Content-Length':Buffer.byteLength(body)}},res=>console.log('[Relay] Server:',res.statusCode));req.on('error',e=>console.error('[Relay] Push error:',e.message));req.write(body);req.end();}catch(e){console.error('[Relay] Parse error:',e.message)}})}).on('error',e=>console.error('[Relay] Fetch error:',e.message))}relay();setInterval(relay,60000);console.log('[Relay] Started...')"
 ```
-> This one-liner does the same thing as `scripts/ais-relay.js` — no file needed.
-> You should see: `[Relay] 58 ships` then `[Relay] Server: 200` every 60 seconds.
+> This one-liner handles all AIS-catcher response formats (object with .ships, flat array, etc.)
+> You should see: `[Relay] 47 ships` then `[Relay] Server: 200` every 60 seconds.
+> The website will show fewer than the relay count — buoys and fake MMSIs are filtered server-side.
 
 **Both cmd windows must stay open.** Closing either stops the data flow.
 
