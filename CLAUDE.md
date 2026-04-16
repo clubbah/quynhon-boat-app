@@ -89,18 +89,52 @@ Local lifestyle portal for Quy Nhon, Vietnam — starting with real-time vessel 
 - `npm run test:watch` — Watch mode tests
 
 ## RTL-SDR Setup (LIVE)
-RTL-SDR USB dongle (RTL2832U+R820T2) connected to laptop on 26th floor condo, window-side, ocean-facing.
+RTL-SDR USB dongle (RTL2832U+R820T2) connected to a **separate laptop** on 26th floor condo, window-side, ocean-facing. This is NOT the development laptop — it's a dedicated antenna machine.
 
-**Data flow:**
+### How to Start Everything (from scratch)
+
+**On the ANTENNA laptop (2nd laptop with RTL-SDR plugged in):**
+
+**Window 1 — AIS-catcher:**
+```
+cd C:\AIS-catcher.x64
+AIS-catcher.exe -N 8100
+```
+> IMPORTANT: The flag is `-N` (built-in web server), NOT `-H` (HTTP push to remote).
+> `-H` is for pushing data to external URLs. `-N` starts the local web server on port 8100.
+> Verify by opening http://localhost:8100 in a browser — you should see the AIS-catcher web viewer.
+
+**Window 2 — Relay script (pushes data to quynhonlife.com):**
+```
+node -e "const http=require('http');const https=require('https');const SECRET='9b63b8fc0e7d17224a6749c6456b8469';setInterval(()=>{http.get('http://localhost:8100/api/ships.json',r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>{try{const ships=JSON.parse(d);const arr=Array.isArray(ships)?ships:Object.values(ships);console.log('[Relay]',arr.length,'ships');const body=JSON.stringify(arr);const req=https.request({hostname:'quynhonlife.com',path:'/api/ais-feed/'+SECRET,method:'POST',headers:{'Content-Type':'application/json','Content-Length':Buffer.byteLength(body)}},res=>console.log('[Relay] Server:',res.statusCode));req.on('error',e=>console.error('[Relay] Push error:',e.message));req.write(body);req.end();}catch(e){console.error('[Relay] Parse error:',e.message)}})}).on('error',e=>console.error('[Relay] Fetch error:',e.message))},60000);console.log('[Relay] Started, pushing every 60s...')"
+```
+> This one-liner does the same thing as `scripts/ais-relay.js` — no file needed.
+> You should see: `[Relay] 58 ships` then `[Relay] Server: 200` every 60 seconds.
+
+**Both cmd windows must stay open.** Closing either stops the data flow.
+
+**On the SERVER (Hetzner — automatic):**
+The server auto-restarts via PM2. No action needed. Verify with: `ssh root@5.78.191.155 "pm2 list"`
+
+### Data Flow
 1. RTL-SDR receives AIS radio signals from vessels
-2. AIS-catcher (C:\AIS-catcher.x64\start-ais.bat) decodes radio → vessel data
-3. AIS-catcher serves data on localhost:8100
-4. ais-relay.js (scripts/ais-relay.js) fetches from localhost:8100/api/ships.json every 60s
-5. Relay pushes to https://quynhonlife.com/api/ais-feed/{secret}
-6. Server stores in SQLite and broadcasts to browser clients via WebSocket
+2. AIS-catcher decodes radio → vessel data, serves on localhost:8100 (flag: `-N 8100`)
+3. Relay script fetches from localhost:8100/api/ships.json every 60s
+4. Relay pushes to https://quynhonlife.com/api/ais-feed/{secret}
+5. Server stores in SQLite and broadcasts to browser clients via WebSocket
+
+### Troubleshooting
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| AIS-catcher runs but localhost:8100 doesn't load | Wrong flag (`-H` instead of `-N`) | Use `-N 8100` |
+| Relay says "Fetch error" | AIS-catcher not running or wrong port | Check Window 1, verify localhost:8100 in browser |
+| Relay says "Push error" | Antenna laptop has no internet | Check wifi/ethernet |
+| Website shows no vessels | Relay not running | Check Window 2 on antenna laptop |
+| Website shows "Last update Xm ago" | Relay stopped or laptop went to sleep | Re-open both windows |
 
 **Feed secret:** 9b63b8fc0e7d17224a6749c6456b8469 (set as AIS_FEED_SECRET in .env on server)
 **Range:** ~50-70 km from 26th floor elevation (~80m), covering Quy Nhon bay and offshore.
+**Antenna laptop requires:** Node.js (v24.13.1 installed)
 
 ## Analytics
 - **Google Analytics:** G-6Q874P6V67 (installed on index.html + spot.html)
