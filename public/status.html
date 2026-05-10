@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Status — Quy Nhon Life</title>
+  <meta name="description" content="Live system status for Quy Nhon Life vessel tracker. AIS feed health, vessel counts, server uptime.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://quynhonlife.com/status">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a2e35;
+      --ink-2: #2d4a54;
+      --ink-3: #5a7d87;
+      --ink-4: #8ca5ad;
+      --teal: #0d9488;
+      --warm: #fafafa;
+      --rule: rgba(13, 148, 136, 0.12);
+      --rule-strong: rgba(13, 148, 136, 0.2);
+      --healthy: #16a34a;
+      --degraded: #ca8a04;
+      --down: #dc2626;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { -webkit-font-smoothing: antialiased; }
+    body {
+      font-family: 'Noto Sans', sans-serif;
+      color: var(--ink);
+      background: var(--warm);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    .page { max-width: 720px; margin: 0 auto; padding: 32px 24px 64px; }
+    .back {
+      display: inline-block;
+      margin-bottom: 24px;
+      color: var(--teal);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .back:hover { text-decoration: underline; }
+
+    .header {
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 16px;
+      margin-bottom: 32px;
+    }
+    h1 {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: clamp(28px, 5vw, 40px);
+      font-weight: 400;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+    .subtitle { color: var(--ink-3); font-size: 14px; margin-top: 6px; }
+
+    /* Status banner */
+    .status-banner {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 24px;
+      background: white;
+      border-left: 4px solid var(--ink-4);
+      margin-bottom: 24px;
+      transition: border-color 0.3s;
+    }
+    .status-banner.healthy { border-left-color: var(--healthy); }
+    .status-banner.degraded { border-left-color: var(--degraded); }
+    .status-banner.down { border-left-color: var(--down); }
+
+    .status-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--ink-4);
+      flex-shrink: 0;
+    }
+    .status-banner.healthy .status-dot {
+      background: var(--healthy);
+      animation: pulse 2s ease infinite;
+    }
+    .status-banner.degraded .status-dot { background: var(--degraded); }
+    .status-banner.down .status-dot { background: var(--down); }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    .status-text { flex: 1; }
+    .status-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--ink-4);
+    }
+    .status-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-top: 2px;
+      letter-spacing: -0.01em;
+    }
+    .status-banner.healthy .status-value { color: var(--healthy); }
+    .status-banner.degraded .status-value { color: var(--degraded); }
+    .status-banner.down .status-value { color: var(--down); }
+
+    /* Stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1px;
+      background: var(--rule);
+      border: 1px solid var(--rule);
+      margin-bottom: 32px;
+    }
+    .stat {
+      background: white;
+      padding: 20px;
+    }
+    .stat-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ink-4);
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+    .stat-sub { font-size: 12px; color: var(--ink-3); margin-top: 4px; }
+
+    /* Section */
+    .section-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--teal);
+      margin-bottom: 12px;
+      margin-top: 32px;
+    }
+
+    .info-table {
+      width: 100%;
+      background: white;
+      border: 1px solid var(--rule);
+    }
+    .info-table dt, .info-table dd { display: inline; }
+    .info-table .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      font-size: 14px;
+    }
+    .info-table .row + .row { border-top: 1px solid var(--rule); }
+    .info-label { color: var(--ink-3); }
+    .info-value {
+      color: var(--ink);
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      font-family: 'Noto Sans', monospace;
+    }
+
+    .refresh-bar {
+      margin-top: 24px;
+      padding: 12px 16px;
+      background: rgba(13, 148, 136, 0.05);
+      border: 1px solid var(--rule);
+      font-size: 12px;
+      color: var(--ink-3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .refresh-btn {
+      background: none;
+      border: 1px solid var(--rule-strong);
+      color: var(--teal);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 12px;
+      cursor: pointer;
+    }
+    .refresh-btn:hover { background: white; }
+
+    .err {
+      padding: 16px;
+      background: #fef2f2;
+      border-left: 4px solid var(--down);
+      color: var(--down);
+      font-size: 14px;
+    }
+
+    .footer-links {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--rule);
+      font-size: 13px;
+      color: var(--ink-4);
+      text-align: center;
+    }
+    .footer-links a {
+      color: var(--ink-4);
+      text-decoration: none;
+    }
+    .footer-links a:hover { color: var(--teal); }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <a href="/" class="back">&larr; Back to map</a>
+
+    <div class="header">
+      <h1>System Status</h1>
+      <p class="subtitle">Live health of the Quy Nhon Life vessel tracking infrastructure</p>
+    </div>
+
+    <div id="status-banner" class="status-banner">
+      <div class="status-dot"></div>
+      <div class="status-text">
+        <div class="status-label">Current Status</div>
+        <div class="status-value" id="status-value">Loading...</div>
+      </div>
+    </div>
+
+    <div id="stats-grid" class="stats-grid" style="display:none">
+      <div class="stat">
+        <div class="stat-label">Vessels Live</div>
+        <div class="stat-value" id="stat-total">--</div>
+        <div class="stat-sub" id="stat-total-sub"></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Last AIS Update</div>
+        <div class="stat-value" id="stat-last">--</div>
+        <div class="stat-sub" id="stat-last-sub"></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Server Uptime</div>
+        <div class="stat-value" id="stat-uptime">--</div>
+        <div class="stat-sub">since last restart</div>
+      </div>
+    </div>
+
+    <span class="section-label">Details</span>
+    <div class="info-table" id="info-table" style="display:none">
+      <div class="row"><span class="info-label">AIS feed</span><span class="info-value" id="info-feed">--</span></div>
+      <div class="row"><span class="info-label">Stale threshold</span><span class="info-value" id="info-threshold">--</span></div>
+      <div class="row"><span class="info-label">Underway / Anchored</span><span class="info-value" id="info-status">--</span></div>
+      <div class="row"><span class="info-label">Last checked</span><span class="info-value" id="info-checked">--</span></div>
+    </div>
+
+    <div id="err" class="err" style="display:none">Failed to load status. Server may be down.</div>
+
+    <div class="refresh-bar">
+      <span id="refresh-info">Auto-refreshing every 30 seconds</span>
+      <button class="refresh-btn" id="refresh-btn">Refresh now</button>
+    </div>
+
+    <div class="footer-links">
+      <a href="/">Home</a> &middot;
+      <a href="/spot">What's That Boat?</a> &middot;
+      <a href="/privacy">Privacy</a> &middot;
+      <a href="/terms">Terms</a>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function formatDuration(seconds) {
+      if (seconds < 60) return seconds + 's';
+      if (seconds < 3600) return Math.floor(seconds / 60) + 'm';
+      if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ' + Math.floor((seconds % 3600) / 60) + 'm';
+      return Math.floor(seconds / 86400) + 'd ' + Math.floor((seconds % 86400) / 3600) + 'h';
+    }
+
+    function formatMinutesAgo(min) {
+      if (min == null) return 'never';
+      if (min < 1) return 'just now';
+      if (min < 60) return min + 'm ago';
+      if (min < 1440) return (min / 60).toFixed(1) + 'h ago';
+      return (min / 1440).toFixed(1) + 'd ago';
+    }
+
+    async function loadStatus() {
+      try {
+        const res = await fetch('/api/status', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+
+        $('err').style.display = 'none';
+        $('stats-grid').style.display = '';
+        $('info-table').style.display = '';
+
+        // Status banner
+        const banner = $('status-banner');
+        banner.className = 'status-banner ' + data.status;
+        const statusLabels = {
+          healthy: 'All Systems Operational',
+          degraded: 'Degraded Performance',
+          down: 'AIS Feed Down',
+        };
+        $('status-value').textContent = statusLabels[data.status] || 'Unknown';
+
+        // Stats
+        $('stat-total').textContent = data.vessels.total;
+        $('stat-total-sub').textContent = data.vessels.moving + ' moving, ' + data.vessels.anchored + ' anchored';
+        $('stat-last').textContent = formatMinutesAgo(data.vessels.minutes_since_update);
+        $('stat-last-sub').textContent = data.vessels.last_update
+          ? new Date(data.vessels.last_update).toLocaleString()
+          : 'no data yet';
+        $('stat-uptime').textContent = formatDuration(data.server_uptime_seconds);
+
+        // Info table
+        const feedStatus = data.ais_feed.is_stale
+          ? 'Stale (>' + data.ais_feed.stale_threshold_minutes + 'm)'
+          : 'Receiving';
+        $('info-feed').textContent = feedStatus;
+        $('info-threshold').textContent = data.ais_feed.stale_threshold_minutes + ' minutes';
+        $('info-status').textContent = data.vessels.moving + ' / ' + data.vessels.anchored;
+        $('info-checked').textContent = new Date(data.timestamp).toLocaleTimeString();
+      } catch (err) {
+        $('err').style.display = '';
+        $('err').textContent = 'Failed to load status: ' + err.message;
+        $('status-value').textContent = 'Unknown';
+      }
+    }
+
+    $('refresh-btn').addEventListener('click', loadStatus);
+    loadStatus();
+    setInterval(loadStatus, 30000);
+  </script>
+</body>
+</html>

@@ -31,4 +31,10 @@
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
+  <url>
+    <loc>https://quynhonlife.com/status</loc>
+    <lastmod>2026-04-06</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.4</priority>
+  </url>
 </urlset>

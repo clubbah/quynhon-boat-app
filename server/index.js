@@ -11,6 +11,7 @@ import { createDb, upsertVessel, appendPosition, getVesselsByArea, getTrack, pru
 import { connectAisStream } from './ais-client.js';
 import { getVesselTypeLabel, getNavStatusLabel, getFlagCountry } from './ais-types.js';
 import { startCleanup } from './cleanup.js';
+import { startHealthMonitor, getHealthSnapshot } from './health-monitor.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -34,6 +35,15 @@ app.get('/privacy', (req, res) => {
 });
 app.get('/terms', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'terms.html'));
+});
+app.get('/status', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'status.html'));
+});
+
+// Health/status endpoint (used by status page + external monitoring)
+app.get('/api/status', (req, res) => {
+  const snapshot = getHealthSnapshot(db);
+  res.json(snapshot);
 });
 
 // All vessels as JSON (for spot feature)
@@ -383,6 +393,9 @@ function getVesselFromDb(db, mmsi) {
 
 // Cleanup — prune stale vessels from live map, compress old positions to hourly summaries
 startCleanup(db, pruneOldData, compressPositions);
+
+// Health monitor — alerts when AIS feed goes stale
+startHealthMonitor(db);
 
 // Start
 server.listen(PORT, () => {
