@@ -44,6 +44,8 @@ Local lifestyle portal for Quy Nhon, Vietnam — starting with real-time vessel 
 - **Buoy/beacon filtering** — non-vessel AIS stations excluded
 - **Fake MMSI filtering** — test transponders and junk data excluded
 - **PWA** — installable as app via manifest.json + service worker, offline caching for static assets
+- **Health monitoring** — server checks AIS feed freshness every 15 min, alerts via push (ntfy.sh) + email (Resend) when stale >30 min, sends recovery alert when data resumes
+- **System status page** — `/status` shows live health (vessel count, last update, server uptime, AIS feed status), auto-refreshes every 30s
 
 ## SEO
 - **Google Search Console** — verified via Cloudflare, sitemap submitted
@@ -53,18 +55,20 @@ Local lifestyle portal for Quy Nhon, Vietnam — starting with real-time vessel 
 - **Canonical URLs** — all pages point to quynhonlife.com
 - **hreflang tags** — all 5 languages + x-default
 - **robots.txt** — allows all crawlers + AI bots (GPTBot, ChatGPT, Anthropic, Perplexity), blocks /api/
-- **sitemap.xml** — all 4 pages with hreflang annotations
+- **sitemap.xml** — all 5 pages with hreflang annotations (home, spot, status, privacy, terms)
 - **llms.txt** — structured description for AI crawlers
 - **Cloudflare AI bot blocking** — disabled (custom robots.txt serves instead)
 
 ## Key Files
-- `server/index.js` — Express server, WebSocket relay, weather/port-stats/AIS-feed APIs (hourly cloud data for sunset prediction)
+- `server/index.js` — Express server, WebSocket relay, weather/port-stats/AIS-feed APIs, /api/status endpoint
 - `server/ais-client.js` — Connects to aisstream.io WebSocket (fallback, not primary)
 - `server/ais-types.js` — AIS message type definitions and vessel type mappings
 - `server/db.js` — SQLite schema, upsert/query functions, buoy/fake MMSI filtering
 - `server/cleanup.js` — Prunes stale vessels and old position history
+- `server/health-monitor.js` — Health check loop (15 min), sends alerts via Resend (email) + ntfy.sh (push), persists state in `.health-state.json`
 - `public/index.html` — Main page (editorial portal layout, SEO meta tags, Schema.org, PWA manifest)
 - `public/spot.html` — "What's That Boat?" with live mini-map, pointing cone, continuous GPS
+- `public/status.html` — System status page (live health, vessel counts, server uptime, auto-refresh 30s)
 - `public/js/app.js` — Main app logic, WebSocket, weather, sunset prediction, port stats, search, translations
 - `public/js/map.js` — MapLibre map, GeoJSON vessel layer, tooltips, track, highlight
 - `public/js/vessel-card.js` — Vessel detail popup card
@@ -77,11 +81,25 @@ Local lifestyle portal for Quy Nhon, Vietnam — starting with real-time vessel 
 - `public/sitemap.xml` — All pages with hreflang
 - `public/llms.txt` — AI crawler site description
 - `scripts/ais-relay.js` — Runs on RTL-SDR laptop, pushes AIS data to server every 60s
+- `scripts/start-antenna.bat` — One-click startup for antenna laptop (launches AIS-catcher + relay)
 
 ## Environment Variables
-- `AISSTREAM_API_KEY` — API key for aisstream.io fallback (stored in .env, not committed)
-- `AIS_FEED_SECRET` — Secret key for RTL-SDR relay endpoint
+All stored in `/opt/quynhon-boat-app/.env` on the Hetzner server (not committed to git).
+
+- `AISSTREAM_API_KEY` — API key for aisstream.io fallback
+- `AIS_FEED_SECRET` — Secret key for RTL-SDR relay endpoint (`9b63b8fc0e7d17224a6749c6456b8469`)
 - `PORT` — Server port (default 3001 on production)
+- `RESEND_API_KEY` — Resend API key for email alerts (`re_...`). Sends from `onboarding@resend.dev` to `ALERT_EMAIL`. Free tier: 100 emails/day, plenty for downtime alerts.
+- `ALERT_EMAIL` — Recipient for downtime alerts (`langbroker@gmail.com`)
+- `NTFY_TOPIC` — ntfy.sh topic name for push alerts (`qnl-alerts-bk7m9x2v`). No account required — anyone subscribed to this topic on the ntfy.sh app receives pushes. Topic name acts as the secret.
+
+To update env vars on the server:
+```
+ssh root@5.78.191.155
+cd /opt/quynhon-boat-app
+nano .env  # edit
+pm2 restart vessel-tracker --update-env
+```
 
 ## Commands
 - `npm start` — Run the server
@@ -132,10 +150,55 @@ The server auto-restarts via PM2. No action needed. Verify with: `ssh root@5.78.
 | Relay says "Push error" | Antenna laptop has no internet | Check wifi/ethernet |
 | Website shows no vessels | Relay not running | Check Window 2 on antenna laptop |
 | Website shows "Last update Xm ago" | Relay stopped or laptop went to sleep | Re-open both windows |
+| Got a "AIS Feed Down" alert | Check status page, then antenna laptop | https://quynhonlife.com/status — then SSH or restart .bat on antenna |
+| No alerts despite known downtime | Env vars not loaded after deploy | `pm2 restart vessel-tracker --update-env` on server |
 
 **Feed secret:** 9b63b8fc0e7d17224a6749c6456b8469 (set as AIS_FEED_SECRET in .env on server)
 **Range:** ~50-70 km from 26th floor elevation (~80m), covering Quy Nhon bay and offshore.
 **Antenna laptop requires:** Node.js (v24.13.1 installed)
+
+## Health Monitoring & Alerts
+
+The server checks AIS feed freshness every 15 minutes. If no vessel data has been received for >30 minutes, it sends alerts via two channels.
+
+### How it works
+- `server/health-monitor.js` runs on a 15-min interval
+- Queries the database for `MAX(updated_at)` from vessels table
+- Compares to current time
+- If stale >30 min: sends DOWN alert (push + email)
+- If currently down and last alert was >24h ago: sends reminder
+- When data resumes: sends RECOVERY alert
+- Persists state to `server/.health-state.json` so PM2 restarts don't trigger duplicate alerts
+
+### Alert channels
+
+**Push notifications via ntfy.sh:**
+- Topic: `qnl-alerts-bk7m9x2v` (set via `NTFY_TOPIC` env var)
+- Free, no account required
+- Phone receives instant push via ntfy app
+- Anyone subscribed to the topic name gets alerts (topic name = secret)
+
+**Email via Resend:**
+- API key: `re_...` (set via `RESEND_API_KEY` env var)
+- Free tier: 100 emails/day
+- Sender: `onboarding@resend.dev` (default — could verify domain later for `alerts@quynhonlife.com`)
+- Recipient: `langbroker@gmail.com` (set via `ALERT_EMAIL`)
+- HTML formatted with troubleshooting checklist
+
+### Status page
+- Public: https://quynhonlife.com/status
+- API: `GET /api/status` returns JSON snapshot
+- Auto-refreshes every 30s
+- Shows: status (healthy/degraded/down), vessel count, last AIS update, server uptime
+- Status definitions:
+  - `healthy`: data received within last 5 min
+  - `degraded`: data 5-30 min old
+  - `down`: data >30 min old OR no vessels at all
+
+### Testing alerts manually
+Test push: `curl -X POST -H "Title: Test" -d "Test message" https://ntfy.sh/qnl-alerts-bk7m9x2v`
+Test email: send via Resend API directly with `curl` and the API key
+Real test: kill the relay on antenna laptop, wait 35 min, verify alerts arrive, restart relay, verify recovery alert
 
 ## Analytics
 - **Google Analytics:** G-6Q874P6V67 (installed on index.html + spot.html)
@@ -198,6 +261,8 @@ The server auto-restarts via PM2. No action needed. Verify with: `ssh root@5.78.
 - ✅ Favicon
 - ✅ SEO (meta tags, OG, Schema.org, sitemap, robots.txt, llms.txt, hreflang, GSC, Bing)
 - ✅ PWA (manifest, service worker, installable on Android + iOS)
+- ✅ Health monitoring (15-min checks, push + email alerts on AIS feed downtime, recovery alerts)
+- ✅ System status page (/status, public, auto-refresh, live health snapshot)
 
 ### Phase 2: Business Directory
 - Local restaurants, seafood spots, coffee shops

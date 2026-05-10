@@ -21,8 +21,21 @@ AIS vessel data is received live via RTL-SDR hardware (RTL2832U+R820T2 dongle) p
 ## URLs
 - Homepage: https://quynhonlife.com/
 - Vessel Identifier: https://quynhonlife.com/spot
+- System Status: https://quynhonlife.com/status
 - Privacy Policy: https://quynhonlife.com/privacy
 - Terms of Service: https://quynhonlife.com/terms
+
+## API
+- Live vessel data: GET https://quynhonlife.com/api/vessels (JSON array)
+- Vessel track history: GET https://quynhonlife.com/api/vessels/{mmsi}/track
+- Weather + marine: GET https://quynhonlife.com/api/weather
+- Port statistics: GET https://quynhonlife.com/api/port-stats
+- Health/status snapshot: GET https://quynhonlife.com/api/status
+
+## Reliability
+- 24/7 automated health monitoring with 15-minute check intervals
+- Public status page at /status shows live AIS feed health, vessel counts, and server uptime
+- Operators alerted via push notification and email if AIS feed goes stale (>30 min without data)
 
 ## Contact
 - Email: hello@quynhonlife.com
