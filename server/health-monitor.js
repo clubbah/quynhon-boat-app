@@ -43,11 +43,20 @@ function saveState(state) {
   }
 }
 
-// Health snapshot from the database
-export function getHealthSnapshot(db) {
+// Health snapshot — uses both DB and live feed stats
+//
+// We distinguish between two failure modes:
+//   1. RELAY DOWN     — no POST to /api/ais-feed at all (antenna laptop issue)
+//   2. PARSER STUCK   — POSTs arriving but no vessels being upserted (data format issue)
+//
+// The relay-side stat (feedStats.lastReceivedAt) is the real signal for the
+// "antenna setup" being healthy. The DB updated_at tells us whether vessels
+// are flowing through the parser.
+export function getHealthSnapshot(db, feedStats = {}) {
   const startTime = process.uptime();
+  const now = Date.now();
 
-  // Most recent vessel update
+  // Most recent vessel update (DB)
   const lastUpdateRow = db.prepare(
     'SELECT MAX(updated_at) as last_update FROM vessels'
   ).get();
@@ -56,33 +65,57 @@ export function getHealthSnapshot(db) {
   // Vessel counts
   const totalRow = db.prepare('SELECT COUNT(*) as n FROM vessels').get();
   const total = totalRow?.n || 0;
-
   const movingRow = db.prepare(
     'SELECT COUNT(*) as n FROM vessels WHERE speed > 0.5'
   ).get();
   const moving = movingRow?.n || 0;
 
-  // Time since last update
-  let minutesSinceUpdate = null;
-  if (lastUpdate) {
-    const last = new Date(lastUpdate).getTime();
-    const now = Date.now();
-    minutesSinceUpdate = Math.floor((now - last) / 60000);
-  }
+  // Time since last DB update
+  const minutesSinceUpdate = lastUpdate
+    ? Math.floor((now - new Date(lastUpdate).getTime()) / 60000)
+    : null;
 
-  // Determine status
-  let status = 'down';
-  if (lastUpdate && minutesSinceUpdate !== null) {
-    if (minutesSinceUpdate < 5) status = 'healthy';
-    else if (minutesSinceUpdate < STALE_THRESHOLD_MIN) status = 'degraded';
-    else status = 'down';
-  }
+  // Time since last relay POST (this is the REAL antenna health signal)
+  const minutesSinceFeed = feedStats.lastReceivedAt
+    ? Math.floor((now - new Date(feedStats.lastReceivedAt).getTime()) / 60000)
+    : null;
 
-  // No vessels at all = down
-  if (total === 0) status = 'down';
+  // Determine status based on relay activity first, DB second
+  // If the relay is still POSTing, the antenna is fine — even if the parser
+  // is filtering everything out (we'd want a different alert for that case).
+  let status;
+  let statusReason;
+
+  if (minutesSinceFeed == null) {
+    // No POST seen since server start
+    if (process.uptime() < 600) {
+      // Server only just started — give it time
+      status = 'degraded';
+      statusReason = 'server warming up';
+    } else {
+      status = 'down';
+      statusReason = 'no relay activity since server start';
+    }
+  } else if (minutesSinceFeed >= STALE_THRESHOLD_MIN) {
+    // Relay stopped POSTing
+    status = 'down';
+    statusReason = `no relay POST for ${minutesSinceFeed} min`;
+  } else if (minutesSinceFeed >= 5) {
+    // Relay slow but not dead
+    status = 'degraded';
+    statusReason = `relay slow (last POST ${minutesSinceFeed} min ago)`;
+  } else if (total === 0) {
+    // Relay pushing but nothing in DB
+    status = 'down';
+    statusReason = 'relay active but no vessels in DB';
+  } else {
+    status = 'healthy';
+    statusReason = 'relay active, vessels flowing';
+  }
 
   return {
     status,
+    status_reason: statusReason,
     timestamp: new Date().toISOString(),
     server_uptime_seconds: Math.floor(startTime),
     vessels: {
@@ -93,6 +126,11 @@ export function getHealthSnapshot(db) {
       minutes_since_update: minutesSinceUpdate,
     },
     ais_feed: {
+      last_received: feedStats.lastReceivedAt || null,
+      last_processed: feedStats.lastProcessedAt || null,
+      minutes_since_received: minutesSinceFeed,
+      total_requests: feedStats.totalRequests || 0,
+      total_vessels_processed: feedStats.totalVesselsProcessed || 0,
       stale_threshold_minutes: STALE_THRESHOLD_MIN,
       is_stale: status === 'down',
     },
@@ -229,8 +267,8 @@ function buildRecoveryAlert(snapshot, downtimeMinutes) {
 }
 
 // Main check function
-async function runHealthCheck(db) {
-  const snapshot = getHealthSnapshot(db);
+async function runHealthCheck(db, feedStats) {
+  const snapshot = getHealthSnapshot(db, feedStats);
   const state = loadState();
   const now = Date.now();
 
@@ -274,13 +312,13 @@ async function runHealthCheck(db) {
       saveState({ inAlert: false, lastAlertAt: null, alertCount: 0 });
       console.log(`[Health] RECOVERY alert sent (downtime: ${downtimeMinutes} min)`);
     } else {
-      console.log(`[Health] Healthy: ${snapshot.vessels.total} vessels, last update ${snapshot.vessels.minutes_since_update}m ago`);
+      console.log(`[Health] Healthy: ${snapshot.vessels.total} vessels, relay ${snapshot.ais_feed.minutes_since_received}m ago, DB ${snapshot.vessels.minutes_since_update}m ago`);
     }
   }
 }
 
 // Public API
-export function startHealthMonitor(db) {
+export function startHealthMonitor(db, feedStats) {
   if (!RESEND_API_KEY && !NTFY_TOPIC) {
     console.log('[Health] No alert channels configured (RESEND_API_KEY or NTFY_TOPIC). Status endpoint still active.');
   } else {
@@ -291,6 +329,6 @@ export function startHealthMonitor(db) {
   }
 
   // Run first check after 5 min (give server time to receive data on startup)
-  setTimeout(() => runHealthCheck(db), 5 * 60 * 1000);
-  setInterval(() => runHealthCheck(db), CHECK_INTERVAL_MS);
+  setTimeout(() => runHealthCheck(db, feedStats), 5 * 60 * 1000);
+  setInterval(() => runHealthCheck(db, feedStats), CHECK_INTERVAL_MS);
 }

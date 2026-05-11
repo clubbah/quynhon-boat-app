@@ -42,7 +42,7 @@ app.get('/status', (req, res) => {
 
 // Health/status endpoint (used by status page + external monitoring)
 app.get('/api/status', (req, res) => {
-  const snapshot = getHealthSnapshot(db);
+  const snapshot = getHealthSnapshot(db, feedStats);
   res.json(snapshot);
 });
 
@@ -57,12 +57,24 @@ app.get('/api/vessels/:mmsi/track', (req, res) => {
   res.json(track);
 });
 
+// Track relay activity (separate from DB updated_at — answers
+// "is the relay still POSTing?" which is the real question for monitoring)
+export const feedStats = {
+  lastReceivedAt: null,       // when did /api/ais-feed last get a request
+  lastProcessedAt: null,      // when did we last successfully upsert at least 1 vessel
+  totalRequests: 0,
+  totalVesselsProcessed: 0,
+};
+
 // AIS-catcher HTTP feed endpoint
 function handleAisFeed(req, res) {
   const token = req.params.key || req.headers['x-ais-secret'];
   if (AIS_FEED_SECRET && token !== AIS_FEED_SECRET) {
     return res.status(403).json({ error: 'Forbidden' });
   }
+
+  feedStats.lastReceivedAt = new Date().toISOString();
+  feedStats.totalRequests++;
 
   try {
     // Log first incoming message to understand AIS-catcher format
@@ -118,6 +130,15 @@ function handleAisFeed(req, res) {
         detectArrival(db, fullVessel);
         broadcast({ type: 'update', vessel: fullVessel });
       }
+    }
+
+    if (count > 0) {
+      feedStats.lastProcessedAt = new Date().toISOString();
+      feedStats.totalVesselsProcessed += count;
+    } else {
+      // Diagnostic: feed received but nothing parseable
+      const rawSample = Array.isArray(raw) ? raw[0] : raw;
+      console.warn('[AIS-Feed] WARNING: 0 vessels parsed from', messages.length, 'messages. Sample MMSI:', rawSample?.mmsi, 'shiptype:', rawSample?.shiptype, 'name:', rawSample?.shipname);
     }
 
     res.json({ ok: true, processed: count });
@@ -395,7 +416,7 @@ function getVesselFromDb(db, mmsi) {
 startCleanup(db, pruneOldData, compressPositions);
 
 // Health monitor — alerts when AIS feed goes stale
-startHealthMonitor(db);
+startHealthMonitor(db, feedStats);
 
 // Start
 server.listen(PORT, () => {
