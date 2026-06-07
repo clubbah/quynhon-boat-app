@@ -2,6 +2,9 @@ const translations = {
   en: {
     app_title: 'Quy Nhon Life',
     hero_description: 'Your guide to coastal life in Quy Nhon',
+    masthead_tagline: 'Live from the bay · vessels, sunsets & coastal life',
+    dateline_place: 'Quy Nhơn, Vietnam',
+    dateline_live: 'Live',
     vessels: 'vessels',
     speed: 'Speed',
     destination: 'Destination',
@@ -132,6 +135,9 @@ const translations = {
   vi: {
     app_title: 'Quy Nh\u01A1n Life',
     hero_description: 'C\u1EA9m nang cu\u1ED9c s\u1ED1ng ven bi\u1EC3n Quy Nh\u01A1n',
+    masthead_tagline: 'Tr\u1EF1c ti\u1EBFp t\u1EEB v\u1ECBnh \u00B7 t\u00E0u thuy\u1EC1n, ho\u00E0ng h\u00F4n & \u0111\u1EDDi s\u1ED1ng ven bi\u1EC3n',
+    dateline_place: 'Quy Nh\u01A1n, Vi\u1EC7t Nam',
+    dateline_live: 'Tr\u1EF1c ti\u1EBFp',
     vessels: 't\u00E0u',
     speed: 'T\u1ED1c \u0111\u1ED9',
     destination: '\u0110i\u1EC3m \u0111\u1EBFn',
@@ -262,6 +268,9 @@ const translations = {
   ko: {
     app_title: 'Quy Nhon Life',
     hero_description: '\uADC0\uB2CC \uD574\uC548 \uC0DD\uD65C \uAC00\uC774\uB4DC',
+    masthead_tagline: '\uB9CC\uC5D0\uC11C \uC0DD\uC911\uACC4 \u00B7 \uC120\uBC15, \uB178\uC744, \uD574\uC548 \uC0DD\uD65C',
+    dateline_place: '\uAFB8\uC774\uB144, \uBCA0\uD2B8\uB0A8',
+    dateline_live: '\uC2E4\uC2DC\uAC04',
     vessels: '\uC120\uBC15',
     speed: '\uC18D\uB3C4',
     destination: '\uBAA9\uC801\uC9C0',
@@ -392,6 +401,9 @@ const translations = {
   zh: {
     app_title: 'Quy Nhon Life',
     hero_description: '\u5F52\u4EC1\u6D77\u5CB8\u751F\u6D3B\u6307\u5357',
+    masthead_tagline: '\u6765\u81EA\u6D77\u6E7E\u7684\u5B9E\u65F6\u753B\u9762 \u00B7 \u8239\u8236\u3001\u65E5\u843D\u4E0E\u6D77\u5CB8\u751F\u6D3B',
+    dateline_place: '\u5F52\u4EC1\uFF0C\u8D8A\u5357',
+    dateline_live: '\u5B9E\u65F6',
     vessels: '\u8239\u8236',
     speed: '\u901F\u5EA6',
     destination: '\u76EE\u7684\u5730',
@@ -522,6 +534,9 @@ const translations = {
   ja: {
     app_title: 'Quy Nhon Life',
     hero_description: '\u30AF\u30A4\u30CB\u30E7\u30F3\u6D77\u5CB8\u30E9\u30A4\u30D5\u30AC\u30A4\u30C9',
+    masthead_tagline: '\u6E7E\u304B\u3089\u30E9\u30A4\u30D6\u914D\u4FE1 \u00B7 \u8239\u8236\u3001\u5915\u65E5\u3001\u6D77\u8FBA\u306E\u66AE\u3089\u3057',
+    dateline_place: '\u30AF\u30A4\u30CB\u30E7\u30F3\u3001\u30D9\u30C8\u30CA\u30E0',
+    dateline_live: '\u30E9\u30A4\u30D6',
     vessels: '\u96BB',
     speed: '\u901F\u529B',
     destination: '\u76EE\u7684\u5730',

@@ -17,6 +17,10 @@ setMapClickHandler(onPanelClose);
 // Live indicator update
 setInterval(updateLiveIndicator, 5000);
 
+// Masthead dateline (localized date)
+updateDateline();
+setInterval(updateDateline, 60 * 60 * 1000); // refresh hourly to catch date rollover
+
 // Apply saved language on load (translates data-i18n elements + dynamic content)
 if (getLang() !== 'en') translatePage();
 
@@ -199,6 +203,7 @@ function translatePage() {
   });
 
   // Refresh dynamic content
+  updateDateline();
   updateStats();
   fetchPortStats();
   fetchPortPulse();
@@ -213,6 +218,21 @@ function translatePage() {
       .then(r => r.json())
       .then(data => updateCardHistory(data))
       .catch(() => {});
+  }
+}
+
+// Localized long date for the masthead dateline (e.g. "Sunday, June 7, 2026")
+function updateDateline() {
+  const el = document.getElementById('dateline-date');
+  if (!el) return;
+  const localeMap = { en: 'en-US', vi: 'vi-VN', ko: 'ko-KR', zh: 'zh-CN', ja: 'ja-JP' };
+  const locale = localeMap[getLang()] || 'en-US';
+  try {
+    el.textContent = new Date().toLocaleDateString(locale, {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    });
+  } catch (e) {
+    el.textContent = new Date().toLocaleDateString();
   }
 }
 

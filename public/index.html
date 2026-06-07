@@ -56,7 +56,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
-  <link rel="stylesheet" href="/css/style.css?v=22" />
+  <link rel="stylesheet" href="/css/style.css?v=23" />
 
   <!-- Schema.org Structured Data -->
   <script type="application/ld+json">
@@ -115,10 +115,22 @@
 </head>
 <body>
 
+  <!-- ── Dateline ── -->
+  <div class="dateline">
+    <div class="dateline-inner">
+      <span class="dateline-date" id="dateline-date"></span>
+      <span class="dateline-place" data-i18n="dateline_place">Quy Nh&#417;n, Vietnam</span>
+      <span class="dateline-live"><span class="dateline-dot"></span><span data-i18n="dateline_live">Live</span></span>
+    </div>
+  </div>
+
   <!-- ── Masthead ── -->
   <header class="masthead">
     <div class="masthead-inner">
-      <a href="/" class="masthead-logo-link"><img src="/img/qnl-logo.png?v=4" alt="Quy Nhon Life" class="masthead-logo" /></a>
+      <div class="masthead-brand">
+        <a href="/" class="masthead-logo-link"><img src="/img/qnl-logo.png?v=4" alt="Quy Nhon Life" class="masthead-logo" /></a>
+        <p class="masthead-tagline" data-i18n="masthead_tagline">Live from the bay &middot; vessels, sunsets &amp; coastal life</p>
+      </div>
       <h1 class="visually-hidden" id="app-title">Quy Nhon Life</h1>
       <p class="visually-hidden" id="hero-description">Your guide to coastal life in Quy Nhon</p>
       <div class="lang-switcher" id="lang-switcher"></div>
@@ -339,7 +351,7 @@
   </a>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script type="module" src="/js/app.js?v=22"></script>
+  <script type="module" src="/js/app.js?v=23"></script>
   <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}</script>
 </body>
 </html>
