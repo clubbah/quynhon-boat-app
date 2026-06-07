@@ -271,56 +271,113 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 }
 #map { width: 100%; height: 100%; }
 
+/* ── Map controls: one editorial control system (native + custom) ── */
+/* Shared translucent floating-control surface */
+.map-search input,
+.map-legend,
+.map-recenter,
+.maplibregl-ctrl-group {
+  background: rgba(255, 255, 255, 0.86);
+  -webkit-backdrop-filter: blur(10px) saturate(1.1);
+  backdrop-filter: blur(10px) saturate(1.1);
+  border: 1px solid rgba(26, 46, 53, 0.12);
+  border-radius: 0; /* editorial: sharp corners, no pills */
+  box-shadow: 0 2px 12px rgba(26, 46, 53, 0.13);
+}
+
+/* Native MapLibre zoom + compass group */
+/* MapLibre sets the group shadow via :not(:empty) (higher specificity), so match it */
+.maplibregl-ctrl-group:not(:empty) { box-shadow: 0 2px 12px rgba(26, 46, 53, 0.13); }
+.maplibregl-ctrl-group { overflow: hidden; }
+.maplibregl-ctrl-group button {
+  width: 34px; height: 34px;
+  background-color: transparent;
+  transition: background-color 0.15s var(--ease-out);
+}
+.maplibregl-ctrl-group button + button { border-top: 1px solid rgba(26, 46, 53, 0.1); }
+.maplibregl-ctrl-group button:hover { background-color: var(--teal-wash); }
+.maplibregl-ctrl-group button:focus-visible {
+  outline: 2px solid var(--teal); outline-offset: -2px; box-shadow: none;
+}
+/* Attribution chip: quiet, matches the system */
+.maplibregl-ctrl-attrib.maplibregl-compact {
+  background: rgba(255, 255, 255, 0.82);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  border-radius: 0;
+}
+
 .map-hint {
-  position: absolute; top: 10px; right: 56px; z-index: 10;
-  background: rgba(26,46,53,0.78); color: rgba(255,255,255,0.9);
-  font-size: 11px; font-weight: 500; padding: 4px 12px;
-  pointer-events: none; transition: opacity 0.5s;
+  position: absolute; top: 10px; right: 54px; z-index: 10;
+  background: rgba(26,46,53,0.82); color: rgba(255,255,255,0.92);
+  font-size: 11px; font-weight: 500; padding: 5px 12px;
+  letter-spacing: 0.02em;
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  pointer-events: none; transition: opacity 0.5s var(--ease-out);
 }
 .map-hint.hidden { opacity: 0; }
 
-.map-search { position: absolute; top: 10px; left: 10px; z-index: 10; width: 200px; }
-.map-search input {
-  width: 100%; padding: 7px 10px; border: none;
-  background: rgba(255,255,255,0.92); font-size: 13px;
-  font-family: inherit; color: var(--ink); outline: none;
-  border-radius: 2px;
+.map-search { position: absolute; top: 10px; left: 10px; z-index: 10; width: 220px; max-width: calc(100% - 20px); }
+.map-search-field { position: relative; display: flex; align-items: center; }
+.map-search-icon {
+  position: absolute; left: 10px; display: flex; pointer-events: none;
+  color: var(--ink-3);
 }
-.map-search input:focus { box-shadow: 0 0 0 2px var(--teal); }
-.map-search input::placeholder { color: var(--ink-4); }
+.map-search input {
+  width: 100%; padding: 9px 10px 9px 32px;
+  font-size: 13px; font-family: inherit; color: var(--ink); outline: none;
+}
+.map-search input:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 2px rgba(13,148,136,0.35), 0 2px 12px rgba(26,46,53,0.13);
+}
+.map-search input::placeholder { color: var(--ink-3); }
 .search-results {
-  margin-top: 2px; background: var(--white); border-radius: 2px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1); overflow: hidden;
+  margin-top: 4px; background: var(--white);
+  border: 1px solid rgba(26,46,53,0.12);
+  box-shadow: 0 6px 20px rgba(26,46,53,0.16);
+  max-height: 240px; overflow-y: auto;
 }
 .search-results.hidden { display: none; }
 .search-item {
-  padding: 8px 10px; cursor: pointer; display: flex;
-  justify-content: space-between; font-size: 13px;
+  padding: 9px 12px; min-height: 40px; cursor: pointer; display: flex;
+  align-items: center; justify-content: space-between; gap: 10px; font-size: 13px;
+  transition: background 0.12s var(--ease-out);
 }
 .search-item + .search-item { border-top: 1px solid var(--rule); }
-.search-item:hover { background: var(--teal-wash); }
+.search-item:hover, .search-item.active { background: var(--teal-wash); }
 .search-name { font-weight: 600; color: var(--ink); }
-.search-type { font-size: 12px; color: var(--ink-4); }
+.search-type { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
 
 .map-legend {
   position: absolute; bottom: 28px; left: 10px; z-index: 10;
-  background: rgba(255,255,255,0.9); padding: 4px 10px;
-  display: flex; gap: 10px;
+  padding: 7px 12px;
+  display: flex; flex-wrap: wrap; gap: 6px 14px;
+  max-width: calc(100% - 20px);
 }
 .legend-item {
-  display: flex; align-items: center; gap: 4px;
-  font-size: 10px; font-weight: 600; color: var(--ink-3);
-  text-transform: uppercase; letter-spacing: 0.03em;
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 700; color: var(--ink-2);
+  text-transform: uppercase; letter-spacing: 0.04em;
 }
-.legend-dot { width: 6px; height: 6px; border-radius: 50%; }
+.legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 
 .map-recenter {
-  position: absolute; bottom: 28px; right: 50px; z-index: 10;
-  width: 30px; height: 30px; background: rgba(255,255,255,0.9);
-  border: none; cursor: pointer; display: flex;
-  align-items: center; justify-content: center; color: var(--ink-3);
+  position: absolute; bottom: 10px; right: 10px; z-index: 10;
+  width: 34px; height: 34px;
+  cursor: pointer; display: flex;
+  align-items: center; justify-content: center; color: var(--ink-2);
+  transition: color 0.15s var(--ease-out), background-color 0.15s var(--ease-out), transform 0.15s var(--ease-out);
 }
-.map-recenter:hover { color: var(--teal); }
+.map-recenter:hover { color: var(--teal); background-color: var(--teal-wash); }
+.map-recenter:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; }
+.map-recenter:active { transform: scale(0.94); }
+
+/* Larger touch targets on coarse pointers */
+@media (pointer: coarse) {
+  .maplibregl-ctrl-group button { width: 40px; height: 40px; }
+  .map-recenter { width: 40px; height: 40px; }
+}
 
 /* Below map: spot + votd */
 .vessel-below {
@@ -870,8 +927,11 @@ a.explore-card:hover .explore-card-cta { text-decoration: underline; }
   .explore-grid { grid-template-columns: 1fr; }
 
   .map-wrapper { height: 52vh; min-height: 300px; }
-  .map-search { width: 160px; }
-  .map-recenter { bottom: 10px; right: 10px; }
+  .map-search { width: 190px; }
+  /* Center the hint below the top control row so it clears search + zoom */
+  .map-hint { top: 58px; left: 50%; right: auto; transform: translateX(-50%); text-align: center; }
+  /* Keep the legend on the left half so it never collides with the recenter button */
+  .map-legend { max-width: 58%; gap: 5px 10px; }
 
   /* port-strip handled by grid rule above */
 

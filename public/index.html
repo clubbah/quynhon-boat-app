@@ -56,7 +56,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
-  <link rel="stylesheet" href="/css/style.css?v=23" />
+  <link rel="stylesheet" href="/css/style.css?v=24" />
 
   <!-- Schema.org Structured Data -->
   <script type="application/ld+json">
@@ -183,8 +183,13 @@
         <div id="map"></div>
         <div class="map-hint" id="map-hint" data-i18n="map_hint">Tap any vessel for details</div>
         <div class="map-search" id="map-search">
-          <input type="text" id="search-input" placeholder="Search vessel name..." autocomplete="off" />
-          <div class="search-results hidden" id="search-results"></div>
+          <div class="map-search-field">
+            <svg class="map-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="search-input" placeholder="Search vessel name..." autocomplete="off" aria-label="Search vessels by name or MMSI" />
+          </div>
+          <div class="search-results hidden" id="search-results" role="listbox"></div>
         </div>
         <div class="map-legend" id="map-legend">
           <div class="legend-item"><span class="legend-dot" style="background:#2563eb"></span><span data-i18n="legend_cargo">Cargo</span></div>
