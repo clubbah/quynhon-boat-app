@@ -89,8 +89,13 @@ describe('parseAisCatcherMessage — anti-spoofing / junk rejection', () => {
   });
   it('rejects garbled, single-char, and letterless names', () => {
     expect(parseAisCatcherMessage(validMsg({ shipname: 'D1O<17.13L' }))).toBeNull();
+    expect(parseAisCatcherMessage(validMsg({ shipname: '/LTR LD;"P1JC!A".YT' }))).toBeNull(); // punctuation junk
     expect(parseAisCatcherMessage(validMsg({ shipname: 'A' }))).toBeNull();
     expect(parseAisCatcherMessage(validMsg({ shipname: '64168--30-48%' }))).toBeNull();
+  });
+  it('keeps legitimate names with normal punctuation', () => {
+    expect(parseAisCatcherMessage(validMsg({ shipname: "A.P. MOLLER" })).name).toBe('A.P. MOLLER');
+    expect(parseAisCatcherMessage(validMsg({ shipname: 'CMA CGM MARCO-POLO' })).name).toBe('CMA CGM MARCO-POLO');
   });
   it('rejects garbled and test call signs', () => {
     expect(parseAisCatcherMessage(validMsg({ callsign: '12[34]' }))).toBeNull();

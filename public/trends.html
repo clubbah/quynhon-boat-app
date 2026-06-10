@@ -144,6 +144,11 @@
     // Strip the trailing battery indicator that VN fishing transponders append
     // ("NHAT LINH45%" -> "NHAT LINH"), for archive rows seen before the fix.
     const cleanName = (s) => String(s || '').replace(/[\s-]*\d{1,3}%\s*$/, '').trim() || String(s || '');
+    // Pre-fix archive rows can hold garbled names; fall back to the MMSI.
+    const displayName = (r) => {
+      const n = cleanName(r.name);
+      return (!n || /[<>\[\]{}|^;"!~*=]/.test(n)) ? r.mmsi : n;
+    };
     const cc = (s) => String(s || '').toLowerCase().replace(/[^a-z]/g, '');
     const flag = (country, cls) => cc(country) ? `<img class="${cls}" src="https://flagcdn.com/20x15/${cc(country)}.png" alt="${esc(cc(country))}" loading="lazy" />` : '';
     const typeClass = (label) => {
@@ -197,7 +202,7 @@
           <span class="list-rank">${i + 1}</span>
           ${flag(r.flag_country, 'list-flag')}
           <span class="list-main">
-            <span class="list-name">${esc(cleanName(r.name) || r.mmsi)}</span>
+            <span class="list-name">${esc(displayName(r))}</span>
             <span class="list-sub">${esc(r.vessel_type_label || 'Vessel')}</span>
           </span>
           <span class="list-metric">${metric(r)}</span>

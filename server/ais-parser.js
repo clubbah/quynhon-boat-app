@@ -29,7 +29,8 @@ export function isWithinBounds(lat, lng) {
 
 // AIS ship types reserved for navigation aids / non-vessels
 const NAV_AID_TYPES = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
-const GARBLED = /[<>\\[\]{}|^]/;
+// Characters that never appear in real AIS vessel names — a strong junk signal.
+const GARBLED = /[<>\\[\]{}|^;"!~*=]/;
 
 // Non-vessel / junk MMSI check, shared by both the RTL-SDR and aisstream feeds:
 // 99x=AtoN, 98x=craft assoc w/ parent, 97x=SART/MOB/EPIRB, 96x=Diver,
