@@ -194,6 +194,18 @@
       color: var(--ink-3);
     }
     .spot-status.error { color: #dc2626; }
+    .spot-status.warn { color: #b45309; }
+
+    /* Debug overlay (?debug=1) */
+    .spot-debug {
+      display: none;
+      position: fixed; top: 8px; left: 8px; right: 8px; z-index: 999;
+      background: rgba(15, 26, 30, 0.88); color: #a7f3d0;
+      font: 10px/1.5 ui-monospace, Menlo, Consolas, monospace;
+      padding: 8px 10px; white-space: pre-wrap; pointer-events: none;
+      border: 1px solid rgba(167, 243, 208, 0.3);
+    }
+    .spot-debug.visible { display: block; }
 
     /* Scanner */
     .spot-scanner {
@@ -280,6 +292,9 @@
     <div class="spot-map-heading" id="spot-heading-display"></div>
   </div>
 
+  <!-- Debug overlay (visible with ?debug=1) -->
+  <div class="spot-debug" id="spot-debug"></div>
+
   <!-- Bottom panel -->
   <div class="spot-panel">
 
@@ -361,6 +376,7 @@
         no_compass_perm: 'Compass permission denied.', no_compass: 'Compass not supported on this device.',
         calibration: '<strong>Tip:</strong> Before starting, wave your phone slowly in a figure-8 pattern to calibrate the compass. This greatly improves accuracy.',
         got_it: 'Got it',
+        compass_warn: 'Compass may be inaccurate on this device. Wave your phone in a figure-8 to calibrate.',
       },
       vi: {
         back: 'Quay l\u1EA1i', title: '\u0110\u00F3 l\u00E0 t\u00E0u g\u00EC?',
@@ -374,6 +390,7 @@
         no_compass_perm: 'Quy\u1EC1n la b\u00E0n b\u1ECB t\u1EEB ch\u1ED1i.', no_compass: 'La b\u00E0n kh\u00F4ng h\u1ED7 tr\u1EE3 tr\u00EAn thi\u1EBFt b\u1ECB n\u00E0y.',
         calibration: '<strong>M\u1EB9o:</strong> Tr\u01B0\u1EDBc khi b\u1EAFt \u0111\u1EA7u, v\u1EABy \u0111i\u1EC7n tho\u1EA1i theo h\u00ECnh s\u1ED1 8 \u0111\u1EC3 hi\u1EC7u ch\u1EC9nh la b\u00E0n.',
         got_it: '\u0110\u00E3 hi\u1EC3u',
+        compass_warn: 'La b\u00E0n tr\u00EAn thi\u1EBFt b\u1ECB n\u00E0y c\u00F3 th\u1EC3 kh\u00F4ng ch\u00EDnh x\u00E1c. V\u1EABy \u0111i\u1EC7n tho\u1EA1i theo h\u00ECnh s\u1ED1 8 \u0111\u1EC3 hi\u1EC7u ch\u1EC9nh.',
       },
       ko: {
         back: '\uB4A4\uB85C', title: '\uC800 \uBC30\uB294 \uBB50\uC9C0?',
@@ -387,6 +404,7 @@
         no_compass_perm: '\uB098\uCE68\uBC18 \uAD8C\uD55C\uC774 \uAC70\uBD80\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', no_compass: '\uC774 \uAE30\uAE30\uC5D0\uC11C \uB098\uCE68\uBC18\uC744 \uC9C0\uC6D0\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.',
         calibration: '<strong>\uD301:</strong> \uC2DC\uC791 \uC804\uC5D0 \uD734\uB300\uD3F0\uC744 8\uC790\uB85C \uD754\uB4E4\uC5B4 \uB098\uCE68\uBC18\uC744 \uBCF4\uC815\uD558\uC138\uC694.',
         got_it: '\uD655\uC778',
+        compass_warn: '\uC774 \uAE30\uAE30\uC5D0\uC11C\uB294 \uB098\uCE68\uBC18\uC774 \uBD80\uC815\uD655\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4. \uD734\uB300\uD3F0\uC744 8\uC790\uB85C \uD754\uB4E4\uC5B4 \uBCF4\uC815\uD558\uC138\uC694.',
       },
       zh: {
         back: '\u8FD4\u56DE', title: '\u90A3\u662F\u4EC0\u4E48\u8239?',
@@ -400,6 +418,7 @@
         no_compass_perm: '\u6307\u5357\u9488\u6743\u9650\u88AB\u62D2\u7EDD\u3002', no_compass: '\u6B64\u8BBE\u5907\u4E0D\u652F\u6301\u6307\u5357\u9488\u3002',
         calibration: '<strong>\u63D0\u793A\uFF1A</strong>\u5F00\u59CB\u524D\uFF0C\u5C06\u624B\u673A\u6162\u6162\u753B8\u5B57\u6765\u6821\u51C6\u6307\u5357\u9488\u3002',
         got_it: '\u77E5\u9053\u4E86',
+        compass_warn: '\u6B64\u8BBE\u5907\u7684\u6307\u5357\u9488\u53EF\u80FD\u4E0D\u51C6\u786E\u3002\u8BF7\u5C06\u624B\u673A\u753B8\u5B57\u8FDB\u884C\u6821\u51C6\u3002',
       },
       ja: {
         back: '\u623B\u308B', title: '\u3042\u306E\u8239\u306F\u4F55?',
@@ -413,6 +432,7 @@
         no_compass_perm: '\u30B3\u30F3\u30D1\u30B9\u306E\u6A29\u9650\u304C\u62D2\u5426\u3055\u308C\u307E\u3057\u305F\u3002', no_compass: '\u3053\u306E\u30C7\u30D0\u30A4\u30B9\u3067\u306F\u30B3\u30F3\u30D1\u30B9\u975E\u5BFE\u5FDC\u3067\u3059\u3002',
         calibration: '<strong>\u30D2\u30F3\u30C8\uFF1A</strong>\u958B\u59CB\u524D\u306B\u30B9\u30DE\u30DB\u30928\u306E\u5B57\u306B\u632F\u3063\u3066\u30B3\u30F3\u30D1\u30B9\u3092\u6821\u6B63\u3057\u3066\u304F\u3060\u3055\u3044\u3002',
         got_it: '\u4E86\u89E3',
+        compass_warn: '\u3053\u306E\u7AEF\u672B\u3067\u306F\u30B3\u30F3\u30D1\u30B9\u304C\u4E0D\u5B89\u5B9A\u306A\u5834\u5408\u304C\u3042\u308A\u307E\u3059\u3002\u30B9\u30DE\u30DB\u30928\u306E\u5B57\u306B\u632F\u3063\u3066\u6821\u6B63\u3057\u3066\u304F\u3060\u3055\u3044\u3002',
       },
     };
 
@@ -454,8 +474,14 @@
 
     // ── State ──
     let userLat = null, userLng = null;
+    let gpsAccuracy = null;          // meters, from the GPS fix
     let compassHeading = null;
     let smoothedHeading = null;
+    let rawHeading = null;           // last unsmoothed heading (debug)
+    let headingSource = null;        // 'ios' | 'absolute' | 'relative'
+    let gotAbsolute = false;         // an absolute source is feeding us
+    let iosAccuracy = null;          // webkitCompassAccuracy (deg, <0 = uncalibrated)
+    let warnTimer = null;
     let vessels = [];
     let active = false;
     let matchInterval = null;
@@ -464,6 +490,13 @@
     const SMOOTHING = 0.15;
     const CONE_HALF = 25;  // ±25° matching cone (was ±15°)
     const MAX_DIST = 50;   // km
+    // Magnetic declination at Quy Nhon (~2026): about -0.6° (true = magnetic - 0.6).
+    // Tiny vs the ±25° cone, but free to apply since all sources are magnetic-north.
+    const DECLINATION = -0.6;
+    // Score: alignment matters most; distance is a soft tiebreaker (1 km ≈ 1.5°).
+    const DIST_WEIGHT = 1.5;
+    const DEBUG = new URLSearchParams(location.search).has('debug');
+    const debugState = { candidates: [] };
 
     const $ = (id) => document.getElementById(id);
 
@@ -682,24 +715,44 @@
       try {
         const res = await fetch('/api/vessels');
         vessels = await res.json();
+        // Strip trailing battery indicator from fishing-boat names ("TY 15 D37 15%")
+        for (const v of vessels) {
+          if (v.name) v.name = String(v.name).replace(/[\s-]*\d{1,3}%\s*$/, '').trim() || v.name;
+        }
         updateMap();
       } catch (e) { console.error('Failed to load vessels:', e); }
     }
 
     // ── Matching ──
+    // Pick the vessel you're most likely LOOKING AT: best angular alignment
+    // first, with distance as a soft tiebreaker (DIST_WEIGHT km ≈ 1° of
+    // misalignment). The old nearest-in-cone rule let a close boat at the cone
+    // edge beat the far ship dead ahead.
     function findMatchingVessel() {
       if (userLat == null || compassHeading == null || vessels.length === 0) return null;
-      let best = null, bestDist = Infinity;
+      let best = null, bestScore = Infinity;
+      const candidates = [];
       for (const v of vessels) {
         if (v.lat == null || v.lng == null) continue;
         const dist = haversine(userLat, userLng, v.lat, v.lng);
         if (dist > MAX_DIST) continue;
         const bearing = bearingTo(userLat, userLng, v.lat, v.lng);
         const diff = angleDiff(compassHeading, bearing);
-        if (diff <= CONE_HALF && dist < bestDist) {
+        const score = diff + dist * DIST_WEIGHT;
+        if (DEBUG) candidates.push({ name: v.name || v.mmsi, dist, bearing, diff, score, matched: false });
+        if (diff <= CONE_HALF && score < bestScore) {
           best = { ...v, dist, bearing };
-          bestDist = dist;
+          bestScore = score;
         }
+      }
+      if (DEBUG) {
+        candidates.sort((a, b) => a.score - b.score);
+        if (best) {
+          const m = candidates.find((c) => c.name === (best.name || best.mmsi));
+          if (m) m.matched = true;
+        }
+        debugState.candidates = candidates;
+        updateDebug();
       }
       return best;
     }
@@ -742,30 +795,117 @@
       lastMatchMmsi = null;
     }
 
-    // ── Compass handler ──
-    function onOrientation(e) {
-      let heading = null;
+    // ── Compass handling ──
+    //
+    // Two problems the old code had:
+    //  1. `deviceorientationabsolute` and `deviceorientation` were both wired to
+    //     the same handler. On Android Chrome both streams fire interleaved; the
+    //     relative one has an arbitrary zero point, so the smoothed heading
+    //     settled between a real heading and a bogus one.
+    //  2. `360 - alpha` is only the compass heading while the phone lies FLAT.
+    //     Pointing at a boat you hold the phone upright like a camera, where raw
+    //     alpha is off by tens of degrees.
+    //
+    // Fix: per-source handlers with strict priority (iOS webkitCompassHeading >
+    // absolute orientation > relative fallback), and a tilt-compensated heading
+    // computed from the full alpha/beta/gamma rotation.
 
-      // iOS: webkitCompassHeading gives true north directly
+    // Heading of where the phone "points", valid both flat and upright.
+    // Earth frame: X=east, Y=north, Z=up. Device rotation R = Rz(a)*Rx(b)*Ry(g)
+    // (W3C deviceorientation order). We project two device vectors onto the
+    // horizontal plane and sum them:
+    //   -Z (out the back camera)  carries the signal when the phone is upright
+    //   +Y (out the top edge)     carries the signal when the phone is flat
+    // Between postures their azimuths agree, so the blend is smooth and never
+    // degenerate in normal handheld use.
+    function headingFromEuler(alpha, beta, gamma) {
+      const d = Math.PI / 180;
+      const a = alpha * d, b = beta * d, g = gamma * d;
+      const ca = Math.cos(a), sa = Math.sin(a);
+      const cb = Math.cos(b), sb = Math.sin(b);
+      const cg = Math.cos(g), sg = Math.sin(g);
+
+      // Back-camera (-Z_device) horizontal components in the earth frame
+      const backE = -(ca * sg + sa * sb * cg);
+      const backN = -(sa * sg - ca * sb * cg);
+      // Top-edge (+Y_device) horizontal components
+      const topE = -sa * cb;
+      const topN = ca * cb;
+
+      const e = backE + topE;
+      const n = backN + topN;
+      if (Math.abs(e) < 1e-9 && Math.abs(n) < 1e-9) return null;
+      return ((Math.atan2(e, n) * 180 / Math.PI) + 360) % 360;
+    }
+
+    function acceptHeading(heading, source) {
+      if (heading == null || !Number.isFinite(heading)) return;
+      heading = ((heading + DECLINATION) + 360) % 360;
+      rawHeading = heading;
+      headingSource = source;
+      smoothedHeading = smoothedHeading == null ? heading : lerpAngle(smoothedHeading, heading, SMOOTHING);
+      compassHeading = smoothedHeading;
+      $('spot-heading-display').textContent = Math.round(smoothedHeading) + '°';
+      updateMap();
+      if (DEBUG) updateDebug();
+    }
+
+    // Android Chrome: fused absolute orientation (magnetometer + gyro)
+    function onOrientationAbsolute(e) {
+      if (e.alpha == null) return;
+      gotAbsolute = true;
+      acceptHeading(headingFromEuler(e.alpha, e.beta || 0, e.gamma || 0), 'absolute');
+    }
+
+    // iOS Safari (webkitCompassHeading) + Firefox Android (absolute flag) +
+    // last-resort relative fallback for devices with neither.
+    function onOrientationGeneric(e) {
       if (e.webkitCompassHeading != null) {
-        heading = e.webkitCompassHeading;
+        gotAbsolute = true;
+        iosAccuracy = e.webkitCompassAccuracy != null ? e.webkitCompassAccuracy : null;
+        // webkitCompassHeading is tilt-compensated by CoreMotion already.
+        acceptHeading(e.webkitCompassHeading, 'ios');
+        // Surface calibration trouble (negative = invalid, large = poor)
+        if (iosAccuracy != null && (iosAccuracy < 0 || iosAccuracy > 30)) showCompassWarn();
+        return;
       }
-      // Android absolute orientation: (360 - alpha) gives true north
-      else if (e.absolute && e.alpha != null) {
-        heading = (360 - e.alpha) % 360;
+      if (e.absolute && e.alpha != null) {
+        gotAbsolute = true;
+        acceptHeading(headingFromEuler(e.alpha, e.beta || 0, e.gamma || 0), 'absolute');
+        return;
       }
-      // Android fallback: alpha alone (relative, less reliable)
-      else if (e.alpha != null) {
-        heading = (360 - e.alpha) % 360;
+      // Relative stream: only trust it if no absolute source ever showed up,
+      // and tell the user the compass is shaky.
+      if (!gotAbsolute && e.alpha != null) {
+        acceptHeading(headingFromEuler(e.alpha, e.beta || 0, e.gamma || 0), 'relative');
       }
+    }
 
-      if (heading != null) {
-        smoothedHeading = smoothedHeading == null ? heading : lerpAngle(smoothedHeading, heading, SMOOTHING);
-        compassHeading = smoothedHeading;
-        const display = $('spot-heading-display');
-        display.textContent = Math.round(smoothedHeading) + '\u00B0';
-        updateMap();
+    function showCompassWarn() {
+      const status = $('spot-status');
+      if (status.textContent !== S.compass_warn) {
+        status.textContent = S.compass_warn;
+        status.className = 'spot-status warn';
       }
+    }
+
+    // ── Debug overlay (?debug=1) ──
+    function updateDebug() {
+      const el = $('spot-debug');
+      if (!el) return;
+      el.classList.add('visible');
+      const f = (v, n = 1) => (v == null ? '--' : Number(v).toFixed(n));
+      const lines = [
+        'src: ' + (headingSource || '--') + (headingSource === 'relative' ? '  (!) no absolute compass' : ''),
+        'heading: raw ' + f(rawHeading) + '°  smoothed ' + f(smoothedHeading) + '°  decl ' + DECLINATION + '°',
+        iosAccuracy != null ? 'ios accuracy: ±' + f(iosAccuracy) + '°' + (iosAccuracy < 0 ? ' (uncalibrated)' : '') : null,
+        'gps: ' + f(userLat, 5) + ', ' + f(userLng, 5) + '  ±' + f(gpsAccuracy, 0) + 'm',
+        'vessels: ' + vessels.length + '  cone ±' + CONE_HALF + '°',
+      ].filter(Boolean);
+      debugState.candidates.slice(0, 3).forEach((c, i) => {
+        lines.push((c.matched ? '★' : ' ') + (i + 1) + '. ' + c.name + '  ' + f(c.dist) + 'km  brg ' + f(c.bearing, 0) + '°  Δ' + f(c.diff, 0) + '°  score ' + f(c.score));
+      });
+      el.textContent = lines.join('\n');
     }
 
     // ── Start / Stop ──
@@ -812,12 +952,22 @@
         (pos) => {
           userLat = pos.coords.latitude;
           userLng = pos.coords.longitude;
+          gpsAccuracy = pos.coords.accuracy ?? null;
 
           // On first fix, start everything
           if (!active) {
-            // Listen for compass — try absolute first (Android), then fallback
-            window.addEventListener('deviceorientationabsolute', onOrientation, true);
-            window.addEventListener('deviceorientation', onOrientation, true);
+            // Compass: absolute stream (Android Chrome) + generic stream
+            // (iOS webkitCompassHeading / Firefox absolute / relative fallback).
+            // onOrientationGeneric ignores the relative stream once any
+            // absolute source has produced a heading.
+            window.addEventListener('deviceorientationabsolute', onOrientationAbsolute, true);
+            window.addEventListener('deviceorientation', onOrientationGeneric, true);
+
+            // If we're still on the relative fallback after 3s, warn the user
+            // that the compass is unreliable on this device.
+            warnTimer = setTimeout(() => {
+              if (active && !gotAbsolute) showCompassWarn();
+            }, 3000);
 
             active = true;
             btn.disabled = false;
@@ -853,8 +1003,9 @@
 
     function stopSpotting() {
       active = false;
-      window.removeEventListener('deviceorientationabsolute', onOrientation, true);
-      window.removeEventListener('deviceorientation', onOrientation, true);
+      window.removeEventListener('deviceorientationabsolute', onOrientationAbsolute, true);
+      window.removeEventListener('deviceorientation', onOrientationGeneric, true);
+      if (warnTimer) { clearTimeout(warnTimer); warnTimer = null; }
       if (matchInterval) clearInterval(matchInterval);
       if (geoWatchId != null) {
         navigator.geolocation.clearWatch(geoWatchId);
@@ -882,8 +1033,13 @@
       // Stop everything, clear state, restart
       smoothedHeading = null;
       compassHeading = null;
+      rawHeading = null;
+      headingSource = null;
+      gotAbsolute = false;
+      iosAccuracy = null;
       userLat = null;
       userLng = null;
+      gpsAccuracy = null;
       stopSpotting();
       // Small delay then restart
       setTimeout(() => startSpotting(), 300);
