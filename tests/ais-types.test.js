@@ -43,8 +43,8 @@ describe('getNavStatusLabel', () => {
 });
 
 describe('getFlagCountry', () => {
-  it('maps Vietnamese MMSI to Vietnam', () => { expect(getFlagCountry('574001234')).toBe('Vietnam'); });
-  it('maps Panamanian MMSI to Panama', () => { expect(getFlagCountry('351234567')).toBe('Panama'); });
+  it('maps Vietnamese MMSI to the VN code', () => { expect(getFlagCountry('574001234')).toBe('VN'); });
+  it('maps Panamanian MMSI to the PA code', () => { expect(getFlagCountry('351234567')).toBe('PA'); });
   it('returns null for unknown MID', () => { expect(getFlagCountry('999000000')).toBeNull(); });
   it('returns null for null/short MMSI', () => {
     expect(getFlagCountry(null)).toBeNull();

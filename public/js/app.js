@@ -640,7 +640,8 @@ async function fetchArchiveStats() {
     const stats = await res.json();
     const el = document.getElementById('pulse-stat');
     if (el && stats.totalUnique > 0) {
-      el.textContent = t('pulse_tracked_total').replace('{n}', stats.totalUnique);
+      const label = esc(t('pulse_tracked_total').replace('{n}', stats.totalUnique));
+      el.innerHTML = `<a class="pulse-stat-link" href="/trends">${label} &rarr;</a>`;
     }
   } catch (err) {
     console.error('Archive stats fetch failed:', err);

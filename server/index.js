@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url';
 
 import { createDb, upsertVessel, appendPosition, getVesselsByArea, getTrack, pruneOldData,
   upsertArchive, incrementVisitCount, logVisit, getRecentVisits, getVesselVisitHistory,
-  getArchiveStats, compressPositions } from './db.js';
+  getArchiveStats, getPortTrends, compressPositions } from './db.js';
 import { connectAisStream } from './ais-client.js';
 import { parseAisCatcherMessage, isWithinBounds, isNonVesselMmsi, QN_BOUNDS } from './ais-parser.js';
 import { startCleanup } from './cleanup.js';
@@ -46,6 +46,9 @@ app.get('/terms', (req, res) => {
 });
 app.get('/status', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'status.html'));
+});
+app.get('/trends', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'trends.html'));
 });
 
 // Health/status endpoint (used by status page + external monitoring)
@@ -267,6 +270,23 @@ app.get('/api/vessels/:mmsi/visits', (req, res) => {
 app.get('/api/archive-stats', (req, res) => {
   const stats = getArchiveStats(db);
   res.json(stats);
+});
+
+// Port trends — aggregate statistics for the "Port in Numbers" page
+app.get('/api/port-trends', (req, res) => {
+  res.json(getPortTrends(db));
+});
+
+// Quietly handle client-aborted request bodies. Flaky relays and internet
+// scanners disconnect mid-POST, which raw-body surfaces as "request aborted";
+// it isn't actionable and was spamming the error log.
+app.use((err, req, res, next) => {
+  if (err && (err.type === 'request.aborted' || err.code === 'ECONNABORTED' || err.message === 'request aborted')) {
+    if (!res.headersSent) res.status(400).end();
+    return;
+  }
+  console.error('[HTTP] Unhandled error:', err?.message || err);
+  if (!res.headersSent) res.status(500).json({ error: 'Internal error' });
 });
 
 // HTTP + WebSocket server

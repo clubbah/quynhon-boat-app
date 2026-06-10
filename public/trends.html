@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Port in Numbers — Quy Nhon Life</title>
+  <meta name="description" content="A living record of every vessel tracked in Quy Nhon Bay: unique ships, flags seen, vessel types, arrivals over time, and the most frequent visitors. Built from live AIS data.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://quynhonlife.com/trends">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Port in Numbers — Quy Nhon Life">
+  <meta property="og:description" content="A living record of every vessel tracked in Quy Nhon Bay, built from live AIS data.">
+  <meta property="og:url" content="https://quynhonlife.com/trends">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a2e35; --ink-2: #2d4a54; --ink-3: #4f717b; --ink-4: #8ca5ad;
+      --teal: #0d9488; --teal-text: #0a7c72; --teal-wash: rgba(13, 148, 136, 0.06);
+      --warm: #fafafa; --white: #fff;
+      --rule: rgba(13, 148, 136, 0.12); --rule-strong: rgba(13, 148, 136, 0.2);
+      --cargo: #2563eb; --tanker: #dc2626; --passenger: #16a34a; --fishing: #ca8a04; --other: #8ca5ad;
+      --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    * , *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { -webkit-font-smoothing: antialiased; }
+    body { font-family: 'Noto Sans', sans-serif; color: var(--ink); background: var(--warm); line-height: 1.6; min-height: 100vh; }
+    .page { max-width: 860px; margin: 0 auto; padding: 28px 24px 72px; }
+    .back { display: inline-block; margin-bottom: 22px; color: var(--teal-text); text-decoration: none; font-size: 14px; font-weight: 600; }
+    .back:hover { text-decoration: underline; }
+
+    .header { border-bottom: 2px solid var(--ink); padding-bottom: 18px; margin-bottom: 28px; }
+    h1 { font-family: 'DM Serif Display', Georgia, serif; font-size: clamp(30px, 6vw, 48px); font-weight: 400; line-height: 1.05; letter-spacing: -0.02em; text-wrap: balance; }
+    .subtitle { color: var(--ink-3); font-size: 15px; margin-top: 8px; max-width: 60ch; }
+
+    .section-label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--teal-text); margin: 40px 0 14px; }
+
+    /* Hero stat grid */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+    .stat { background: var(--white); padding: 22px 20px; }
+    .stat-value { font-size: clamp(30px, 6vw, 42px); font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; line-height: 1; }
+    .stat-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-3); margin-top: 8px; }
+
+    /* Bar lists (flags, types) */
+    .bars { background: var(--white); border: 1px solid var(--rule); }
+    .bar-row { display: grid; grid-template-columns: 132px 1fr 48px; align-items: center; gap: 12px; padding: 9px 16px; }
+    .bar-row + .bar-row { border-top: 1px solid var(--rule); }
+    .bar-key { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar-key img { width: 22px; height: 16px; object-fit: cover; flex-shrink: 0; }
+    .bar-key .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .bar-track { height: 10px; background: var(--teal-wash); position: relative; overflow: hidden; }
+    .bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--teal); width: 0; transition: width 0.7s var(--ease-out); }
+    .bar-fill.cargo { background: var(--cargo); } .bar-fill.tanker { background: var(--tanker); }
+    .bar-fill.passenger { background: var(--passenger); } .bar-fill.fishing { background: var(--fishing); }
+    .bar-fill.other { background: var(--other); }
+    .bar-count { font-size: 14px; font-weight: 700; color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+
+    /* Daily arrivals chart */
+    .chart { display: flex; align-items: flex-end; gap: 4px; height: 140px; padding: 16px; background: var(--white); border: 1px solid var(--rule); }
+    .chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; height: 100%; min-width: 0; }
+    .chart-bar { width: 100%; max-width: 34px; background: var(--teal); min-height: 2px; height: 0; transition: height 0.7s var(--ease-out); }
+    .chart-bar.dim { background: var(--rule-strong); }
+    .chart-num { font-size: 11px; font-weight: 700; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+    .chart-day { font-size: 9px; color: var(--ink-4); white-space: nowrap; }
+
+    /* Ranked lists (frequent, largest) */
+    .list { background: var(--white); border: 1px solid var(--rule); }
+    .list-row { display: flex; align-items: center; gap: 12px; padding: 11px 16px; font-size: 14px; }
+    .list-row + .list-row { border-top: 1px solid var(--rule); }
+    .list-rank { font-family: 'DM Serif Display', Georgia, serif; font-size: 20px; color: var(--ink-4); width: 24px; text-align: center; flex-shrink: 0; }
+    .list-flag { width: 22px; height: 16px; object-fit: cover; flex-shrink: 0; }
+    .list-main { flex: 1; min-width: 0; }
+    .list-name { font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .list-sub { font-size: 12px; color: var(--ink-3); }
+    .list-metric { font-weight: 700; color: var(--teal-text); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+    .list-metric small { display: block; font-size: 10px; font-weight: 600; color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.04em; }
+
+    .empty { padding: 20px 16px; color: var(--ink-4); font-style: italic; font-size: 14px; background: var(--white); border: 1px solid var(--rule); }
+    .err { padding: 16px; background: #fef2f2; border: 1px solid #fca5a5; color: #dc2626; font-size: 14px; }
+
+    .refresh-bar { margin-top: 36px; padding: 12px 16px; background: var(--teal-wash); border: 1px solid var(--rule); font-size: 12px; color: var(--ink-3); display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .refresh-btn { background: none; border: 1px solid var(--rule-strong); color: var(--teal-text); font-family: inherit; font-size: 12px; font-weight: 600; padding: 5px 12px; cursor: pointer; transition: background 0.15s var(--ease-out); }
+    .refresh-btn:hover { background: var(--white); }
+
+    .footer-links { margin-top: 48px; padding-top: 22px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--ink-4); text-align: center; }
+    .footer-links a { color: var(--ink-4); text-decoration: none; }
+    .footer-links a:hover { color: var(--teal-text); }
+
+    @media (prefers-reduced-motion: reduce) { .bar-fill, .chart-bar { transition: none; } }
+    @media (max-width: 560px) { .bar-row { grid-template-columns: 104px 1fr 40px; gap: 8px; } .chart-day { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <a href="/" class="back">&larr; Back to map</a>
+    <div class="header">
+      <h1>Port in Numbers</h1>
+      <p class="subtitle">A living record of every vessel tracked in Quy Nh&#417;n Bay, built from a local AIS antenna. Updated continuously.</p>
+    </div>
+
+    <div id="err" class="err" style="display:none">Could not load port statistics.</div>
+    <div id="content" style="display:none">
+      <div class="stats-grid">
+        <div class="stat"><div class="stat-value" id="s-unique">--</div><div class="stat-label">Unique vessels, all time</div></div>
+        <div class="stat"><div class="stat-value" id="s-month">--</div><div class="stat-label">New this month</div></div>
+        <div class="stat"><div class="stat-value" id="s-arrivals">--</div><div class="stat-label">Arrivals logged</div></div>
+        <div class="stat"><div class="stat-value" id="s-countries">--</div><div class="stat-label">Countries seen</div></div>
+      </div>
+
+      <span class="section-label">Arrivals, last 14 days</span>
+      <div class="chart" id="chart"></div>
+
+      <span class="section-label">Flags seen</span>
+      <div class="bars" id="flags"></div>
+
+      <span class="section-label">Vessel types</span>
+      <div class="bars" id="types"></div>
+
+      <span class="section-label">Most frequent visitors</span>
+      <div class="list" id="frequent"></div>
+
+      <span class="section-label">Largest vessels ever tracked</span>
+      <div class="list" id="largest"></div>
+    </div>
+
+    <div class="refresh-bar">
+      <span id="refresh-info">Statistics from the permanent vessel archive</span>
+      <button class="refresh-btn" id="refresh-btn">Refresh</button>
+    </div>
+
+    <div class="footer-links">
+      <a href="/">Home</a> &middot;
+      <a href="/spot">What's That Boat?</a> &middot;
+      <a href="/status">System Status</a> &middot;
+      <a href="/privacy">Privacy</a>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const cc = (s) => String(s || '').toLowerCase().replace(/[^a-z]/g, '');
+    const flag = (country, cls) => cc(country) ? `<img class="${cls}" src="https://flagcdn.com/20x15/${cc(country)}.png" alt="${esc(cc(country))}" loading="lazy" />` : '';
+    const typeClass = (label) => {
+      const l = (label || '').toLowerCase();
+      if (l.includes('cargo') || l.includes('container')) return 'cargo';
+      if (l.includes('tanker')) return 'tanker';
+      if (l.includes('passenger')) return 'passenger';
+      if (l.includes('fishing')) return 'fishing';
+      return 'other';
+    };
+
+    function renderBars(el, rows, { keyHtml, colorFromType }) {
+      if (!rows || rows.length === 0) { el.outerHTML = '<div class="empty">Not enough data yet.</div>'; return; }
+      const max = Math.max(...rows.map(r => r.c), 1);
+      el.innerHTML = rows.map(r => {
+        const cls = colorFromType ? typeClass(r.vessel_type_label) : '';
+        return `<div class="bar-row">
+          <span class="bar-key">${keyHtml(r)}</span>
+          <span class="bar-track"><span class="bar-fill ${cls}" data-w="${Math.round((r.c / max) * 100)}"></span></span>
+          <span class="bar-count">${r.c}</span>
+        </div>`;
+      }).join('');
+      requestAnimationFrame(() => el.querySelectorAll('.bar-fill').forEach(f => { f.style.width = f.dataset.w + '%'; }));
+    }
+
+    function renderChart(byDay) {
+      const el = $('chart');
+      // Build a continuous 14-day window so gaps (zero-arrival days) show.
+      const days = [];
+      const map = Object.fromEntries((byDay || []).map(d => [d.day, d.c]));
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+        days.push({ day: d, c: map[d] || 0 });
+      }
+      const max = Math.max(...days.map(d => d.c), 1);
+      el.innerHTML = days.map(d => {
+        const label = new Date(d.day + 'T00:00:00').toLocaleDateString('en-US', { day: 'numeric' });
+        return `<div class="chart-col" title="${d.day}: ${d.c} arrivals">
+          <span class="chart-num">${d.c || ''}</span>
+          <span class="chart-bar ${d.c === 0 ? 'dim' : ''}" data-h="${Math.round((d.c / max) * 100)}"></span>
+          <span class="chart-day">${label}</span>
+        </div>`;
+      }).join('');
+      requestAnimationFrame(() => el.querySelectorAll('.chart-bar').forEach(b => { b.style.height = Math.max(2, b.dataset.h) + '%'; }));
+    }
+
+    function renderList(el, rows, metric) {
+      if (!rows || rows.length === 0) { el.outerHTML = '<div class="empty">Not enough data yet.</div>'; return; }
+      el.innerHTML = rows.map((r, i) => `
+        <div class="list-row">
+          <span class="list-rank">${i + 1}</span>
+          ${flag(r.flag_country, 'list-flag')}
+          <span class="list-main">
+            <span class="list-name">${esc(r.name || r.mmsi)}</span>
+            <span class="list-sub">${esc(r.vessel_type_label || 'Vessel')}</span>
+          </span>
+          <span class="list-metric">${metric(r)}</span>
+        </div>`).join('');
+    }
+
+    async function load() {
+      try {
+        const res = await fetch('/api/port-trends', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const d = await res.json();
+        $('err').style.display = 'none';
+        $('content').style.display = '';
+
+        $('s-unique').textContent = (d.totalUnique || 0).toLocaleString();
+        $('s-month').textContent = (d.newThisMonth || 0).toLocaleString();
+        $('s-arrivals').textContent = (d.totalArrivals || 0).toLocaleString();
+        $('s-countries').textContent = (d.countriesSeen || 0).toLocaleString();
+
+        renderChart(d.byDay);
+        renderBars($('flags'), d.flags, { keyHtml: (r) => `${flag(r.flag_country, '')}<span>${esc((r.flag_country || '').toUpperCase())}</span>` });
+        renderBars($('types'), d.types, { colorFromType: true, keyHtml: (r) => `<span class="dot" style="background:${({cargo:'#2563eb',tanker:'#dc2626',passenger:'#16a34a',fishing:'#ca8a04',other:'#8ca5ad'})[typeClass(r.vessel_type_label)]}"></span><span>${esc(r.vessel_type_label || 'Other')}</span>` });
+        renderList($('frequent'), d.frequent, (r) => `${(r.visit_count || 0)}<small>visits</small>`);
+        renderList($('largest'), d.largest, (r) => r.length ? `${esc(r.length)}<small>m${r.width ? ' x ' + esc(r.width) : ''}</small>` : '');
+      } catch (err) {
+        $('err').style.display = '';
+        $('err').textContent = 'Could not load port statistics: ' + err.message;
+      }
+    }
+
+    $('refresh-btn').addEventListener('click', load);
+    load();
+    setInterval(load, 5 * 60 * 1000);
+  </script>
+</body>
+</html>

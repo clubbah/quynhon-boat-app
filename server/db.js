@@ -198,6 +198,48 @@ export function getArchiveStats(db) {
   return { totalUnique: total.c, newThisMonth: monthCount.c, frequentVisitors: frequent, largestEver: largest };
 }
 
+// ── Port Trends (aggregate stats over the permanent archive) ──
+
+export function getPortTrends(db) {
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const fourteenDaysAgo = new Date(Date.now() - 14 * 86400000).toISOString();
+
+  const one = (sql, ...args) => db.prepare(sql).get(...args);
+  const many = (sql, ...args) => db.prepare(sql).all(...args);
+
+  return {
+    totalUnique: one('SELECT COUNT(*) c FROM vessel_archive').c,
+    newThisMonth: one('SELECT COUNT(*) c FROM vessel_archive WHERE first_seen >= ?', monthStart.toISOString()).c,
+    totalArrivals: one("SELECT COUNT(*) c FROM vessel_visits WHERE event = 'arrival'").c,
+    countriesSeen: one("SELECT COUNT(DISTINCT flag_country) c FROM vessel_archive WHERE flag_country IS NOT NULL AND flag_country != ''").c,
+    flags: many(`
+      SELECT flag_country, COUNT(*) c FROM vessel_archive
+      WHERE flag_country IS NOT NULL AND flag_country != ''
+      GROUP BY flag_country ORDER BY c DESC LIMIT 10
+    `),
+    types: many(`
+      SELECT vessel_type_label, COUNT(*) c FROM vessel_archive
+      WHERE vessel_type_label IS NOT NULL AND vessel_type_label != ''
+      GROUP BY vessel_type_label ORDER BY c DESC
+    `),
+    byDay: many(`
+      SELECT substr(timestamp, 1, 10) day, COUNT(*) c FROM vessel_visits
+      WHERE event = 'arrival' AND timestamp >= ?
+      GROUP BY day ORDER BY day ASC
+    `, fourteenDaysAgo),
+    frequent: many(`
+      SELECT mmsi, name, flag_country, vessel_type_label, visit_count FROM vessel_archive
+      WHERE name IS NOT NULL ORDER BY visit_count DESC, last_seen DESC LIMIT 8
+    `),
+    largest: many(`
+      SELECT mmsi, name, flag_country, vessel_type_label, length, width FROM vessel_archive
+      WHERE name IS NOT NULL AND length IS NOT NULL ORDER BY length DESC LIMIT 5
+    `),
+  };
+}
+
 // ── Vessel Visits (arrival/departure log) ──
 
 export function logVisit(db, event) {
