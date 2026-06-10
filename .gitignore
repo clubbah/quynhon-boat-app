@@ -1,4 +1,13 @@
 node_modules/
 .env
 *.db
+*.db-shm
+*.db-wal
 server/.health-state.json
+
+# Operational runbook — contains server IP, ntfy topic, and feed secret.
+# Kept local only; must not live in a public repo.
+CLAUDE.md
+
+# Packaged antenna bundles (built locally, copied to the antenna laptop)
+scripts/*.zip

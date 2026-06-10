@@ -4,8 +4,16 @@
  * Strips receiver-specific fields (signal strength, location, etc.)
  */
 
-const AIS_CATCHER_URL = 'http://localhost:8100/api/ships.json';
-const REMOTE_URL = 'https://quynhonlife.com/api/ais-feed/9b63b8fc0e7d17224a6749c6456b8469';
+const AIS_CATCHER_URL = process.env.AIS_CATCHER_URL || 'http://localhost:8100/api/ships.json';
+// Secret comes from the environment — never hardcode it (this file is public).
+// On the antenna laptop: set AIS_FEED_SECRET before launching (start-antenna.bat).
+const FEED_SECRET = process.env.AIS_FEED_SECRET;
+const FEED_BASE = process.env.AIS_FEED_URL || 'https://quynhonlife.com/api/ais-feed';
+if (!FEED_SECRET) {
+  console.error('[Relay] AIS_FEED_SECRET env var is not set. Aborting.');
+  process.exit(1);
+}
+const REMOTE_URL = `${FEED_BASE}/${FEED_SECRET}`;
 const INTERVAL_MS = 5000;
 
 // Fields to remove — these expose receiver info

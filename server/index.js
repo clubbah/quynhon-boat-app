@@ -9,14 +9,22 @@ import { createDb, upsertVessel, appendPosition, getVesselsByArea, getTrack, pru
   upsertArchive, incrementVisitCount, logVisit, getRecentVisits, getVesselVisitHistory,
   getArchiveStats, compressPositions } from './db.js';
 import { connectAisStream } from './ais-client.js';
-import { getVesselTypeLabel, getNavStatusLabel, getFlagCountry } from './ais-types.js';
+import { parseAisCatcherMessage, isWithinBounds, isNonVesselMmsi, QN_BOUNDS } from './ais-parser.js';
 import { startCleanup } from './cleanup.js';
 import { startHealthMonitor, getHealthSnapshot } from './health-monitor.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.AISSTREAM_API_KEY;
-const AIS_FEED_SECRET = process.env.AIS_FEED_SECRET || '';
+
+// Feed auth accepts a comma-separated list of secrets so the secret can be
+// rotated with zero downtime: set AIS_FEED_SECRET="new,old", cut the antenna
+// over to "new", then drop "old". Empty list = open (dev only).
+const AIS_FEED_SECRETS = (process.env.AIS_FEED_SECRET || '')
+  .split(',').map((s) => s.trim()).filter(Boolean);
+function isValidFeedSecret(token) {
+  return AIS_FEED_SECRETS.length === 0 || AIS_FEED_SECRETS.includes(token);
+}
 
 // Database
 const db = createDb(path.join(__dirname, '..', 'vessels.db'));
@@ -66,20 +74,38 @@ export const feedStats = {
   totalVesselsProcessed: 0,
 };
 
+// Rate limit: cap authenticated feed requests so a leaked secret or a runaway
+// relay can't flood the DB with writes. The legit relay posts ~12x/min; this
+// allows generous headroom. Only counts requests that pass the secret check.
+let feedWindow = { count: 0, resetAt: 0 };
+const FEED_MAX_PER_MIN = 300;
+function feedRateLimited() {
+  const now = Date.now();
+  if (now > feedWindow.resetAt) feedWindow = { count: 0, resetAt: now + 60000 };
+  feedWindow.count++;
+  return feedWindow.count > FEED_MAX_PER_MIN;
+}
+
 // AIS-catcher HTTP feed endpoint
 function handleAisFeed(req, res) {
   const token = req.params.key || req.headers['x-ais-secret'];
-  if (AIS_FEED_SECRET && token !== AIS_FEED_SECRET) {
+  if (!isValidFeedSecret(token)) {
     return res.status(403).json({ error: 'Forbidden' });
+  }
+  if (feedRateLimited()) {
+    return res.status(429).json({ error: 'Too many requests' });
   }
 
   feedStats.lastReceivedAt = new Date().toISOString();
   feedStats.totalRequests++;
 
   try {
-    // Log first incoming message to understand AIS-catcher format
     const raw = req.body;
-    console.log('[AIS-Feed] Received:', JSON.stringify(raw).substring(0, 500));
+    // Log the payload shape only for the first request after startup (format
+    // diagnostics), not every request — that floods the logs and disk.
+    if (feedStats.totalRequests === 1) {
+      console.log('[AIS-Feed] First payload sample:', JSON.stringify(raw).substring(0, 500));
+    }
 
     // AIS-catcher may wrap messages in a top-level object
     let messages;
@@ -149,75 +175,6 @@ function handleAisFeed(req, res) {
 }
 app.post('/api/ais-feed', handleAisFeed);
 app.post('/api/ais-feed/:key', handleAisFeed);
-
-function parseAisCatcherMessage(msg) {
-  const mmsi = String(msg.mmsi || msg.MMSI);
-  if (!mmsi || mmsi === 'undefined') return null;
-
-  // Filter out non-vessels: buoys, beacons, base stations, AtoN (Aids to Navigation)
-  // MMSI ranges: 99x = AtoN, 00x = base stations, 970-979 = SART/MOB/EPIRB
-  // MMSI ranges: 99x=AtoN, 98x=craft assoc with parent, 97x=SART/MOB/EPIRB,
-  // 96x=Diver, 94x=local, 93x=AIS-SART, 91x=unassigned, 85x=unassigned, 00x=base stations
-  if (mmsi.startsWith('99') || mmsi.startsWith('98') || mmsi.startsWith('97') ||
-      mmsi.startsWith('96') || mmsi.startsWith('94') || mmsi.startsWith('93') ||
-      mmsi.startsWith('91') || mmsi.startsWith('85') ||
-      mmsi.startsWith('00') || mmsi.length !== 9) return null;
-  // Known fake/test MMSIs
-  if (mmsi === '123456789' || mmsi === '000000000' || mmsi === '111111111') return null;
-  // AIS ship types for navigation aids
-  const navAidTypes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
-  if (msg.shiptype != null && navAidTypes.includes(msg.shiptype)) return null;
-
-  // Filter garbled data: vessel names with special chars that real AIS names never contain
-  const rawName = (msg.shipname || msg.name || '').trim();
-  const name = rawName || null;
-  if (rawName && /[<>\\[\]{}|^]/.test(rawName)) return null;
-  // Single-character names are placeholder/test data
-  if (rawName && rawName.length === 1) return null;
-  // Names with no letters (just digits/dashes/dots/percent/spaces) are junk transponders
-  if (rawName && !/[A-Za-z]/.test(rawName)) return null;
-
-  // Filter invalid call signs (real ones are alphanumeric, 4-7 chars)
-  const rawCallsign = (msg.callsign ?? msg.call_sign ?? '').trim();
-  if (rawCallsign && /[<>\\[\]{}|^]/.test(rawCallsign)) return null;
-  // Known test/default call signs
-  if (rawCallsign === '1234567') return null;
-
-  const flag_country = msg.country || getFlagCountry(mmsi);
-  const updated_at = msg.timestamp || new Date().toISOString();
-
-  // Build ETA string from separate fields if available
-  let eta = msg.eta ?? null;
-  if (!eta && msg.eta_month && msg.eta_day) {
-    const m = String(msg.eta_month).padStart(2, '0');
-    const d = String(msg.eta_day).padStart(2, '0');
-    const h = String(msg.eta_hour || 0).padStart(2, '0');
-    const min = String(msg.eta_minute || 0).padStart(2, '0');
-    eta = `${m}-${d} ${h}:${min}`;
-  }
-
-  const draught = msg.draught != null && msg.draught >= 0 ? msg.draught : null;
-
-  return {
-    mmsi, name, flag_country, updated_at,
-    lat: msg.lat ?? msg.latitude ?? null,
-    lng: msg.lon ?? msg.lng ?? msg.longitude ?? null,
-    speed: msg.speed ?? msg.sog ?? null,
-    course: msg.course ?? msg.cog ?? null,
-    heading: msg.heading ?? null,
-    nav_status: msg.status ?? msg.nav_status ?? null,
-    nav_status_label: msg.status != null ? getNavStatusLabel(msg.status) : null,
-    imo: msg.imo ? String(msg.imo) : null,
-    call_sign: (msg.callsign ?? msg.call_sign ?? '').trim() || null,
-    vessel_type: msg.shiptype ?? msg.vessel_type ?? null,
-    vessel_type_label: msg.shiptype != null ? getVesselTypeLabel(msg.shiptype) : null,
-    length: msg.to_bow != null && msg.to_stern != null ? msg.to_bow + msg.to_stern : (msg.length ?? null),
-    width: msg.to_port != null && msg.to_starboard != null ? msg.to_port + msg.to_starboard : (msg.width ?? null),
-    draught,
-    destination: (msg.destination ?? '').trim() || null,
-    eta,
-  };
-}
 
 // Weather + marine data (cached, refreshed every 15 min)
 let weatherCache = { data: null, fetchedAt: 0 };
@@ -345,6 +302,9 @@ function broadcast(data) {
 // ── Arrival/Departure Detection ──
 // Track recently seen vessels to detect new arrivals
 const recentlySeenMMSIs = new Set();
+// Throttle archive writes: mmsi -> last write time (ms)
+const lastArchiveWrite = new Map();
+const ARCHIVE_MIN_INTERVAL = 60 * 60 * 1000; // 1h
 
 // On startup, populate from current vessels table
 for (const v of getVesselsByArea(db)) {
@@ -357,8 +317,13 @@ function detectArrival(db, vessel) {
   const isNew = !recentlySeenMMSIs.has(vessel.mmsi);
   recentlySeenMMSIs.add(vessel.mmsi);
 
-  // Update permanent archive
-  upsertArchive(db, vessel);
+  // Update permanent archive, but throttle to arrival-or-hourly. Writing on
+  // every message (~60 vessels x 60s) was needless write amplification.
+  const now = Date.now();
+  if (isNew || (now - (lastArchiveWrite.get(vessel.mmsi) || 0)) > ARCHIVE_MIN_INTERVAL) {
+    upsertArchive(db, vessel);
+    lastArchiveWrite.set(vessel.mmsi, now);
+  }
 
   if (isNew) {
     incrementVisitCount(db, vessel.mmsi);
@@ -378,11 +343,13 @@ function detectArrival(db, vessel) {
   }
 }
 
-// Check for departures every 15 minutes
+// Check for departures every 10 minutes. A vessel that hasn't reported for an
+// hour has left the antenna's range (or port). Previously this required
+// speed > 0.5, which silently skipped every anchored vessel that departed.
 setInterval(() => {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   const staleVessels = db.prepare(
-    "SELECT * FROM vessels WHERE updated_at < ? AND speed > 0.5"
+    "SELECT * FROM vessels WHERE updated_at < ?"
   ).all(oneHourAgo);
 
   for (const v of staleVessels) {
@@ -402,15 +369,84 @@ setInterval(() => {
       broadcast({ type: 'departure', vessel: v });
     }
     recentlySeenMMSIs.delete(v.mmsi);
+    lastArchiveWrite.delete(v.mmsi); // free memory for departed vessels
   }
-}, 15 * 60 * 1000);
-
-// RTL-SDR feed via /api/ais-feed is the only data source
-console.log('[AIS] Using RTL-SDR feed via /api/ais-feed');
+}, 10 * 60 * 1000);
 
 function getVesselFromDb(db, mmsi) {
   return db.prepare('SELECT * FROM vessels WHERE mmsi = ?').get(mmsi) || {};
 }
+
+// ── aisstream.io failover ──
+// The RTL-SDR antenna is a single point of failure (laptop sleeps, wifi drops).
+// When the primary feed goes quiet for FAILOVER_AFTER_MIN, connect aisstream.io
+// as a backup source; disconnect again once the antenna recovers, to conserve
+// the free-tier quota and avoid double-counting positions.
+console.log('[AIS] Primary source: RTL-SDR feed via /api/ais-feed');
+const FAILOVER_AFTER_MIN = 5;
+let aisStreamHandle = null;
+
+function ingestVessel(parsed) {
+  // Accept backup data only while the primary feed is genuinely stale. The
+  // moment a real RTL-SDR POST resumes, ignore aisstream so positions aren't
+  // double-counted (manageFailover then tears down the connection within 60s).
+  const lastFeed = feedStats.lastReceivedAt ? new Date(feedStats.lastReceivedAt).getTime() : 0;
+  if (feedStats.lastReceivedAt && (Date.now() - lastFeed) / 60000 < FAILOVER_AFTER_MIN) return;
+  if (!parsed || !parsed.mmsi) return;
+  if (isNonVesselMmsi(parsed.mmsi)) return;
+  if (parsed.lat != null && parsed.lng != null && !isWithinBounds(parsed.lat, parsed.lng)) return;
+
+  const vessel = { mmsi: parsed.mmsi, updated_at: parsed.updated_at || new Date().toISOString() };
+  if (parsed.name) vessel.name = parsed.name;
+  if (parsed.flag_country) vessel.flag_country = parsed.flag_country;
+  if (parsed.lat != null && parsed.lng != null) {
+    Object.assign(vessel, {
+      lat: parsed.lat, lng: parsed.lng, speed: parsed.speed,
+      course: parsed.course, heading: parsed.heading,
+      nav_status: parsed.nav_status, nav_status_label: parsed.nav_status_label,
+    });
+    appendPosition(db, {
+      mmsi: parsed.mmsi, lat: parsed.lat, lng: parsed.lng,
+      speed: parsed.speed, course: parsed.course, timestamp: vessel.updated_at,
+    });
+  }
+  if (parsed.vessel_type != null) {
+    Object.assign(vessel, {
+      imo: parsed.imo, call_sign: parsed.call_sign,
+      vessel_type: parsed.vessel_type, vessel_type_label: parsed.vessel_type_label,
+      length: parsed.length, width: parsed.width, draught: parsed.draught,
+      destination: parsed.destination, eta: parsed.eta,
+    });
+  }
+  upsertVessel(db, vessel);
+  const full = getVesselFromDb(db, parsed.mmsi);
+  if (full && full.lat != null) {
+    detectArrival(db, full);
+    broadcast({ type: 'update', vessel: full });
+  }
+  feedStats.lastProcessedAt = new Date().toISOString();
+}
+
+function manageFailover() {
+  if (!API_KEY) return; // no aisstream key configured — can't fail over
+  const lastFeed = feedStats.lastReceivedAt ? new Date(feedStats.lastReceivedAt).getTime() : 0;
+  const minsSince = (Date.now() - lastFeed) / 60000;
+  const primaryStale = !feedStats.lastReceivedAt || minsSince >= FAILOVER_AFTER_MIN;
+
+  if (primaryStale && !aisStreamHandle) {
+    console.log(`[Failover] Primary feed stale (${Math.round(minsSince)}m). Activating aisstream.io backup.`);
+    aisStreamHandle = connectAisStream(
+      API_KEY,
+      (parsed) => { if (aisStreamHandle) ingestVessel(parsed); },
+      [[QN_BOUNDS.minLat, QN_BOUNDS.minLng], [QN_BOUNDS.maxLat, QN_BOUNDS.maxLng]],
+    );
+  } else if (!primaryStale && aisStreamHandle) {
+    console.log('[Failover] Primary feed restored. Stopping aisstream.io backup.');
+    aisStreamHandle.stop();
+    aisStreamHandle = null;
+  }
+}
+setInterval(manageFailover, 60 * 1000);
 
 // Cleanup — prune stale vessels from live map, compress old positions to hourly summaries
 startCleanup(db, pruneOldData, compressPositions);

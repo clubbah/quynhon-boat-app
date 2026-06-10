@@ -6,6 +6,14 @@ import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js';
 let vessels = {};
 let lastDataTime = 0;
 
+// Escape AIS-supplied strings before they go into innerHTML. The server strips
+// angle brackets, but that's one filter away from an injection hole — escape at
+// the sink so safety doesn't depend on an upstream coincidence.
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 // Init
 const map = initMap();
 initPanel(onPanelClose);
@@ -264,9 +272,9 @@ function initSearch() {
 
     results.innerHTML = matches.map(v => {
       const typeLabel = v.vessel_type_label || 'Other';
-      return `<div class="search-item" data-mmsi="${v.mmsi}">
-        <span class="search-name">${v.name || v.mmsi}</span>
-        <span class="search-type">${typeLabel}</span>
+      return `<div class="search-item" data-mmsi="${esc(v.mmsi)}">
+        <span class="search-name">${esc(v.name || v.mmsi)}</span>
+        <span class="search-type">${esc(typeLabel)}</span>
       </div>`;
     }).join('');
 
@@ -321,13 +329,23 @@ const WEATHER_CODES_NIGHT = {
   95: ['⛈️', 'Thunderstorm'], 96: ['⛈️', 'Thunderstorm + hail'], 99: ['⛈️', 'Severe storm'],
 };
 
+// Open-Meteo returns Quy Nhon wall-clock times with NO timezone offset. Vietnam
+// is UTC+7 year-round (no DST), so anchoring with +07:00 yields a correct
+// absolute instant regardless of where the viewer is. Without this, day/night
+// and "this evening vs tomorrow" are wrong for anyone outside Vietnam.
+function vnDate(str) {
+  if (!str) return null;
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+  const iso = str.includes('T') ? str : today + 'T' + str;
+  return new Date(iso + '+07:00');
+}
+
 function isNightTime(sunrise, sunset) {
-  if (!sunrise || !sunset) return false;
+  const sr = vnDate(sunrise);
+  const ss = vnDate(sunset);
+  if (!sr || !ss) return false;
   const now = new Date();
-  const today = now.toISOString().split('T')[0];
-  const sunriseTime = new Date(sunrise.includes('T') ? sunrise : today + 'T' + sunrise);
-  const sunsetTime = new Date(sunset.includes('T') ? sunset : today + 'T' + sunset);
-  return now < sunriseTime || now > sunsetTime;
+  return now < sr || now > ss;
 }
 
 function windDirection(deg) {
@@ -385,24 +403,18 @@ function updateSunsetPrediction(data) {
   const sunsetISO = w.daily.sunset?.[0];
   if (!sunsetISO) return;
 
-  const sunsetDate = new Date(sunsetISO);
-  const sunsetHour = sunsetDate.getHours();
+  const sunsetDate = vnDate(sunsetISO);
   const sunsetTimeStr = sunsetISO.split('T')[1]; // "17:45" etc.
 
-  // Find the hourly index closest to sunset hour
+  // Match the hourly bucket by Quy Nhon wall-clock hour. Both the sunset string
+  // and the hourly time strings are offset-less VN local, so compare the raw
+  // "HH" substrings — no Date/timezone math, no viewer-timezone skew.
+  const sunsetHH = sunsetTimeStr.slice(0, 2);
+  const prevHH = String((parseInt(sunsetHH, 10) + 23) % 24).padStart(2, '0');
   const times = w.hourly.time || [];
-  let idx = -1;
-  for (let i = 0; i < times.length; i++) {
-    const h = new Date(times[i]).getHours();
-    if (h === sunsetHour) { idx = i; break; }
-  }
-  // Fallback: try the hour before sunset
-  if (idx < 0) {
-    for (let i = 0; i < times.length; i++) {
-      const h = new Date(times[i]).getHours();
-      if (h === sunsetHour - 1) { idx = i; break; }
-    }
-  }
+  const hourOf = (s) => (s.split('T')[1] || '').slice(0, 2);
+  let idx = times.findIndex((s) => hourOf(s) === sunsetHH);
+  if (idx < 0) idx = times.findIndex((s) => hourOf(s) === prevHH); // fallback: hour before
   if (idx < 0) return;
 
   const cloudLow = w.hourly.cloud_cover_low?.[idx] ?? 50;
@@ -557,10 +569,10 @@ async function fetchPortStats() {
     // Vessel of the day
     if (data.vesselOfDay) {
       const v = data.vesselOfDay;
-      const cc = (v.flag_country || '').toLowerCase();
+      const cc = (v.flag_country || '').toLowerCase().replace(/[^a-z]/g, '');
       const flagImg = cc ? `<img src="https://flagcdn.com/20x15/${cc}.png" style="border-radius:2px;vertical-align:middle;margin-right:4px" />` : '';
       const nameEl = document.getElementById('votd-name');
-      nameEl.innerHTML = flagImg + `<a class="vessel-link" data-mmsi="${v.mmsi}" href="#">${v.name || v.mmsi}</a>`;
+      nameEl.innerHTML = flagImg + `<a class="vessel-link" data-mmsi="${esc(v.mmsi)}" href="#">${esc(v.name || v.mmsi)}</a>`;
       nameEl.querySelector('.vessel-link').addEventListener('click', (e) => {
         e.preventDefault();
         const vessel = vessels[v.mmsi];
@@ -570,25 +582,25 @@ async function fetchPortStats() {
         }
       });
       document.getElementById('votd-details').innerHTML = [
-        v.vessel_type_label || '',
-        v.length && v.width ? `${v.length} x ${v.width}m` : '',
-        v.flag_country || '',
-        v.destination ? `→ ${v.destination}` : '',
+        esc(v.vessel_type_label || ''),
+        v.length && v.width ? `${esc(v.length)} x ${esc(v.width)}m` : '',
+        esc(v.flag_country || ''),
+        v.destination ? `→ ${esc(v.destination)}` : '',
       ].filter(Boolean).join(' · ');
     }
 
     // Recent activity table
     const tbody = document.getElementById('activity-tbody');
     tbody.innerHTML = data.recentActivity.map(v => {
-      const cc = (v.flag_country || '').toLowerCase();
+      const cc = (v.flag_country || '').toLowerCase().replace(/[^a-z]/g, '');
       const flagImg = cc ? `<img src="https://flagcdn.com/20x15/${cc}.png" />` : '';
       const time = v.updated_at ? new Date(v.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
       return `<tr>
-        <td class="vessel-name-cell"><a class="vessel-link" data-mmsi="${v.mmsi}" href="#">${v.name || v.mmsi}</a></td>
-        <td>${tType(v.vessel_type_label)}</td>
+        <td class="vessel-name-cell"><a class="vessel-link" data-mmsi="${esc(v.mmsi)}" href="#">${esc(v.name || v.mmsi)}</a></td>
+        <td>${esc(tType(v.vessel_type_label))}</td>
         <td class="flag-cell">${flagImg}</td>
-        <td>${tStatus(v.nav_status_label, v.speed)}</td>
-        <td>${v.destination || '-'}</td>
+        <td>${esc(tStatus(v.nav_status_label, v.speed))}</td>
+        <td>${esc(v.destination || '-')}</td>
         <td class="time-cell">${time}</td>
       </tr>`;
     }).join('');
@@ -637,7 +649,7 @@ function renderPulseTimeline(visits) {
 }
 
 function buildPulseItemHTML(v) {
-  const cc = (v.flag_country || '').toLowerCase();
+  const cc = (v.flag_country || '').toLowerCase().replace(/[^a-z]/g, '');
   const flagImg = cc ? `<img class="pulse-flag" src="https://flagcdn.com/20x15/${cc}.png" alt="${cc}" />` : '';
   const eventLabel = v.event === 'arrival' ? t('pulse_arrival') : t('pulse_departure');
   const eventClass = v.event === 'arrival' ? 'arrival' : 'departure';
@@ -645,12 +657,12 @@ function buildPulseItemHTML(v) {
   const time = v.timestamp ? formatPulseTime(v.timestamp) : '';
 
   return `<div class="pulse-item">
-    <span class="pulse-event ${eventClass}">${eventLabel}</span>
+    <span class="pulse-event ${eventClass}">${esc(eventLabel)}</span>
     <div class="pulse-vessel">
       ${flagImg}
-      <a class="pulse-name vessel-link" data-mmsi="${v.mmsi}" href="#">${v.name || v.mmsi}</a>
+      <a class="pulse-name vessel-link" data-mmsi="${esc(v.mmsi)}" href="#">${esc(v.name || v.mmsi)}</a>
     </div>
-    <span class="pulse-meta">${typeLabel}</span>
+    <span class="pulse-meta">${esc(typeLabel)}</span>
     <span class="pulse-time">${time}</span>
   </div>`;
 }

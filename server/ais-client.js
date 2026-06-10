@@ -1,9 +1,10 @@
 import WebSocket from 'ws';
-import { getVesselTypeLabel, getVesselTypeColor, getNavStatusLabel, getFlagCountry } from './ais-types.js';
+import { getVesselTypeLabel, getNavStatusLabel, getFlagCountry } from './ais-types.js';
 
-// Singapore Strait — busiest shipping lane, excellent AIS coverage
+// Quy Nhon region (matches the RTL-SDR feed's bounding box). Used only when
+// aisstream.io is activated as a failover for the primary antenna feed.
 const BOUNDING_BOXES = [
-  [[1.0, 103.5], [1.5, 104.2]],
+  [[11.5, 107.0], [16.0, 111.5]],
 ];
 
 export function parseAisMessage(raw) {
@@ -61,35 +62,47 @@ export function parseAisMessage(raw) {
   return null;
 }
 
-export function connectAisStream(apiKey, onMessage) {
-  const ws = new WebSocket('wss://stream.aisstream.io/v0/stream');
+// Returns a handle with stop(). Auto-reconnects on drop UNTIL stop() is called,
+// so the failover manager can cleanly deactivate it when the primary recovers.
+export function connectAisStream(apiKey, onMessage, boundingBoxes = BOUNDING_BOXES) {
+  let stopped = false;
+  let ws = null;
 
-  ws.on('open', () => {
-    console.log('[AIS] Connected to aisstream.io');
-    ws.send(JSON.stringify({
-      APIKey: apiKey,
-      BoundingBoxes: BOUNDING_BOXES,
-    }));
-  });
+  function open() {
+    if (stopped) return;
+    ws = new WebSocket('wss://stream.aisstream.io/v0/stream');
 
-  ws.on('message', (data) => {
-    try {
-      const raw = JSON.parse(data.toString());
-      const parsed = parseAisMessage(raw);
-      if (parsed) onMessage(parsed);
-    } catch (err) {
-      console.error('[AIS] Parse error:', err.message);
-    }
-  });
+    ws.on('open', () => {
+      console.log('[AIS] Connected to aisstream.io (failover)');
+      ws.send(JSON.stringify({ APIKey: apiKey, BoundingBoxes: boundingBoxes }));
+    });
 
-  ws.on('close', () => {
-    console.log('[AIS] Disconnected. Reconnecting in 5s...');
-    setTimeout(() => connectAisStream(apiKey, onMessage), 5000);
-  });
+    ws.on('message', (data) => {
+      try {
+        const parsed = parseAisMessage(JSON.parse(data.toString()));
+        if (parsed) onMessage(parsed);
+      } catch (err) {
+        console.error('[AIS] Parse error:', err.message);
+      }
+    });
 
-  ws.on('error', (err) => {
-    console.error('[AIS] WebSocket error:', err.message);
-  });
+    ws.on('close', () => {
+      if (stopped) return;
+      console.log('[AIS] aisstream disconnected. Reconnecting in 5s...');
+      setTimeout(open, 5000);
+    });
 
-  return ws;
+    ws.on('error', (err) => {
+      console.error('[AIS] aisstream error:', err.message);
+    });
+  }
+
+  open();
+
+  return {
+    stop() {
+      stopped = true;
+      if (ws) { try { ws.close(); } catch { /* already closed */ } }
+    },
+  };
 }
