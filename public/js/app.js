@@ -1,6 +1,7 @@
 import { initMap, updateVesselMarker, showTrack, clearTrack, setSelectedMmsi, getSelectedMmsi, filterMarkersByType, setMapClickHandler, flyToVessel, recenterMap, highlightVessel, clearHighlight } from './map.js';
 import { showPanel, hidePanel, initPanel } from './vessel-card.js';
 import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js';
+import { scoreSunset } from './sunset.js';
 
 // State
 let vessels = {};
@@ -425,108 +426,21 @@ function updateSunsetPrediction(data) {
   const precipProb = w.hourly.precipitation_probability?.[idx] ?? 0;
   const humidity = w.current?.relative_humidity_2m ?? 70;
 
-  // Score calculation
-  // Quy Nhon is tropical coastal — clear skies with humidity produce
-  // warm golden/orange sunsets even without clouds. The model gives a
-  // baseline score for clear tropical conditions, then boosts for clouds.
-  let score = 0;
-  const factors = [];
+  // Pure scoring lives in sunset.js (testable). Factors come back as
+  // { key, status }; translate the key here for display.
+  const { score, level, factors } = scoreSunset({
+    cloudLow, cloudMid, cloudHigh, cloudTotal, visibility, precipProb, humidity,
+  });
 
-  // Baseline: clear tropical sky (no clouds + no rain + humidity = nice warm tones)
-  const isClearSky = cloudTotal < 15;
-
-  // Low clouds (15-50% ideal — they light up orange/pink)
-  if (cloudLow >= 15 && cloudLow <= 50) {
-    score += 25;
-    factors.push({ label: t('sunset_f_clouds'), status: 'good' });
-  } else if (cloudLow > 50 && cloudLow <= 70) {
-    score += 12;
-    factors.push({ label: t('sunset_f_clouds'), status: 'neutral' });
-  } else if (isClearSky) {
-    score += 15; // Clear tropical sky — still produces warm orange horizon
-    factors.push({ label: t('sunset_f_clouds'), status: 'good' });
-  } else if (cloudLow < 15) {
-    score += 8;
-    factors.push({ label: t('sunset_f_clouds'), status: 'neutral' });
-  } else {
-    factors.push({ label: t('sunset_f_clouds'), status: 'poor' });
-  }
-
-  // Mid-level clouds (10-40% ideal — catch afterglow)
-  if (cloudMid >= 10 && cloudMid <= 40) {
-    score += 15;
-  } else if (cloudMid > 40 && cloudMid <= 60) {
-    score += 6;
-  }
-
-  // High cirrus adds some wispy drama
-  if (cloudHigh >= 10 && cloudHigh <= 50) {
-    score += 8;
-  }
-
-  // Overcast penalty
-  if (cloudTotal > 85) {
-    score -= 40;
-    factors.push({ label: t('sunset_f_overcast'), status: 'poor' });
-  }
-
-  // Visibility / atmospheric haze
-  const visKm = visibility / 1000;
-  if (visKm >= 5 && visKm <= 20) {
-    score += 15; // Haze present — vivid scattering
-    factors.push({ label: t('sunset_f_haze'), status: 'good' });
-  } else if (visKm > 20 && visKm <= 30) {
-    score += 10; // Slight haze — still decent scattering
-    factors.push({ label: t('sunset_f_haze'), status: 'good' });
-  } else if (visKm > 30) {
-    score += 6; // Very clear
-    factors.push({ label: t('sunset_f_haze'), status: 'neutral' });
-  } else {
-    score += 2; // Too hazy / foggy
-    factors.push({ label: t('sunset_f_haze'), status: 'poor' });
-  }
-
-  // No rain
-  if (precipProb <= 10) {
-    score += 15;
-    factors.push({ label: t('sunset_f_clear'), status: 'good' });
-  } else if (precipProb <= 30) {
-    score += 8;
-    factors.push({ label: t('sunset_f_clear'), status: 'neutral' });
-  } else {
-    factors.push({ label: t('sunset_f_clear'), status: 'poor' });
-  }
-
-  // Tropical humidity — key for Quy Nhon's golden sunsets
-  if (humidity >= 60 && humidity <= 85) {
-    score += 15;
-    factors.push({ label: t('sunset_f_humidity'), status: 'good' });
-  } else if (humidity > 85) {
-    score += 6;
-    factors.push({ label: t('sunset_f_humidity'), status: 'neutral' });
-  } else {
-    score += 2;
-    factors.push({ label: t('sunset_f_humidity'), status: 'neutral' });
-  }
-
-  // Clamp 0-100
-  score = Math.max(0, Math.min(100, score));
-
-  // Determine rating
-  let level, ratingText, icon, desc;
-  if (score >= 80) {
-    level = 'spectacular'; ratingText = t('sunset_spectacular'); icon = '🔥';
-    desc = t('sunset_desc_spectacular');
-  } else if (score >= 60) {
-    level = 'vivid'; ratingText = t('sunset_vivid'); icon = '✨';
-    desc = t('sunset_desc_vivid');
-  } else if (score >= 40) {
-    level = 'nice'; ratingText = t('sunset_nice'); icon = '🌅';
-    desc = t('sunset_desc_nice');
-  } else {
-    level = 'ordinary'; ratingText = t('sunset_ordinary'); icon = '🌥️';
-    desc = t('sunset_desc_ordinary');
-  }
+  const RATING = {
+    spectacular: { text: t('sunset_spectacular'), icon: '🔥', desc: t('sunset_desc_spectacular') },
+    vivid: { text: t('sunset_vivid'), icon: '✨', desc: t('sunset_desc_vivid') },
+    nice: { text: t('sunset_nice'), icon: '🌅', desc: t('sunset_desc_nice') },
+    ordinary: { text: t('sunset_ordinary'), icon: '🌥️', desc: t('sunset_desc_ordinary') },
+  };
+  const ratingText = RATING[level].text;
+  const icon = RATING[level].icon;
+  const desc = RATING[level].desc;
 
   // Show contextual time label
   const now = new Date();
@@ -553,7 +467,7 @@ function updateSunsetPrediction(data) {
   // Factors
   const factorsEl = document.getElementById('sunset-factors');
   factorsEl.innerHTML = factors.map(f =>
-    `<span class="sunset-factor"><span class="sunset-factor-dot ${f.status}"></span>${f.label}</span>`
+    `<span class="sunset-factor"><span class="sunset-factor-dot ${f.status}"></span>${esc(t('sunset_f_' + f.key))}</span>`
   ).join('');
 }
 
