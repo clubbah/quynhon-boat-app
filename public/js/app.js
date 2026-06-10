@@ -15,6 +15,15 @@ function esc(s) {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// Strip the trailing battery indicator that Vietnamese fishing transponders
+// append to their name ("TY 15 D37 15%" -> "TY 15 D37"). The parser cleans new
+// data, but rows already in the DB keep the % until they re-report, so we also
+// strip at display time.
+function cleanName(name) {
+  if (!name) return name;
+  return String(name).replace(/[\s-]*\d{1,3}%\s*$/, '').trim() || name;
+}
+
 // Init
 const map = initMap();
 initPanel(onPanelClose);
@@ -52,6 +61,7 @@ function initWebSocket() {
 
     if (msg.type === 'snapshot') {
       msg.vessels.forEach((v) => {
+        v.name = cleanName(v.name);
         vessels[v.mmsi] = v;
         updateVesselMarker(v, onVesselClick);
       });
@@ -60,6 +70,7 @@ function initWebSocket() {
 
     if (msg.type === 'update') {
       const v = msg.vessel;
+      v.name = cleanName(v.name);
       vessels[v.mmsi] = { ...vessels[v.mmsi], ...v };
       updateVesselMarker(vessels[v.mmsi], onVesselClick);
       updateStats();
@@ -74,7 +85,7 @@ function initWebSocket() {
       const v = msg.vessel;
       prependPulseItem({
         mmsi: v.mmsi,
-        name: v.name || v.mmsi,
+        name: cleanName(v.name) || v.mmsi,
         vessel_type_label: v.vessel_type_label,
         flag_country: v.flag_country,
         event: msg.type,
@@ -274,7 +285,7 @@ function initSearch() {
     results.innerHTML = matches.map(v => {
       const typeLabel = v.vessel_type_label || 'Other';
       return `<div class="search-item" data-mmsi="${esc(v.mmsi)}">
-        <span class="search-name">${esc(v.name || v.mmsi)}</span>
+        <span class="search-name">${esc(cleanName(v.name) || v.mmsi)}</span>
         <span class="search-type">${esc(typeLabel)}</span>
       </div>`;
     }).join('');
@@ -486,7 +497,7 @@ async function fetchPortStats() {
       const cc = (v.flag_country || '').toLowerCase().replace(/[^a-z]/g, '');
       const flagImg = cc ? `<img src="https://flagcdn.com/20x15/${cc}.png" style="border-radius:2px;vertical-align:middle;margin-right:4px" />` : '';
       const nameEl = document.getElementById('votd-name');
-      nameEl.innerHTML = flagImg + `<a class="vessel-link" data-mmsi="${esc(v.mmsi)}" href="#">${esc(v.name || v.mmsi)}</a>`;
+      nameEl.innerHTML = flagImg + `<a class="vessel-link" data-mmsi="${esc(v.mmsi)}" href="#">${esc(cleanName(v.name) || v.mmsi)}</a>`;
       nameEl.querySelector('.vessel-link').addEventListener('click', (e) => {
         e.preventDefault();
         const vessel = vessels[v.mmsi];
@@ -510,7 +521,7 @@ async function fetchPortStats() {
       const flagImg = cc ? `<img src="https://flagcdn.com/20x15/${cc}.png" />` : '';
       const time = v.updated_at ? new Date(v.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
       return `<tr>
-        <td class="vessel-name-cell"><a class="vessel-link" data-mmsi="${esc(v.mmsi)}" href="#">${esc(v.name || v.mmsi)}</a></td>
+        <td class="vessel-name-cell"><a class="vessel-link" data-mmsi="${esc(v.mmsi)}" href="#">${esc(cleanName(v.name) || v.mmsi)}</a></td>
         <td>${esc(tType(v.vessel_type_label))}</td>
         <td class="flag-cell">${flagImg}</td>
         <td>${esc(tStatus(v.nav_status_label, v.speed))}</td>
@@ -574,7 +585,7 @@ function buildPulseItemHTML(v) {
     <span class="pulse-event ${eventClass}">${esc(eventLabel)}</span>
     <div class="pulse-vessel">
       ${flagImg}
-      <a class="pulse-name vessel-link" data-mmsi="${esc(v.mmsi)}" href="#">${esc(v.name || v.mmsi)}</a>
+      <a class="pulse-name vessel-link" data-mmsi="${esc(v.mmsi)}" href="#">${esc(cleanName(v.name) || v.mmsi)}</a>
     </div>
     <span class="pulse-meta">${esc(typeLabel)}</span>
     <span class="pulse-time">${time}</span>
