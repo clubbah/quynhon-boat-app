@@ -58,10 +58,13 @@ export function parseAisCatcherMessage(msg) {
 
   // Filter garbled names: special chars that real AIS names never contain
   const rawName = (msg.shipname || msg.name || '').trim();
-  const name = rawName || null;
   if (rawName && GARBLED.test(rawName)) return null;
   if (rawName && rawName.length === 1) return null;            // placeholder
   if (rawName && !/[A-Za-z]/.test(rawName)) return null;       // no letters = junk transponder
+  // Vietnamese fishing transponders append a battery indicator to the name
+  // ("NHAT LINH45%", "48 CHIEN D37-99%"). Strip the trailing "<digits>%".
+  let name = rawName || null;
+  if (name) name = name.replace(/[\s-]*\d{1,3}%\s*$/, '').trim() || name;
 
   // Filter invalid call signs
   const rawCallsign = (msg.callsign ?? msg.call_sign ?? '').trim();
@@ -83,6 +86,14 @@ export function parseAisCatcherMessage(msg) {
 
   const draught = msg.draught != null && msg.draught >= 0 ? msg.draught : null;
 
+  // Dimensions: reject implausible values. The longest ships ever built are
+  // ~400m; a fishing transponder reporting 512m is junk (it was polluting the
+  // "largest vessel" rankings). Keep the vessel, drop the bad dimensions.
+  let length = msg.to_bow != null && msg.to_stern != null ? msg.to_bow + msg.to_stern : (msg.length ?? null);
+  let width = msg.to_port != null && msg.to_starboard != null ? msg.to_port + msg.to_starboard : (msg.width ?? null);
+  if (length != null && (length < 1 || length > 450)) length = null;
+  if (width != null && (width < 1 || width > 70)) width = null;
+
   return {
     mmsi, name, flag_country, updated_at,
     lat, lng,
@@ -95,8 +106,8 @@ export function parseAisCatcherMessage(msg) {
     call_sign: (msg.callsign ?? msg.call_sign ?? '').trim() || null,
     vessel_type: msg.shiptype ?? msg.vessel_type ?? null,
     vessel_type_label: msg.shiptype != null ? getVesselTypeLabel(msg.shiptype) : null,
-    length: msg.to_bow != null && msg.to_stern != null ? msg.to_bow + msg.to_stern : (msg.length ?? null),
-    width: msg.to_port != null && msg.to_starboard != null ? msg.to_port + msg.to_starboard : (msg.width ?? null),
+    length,
+    width,
     draught,
     destination: (msg.destination ?? '').trim() || null,
     eta,

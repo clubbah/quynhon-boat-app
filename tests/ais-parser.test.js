@@ -100,3 +100,27 @@ describe('parseAisCatcherMessage — anti-spoofing / junk rejection', () => {
     expect(parseAisCatcherMessage({ shipname: 'NO MMSI' })).toBeNull();
   });
 });
+
+describe('parseAisCatcherMessage — data cleaning', () => {
+  it('strips trailing battery indicators from fishing-boat names', () => {
+    expect(parseAisCatcherMessage(validMsg({ shipname: 'NHAT LINH45%' })).name).toBe('NHAT LINH');
+    expect(parseAisCatcherMessage(validMsg({ shipname: '48 CHIEN D37-99%' })).name).toBe('48 CHIEN D37');
+    expect(parseAisCatcherMessage(validMsg({ shipname: 'BIEN DONG STAR' })).name).toBe('BIEN DONG STAR');
+  });
+
+  it('drops implausible dimensions but keeps the vessel', () => {
+    const p = parseAisCatcherMessage(validMsg({ to_bow: 300, to_stern: 300 })); // 600m = junk
+    expect(p).not.toBeNull();
+    expect(p.length).toBeNull();
+  });
+
+  it('keeps realistic dimensions', () => {
+    const p = parseAisCatcherMessage(validMsg({ to_bow: 200, to_stern: 100, to_port: 20, to_starboard: 20 }));
+    expect(p.length).toBe(300);
+    expect(p.width).toBe(40);
+  });
+
+  it('derives a 2-letter ISO flag code (not a country name)', () => {
+    expect(parseAisCatcherMessage(validMsg({ mmsi: '574123456', country: undefined })).flag_country).toBe('VN');
+  });
+});

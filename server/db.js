@@ -235,7 +235,8 @@ export function getPortTrends(db) {
     `),
     largest: many(`
       SELECT mmsi, name, flag_country, vessel_type_label, length, width FROM vessel_archive
-      WHERE name IS NOT NULL AND length IS NOT NULL ORDER BY length DESC LIMIT 5
+      WHERE name IS NOT NULL AND length IS NOT NULL AND length BETWEEN 1 AND 450
+      ORDER BY length DESC LIMIT 5
     `),
   };
 }
