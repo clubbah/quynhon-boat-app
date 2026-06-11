@@ -131,6 +131,22 @@
     .spot-north.visible { display: flex; }
     #spot-north-needle { transform-origin: 50% 50%; display: block; }
 
+    /* Manual zoom buttons (auto-zoom pauses briefly when used) */
+    .spot-zoom {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      z-index: 10; display: none; flex-direction: column;
+    }
+    .spot-zoom.visible { display: flex; }
+    .spot-zoom button {
+      width: 38px; height: 38px;
+      background: rgba(255,255,255,0.92); color: var(--ink, #1a2e35);
+      border: 1px solid rgba(26,46,53,0.15); cursor: pointer;
+      font-size: 20px; font-weight: 600; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .spot-zoom button + button { border-top: none; }
+    .spot-zoom button:active { background: rgba(13,148,136,0.1); }
+
     /* ── Bottom panel ── */
     .spot-panel {
       flex: 1;
@@ -306,6 +322,10 @@
         <path d="M12 2 L16 12 L12 10 L8 12 Z" fill="#ef4444"/>
         <text x="12" y="21" text-anchor="middle" font-size="9" fill="#fff" font-weight="700">N</text>
       </svg>
+    </div>
+    <div class="spot-zoom" id="spot-zoom">
+      <button type="button" id="spot-zoom-in" aria-label="Zoom in">+</button>
+      <button type="button" id="spot-zoom-out" aria-label="Zoom out">&minus;</button>
     </div>
   </div>
 
@@ -502,6 +522,8 @@
     let orientationSensor = null;    // AbsoluteOrientationSensor (Chrome Android)
     let sensorActive = false;        // sensor delivered a reading; ignore event streams
     let tiltMag = null;              // horizontal magnitude of camera vector (debug)
+    let autoViewKm = null;           // how far ahead the view should reach (match dist)
+    let manualZoomUntil = 0;         // pause auto-zoom while the user zooms manually
     let vessels = [];
     let active = false;
     let matchInterval = null;
@@ -669,9 +691,10 @@
         });
       }
 
-      // Cone
+      // Cone — reaches the matched boat (capped), not a fixed 3km
+      const coneKm = Math.max(2, Math.min(autoViewKm != null ? autoViewKm * 1.05 : 3, 15));
       if (userLat != null && smoothedHeading != null && active) {
-        const cone = makeConeGeoJSON(userLng, userLat, smoothedHeading, CONE_HALF, 3);
+        const cone = makeConeGeoJSON(userLng, userLat, smoothedHeading, CONE_HALF, coneKm);
         map.getSource('cone')?.setData({ type: 'FeatureCollection', features: [cone] });
       } else {
         map.getSource('cone')?.setData({ type: 'FeatureCollection', features: [] });
@@ -680,7 +703,16 @@
       // Heading-up: rotate the map with the phone so "forward" is always up
       // (the cone then points straight ahead), camera locked on the user.
       if (active && userLat != null && smoothedHeading != null) {
-        map.jumpTo({ center: [userLng, userLat], bearing: smoothedHeading });
+        const opts = { center: [userLng, userLat], bearing: smoothedHeading };
+        // Auto-zoom: keep the matched boat in view (no match -> ~3km view).
+        // Eased a little per tick so it glides instead of pumping; paused for
+        // a while whenever the user zooms manually.
+        if (autoViewKm != null && Date.now() > manualZoomUntil) {
+          const target = zoomForDistanceKm(autoViewKm);
+          const z = map.getZoom();
+          if (Math.abs(target - z) > 0.02) opts.zoom = z + (target - z) * 0.08;
+        }
+        map.jumpTo(opts);
         const needle = document.getElementById('spot-north-needle');
         if (needle) needle.style.transform = 'rotate(' + (-smoothedHeading) + 'deg)';
       }
@@ -736,6 +768,17 @@
     function lerpAngle(from, to, t) {
       let diff = ((to - from + 540) % 360) - 180;
       return ((from + diff * t) + 360) % 360;
+    }
+
+    // Zoom level at which `km` ahead of the user fits on screen. The user dot
+    // sits at ~67.5% of the map height (35% top padding), so the view ahead is
+    // the remaining pixels to the top edge, with a small margin.
+    function zoomForDistanceKm(km) {
+      const h = map.getContainer().clientHeight || 300;
+      const pixelsAhead = h * 0.675 * 0.85;
+      const metersPerPixel = (km * 1000) / pixelsAhead;
+      const z = Math.log2(156543.03392 * Math.cos(userLat * Math.PI / 180) / metersPerPixel);
+      return Math.max(10, Math.min(15.5, z));
     }
 
     // ── Vessel loading ──
@@ -1063,12 +1106,15 @@
             map.touchZoomRotate.disableRotation();
             map.setPadding({ top: Math.round(map.getContainer().clientHeight * 0.35), left: 0, right: 0, bottom: 0 });
             $('spot-north').classList.add('visible');
+            $('spot-zoom').classList.add('visible');
             map.jumpTo({ center: [userLng, userLat], zoom: 14 });
 
             loadVessels();
             matchInterval = setInterval(() => {
               loadVessels();
               const match = findMatchingVessel();
+              // Drive auto-zoom: reach the matched boat; otherwise a ~3km view
+              autoViewKm = match ? match.dist : 3;
               if (match) showResult(match);
               else showNoMatch();
             }, 1500);
@@ -1116,6 +1162,8 @@
       map.touchZoomRotate.enableRotation();
       map.setPadding({ top: 0, left: 0, right: 0, bottom: 0 });
       $('spot-north').classList.remove('visible');
+      $('spot-zoom').classList.remove('visible');
+      autoViewKm = null;
       map.easeTo({ bearing: 0, duration: 400 });
 
       // Clear cone
@@ -1145,6 +1193,22 @@
     // ── Event listeners ──
     $('spot-start').addEventListener('click', startSpotting);
     $('spot-reset').addEventListener('click', resetSpotting);
+
+    // Manual zoom: +/- buttons and pinch both pause auto-zoom for a while so
+    // the user stays in control, then auto-fit resumes.
+    const MANUAL_ZOOM_HOLD_MS = 12000;
+    $('spot-zoom-in').addEventListener('click', () => {
+      manualZoomUntil = Date.now() + MANUAL_ZOOM_HOLD_MS;
+      map.zoomTo(Math.min(map.getZoom() + 1, 17), { duration: 200 });
+    });
+    $('spot-zoom-out').addEventListener('click', () => {
+      manualZoomUntil = Date.now() + MANUAL_ZOOM_HOLD_MS;
+      map.zoomTo(Math.max(map.getZoom() - 1, 8), { duration: 200 });
+    });
+    map.on('zoomstart', (e) => {
+      // Only user gestures (pinch/double-tap) carry originalEvent
+      if (e.originalEvent) manualZoomUntil = Date.now() + MANUAL_ZOOM_HOLD_MS;
+    });
 
     // Load vessels for map display even before starting
     loadVessels();
