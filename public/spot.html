@@ -120,6 +120,17 @@
     }
     .spot-map-heading.visible { display: block; }
 
+    /* North indicator — shows where north is while the map rotates heading-up */
+    .spot-north {
+      position: absolute; top: 10px; left: 10px; z-index: 10;
+      width: 34px; height: 34px; border-radius: 50%;
+      background: rgba(26,46,53,0.85);
+      display: none; align-items: center; justify-content: center;
+      pointer-events: none;
+    }
+    .spot-north.visible { display: flex; }
+    #spot-north-needle { transform-origin: 50% 50%; display: block; }
+
     /* ── Bottom panel ── */
     .spot-panel {
       flex: 1;
@@ -290,6 +301,12 @@
   <div class="spot-map-wrap">
     <div id="spot-map"></div>
     <div class="spot-map-heading" id="spot-heading-display"></div>
+    <div class="spot-north" id="spot-north">
+      <svg id="spot-north-needle" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2 L16 12 L12 10 L8 12 Z" fill="#ef4444"/>
+        <text x="12" y="21" text-anchor="middle" font-size="9" fill="#fff" font-weight="700">N</text>
+      </svg>
+    </div>
   </div>
 
   <!-- Debug overlay (visible with ?debug=1) -->
@@ -658,6 +675,14 @@
         map.getSource('cone')?.setData({ type: 'FeatureCollection', features: [cone] });
       } else {
         map.getSource('cone')?.setData({ type: 'FeatureCollection', features: [] });
+      }
+
+      // Heading-up: rotate the map with the phone so "forward" is always up
+      // (the cone then points straight ahead), camera locked on the user.
+      if (active && userLat != null && smoothedHeading != null) {
+        map.jumpTo({ center: [userLng, userLat], bearing: smoothedHeading });
+        const needle = document.getElementById('spot-north-needle');
+        if (needle) needle.style.transform = 'rotate(' + (-smoothedHeading) + 'deg)';
       }
 
       // Vessel markers
@@ -1031,8 +1056,14 @@
             $('spot-heading-display').classList.add('visible');
             $('spot-reset').classList.add('visible');
 
-            // Center map on user
-            map.flyTo({ center: [userLng, userLat], zoom: 14, duration: 1000 });
+            // Heading-up mode: camera locked to the user, pan/rotate gestures
+            // off (pinch zoom still works), user anchored toward the bottom of
+            // the view so the area ahead gets the screen space.
+            map.dragPan.disable();
+            map.touchZoomRotate.disableRotation();
+            map.setPadding({ top: Math.round(map.getContainer().clientHeight * 0.35), left: 0, right: 0, bottom: 0 });
+            $('spot-north').classList.add('visible');
+            map.jumpTo({ center: [userLng, userLat], zoom: 14 });
 
             loadVessels();
             matchInterval = setInterval(() => {
@@ -1079,6 +1110,13 @@
       $('no-match').classList.remove('visible');
       highlightMatch(null);
       lastMatchMmsi = null;
+
+      // Leave heading-up mode: restore gestures, settle back to north-up
+      map.dragPan.enable();
+      map.touchZoomRotate.enableRotation();
+      map.setPadding({ top: 0, left: 0, right: 0, bottom: 0 });
+      $('spot-north').classList.remove('visible');
+      map.easeTo({ bearing: 0, duration: 400 });
 
       // Clear cone
       if (map.isStyleLoaded()) {
