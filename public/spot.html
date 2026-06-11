@@ -537,6 +537,9 @@
     const DECLINATION = -0.6;
     // Score: alignment matters most; distance is a soft tiebreaker (1 km ≈ 1.5°).
     const DIST_WEIGHT = 1.5;
+    // Default view depth while scanning (no match yet): wide enough that ships
+    // far out in the bay are on screen, so you can see what you're sweeping past.
+    const DEFAULT_VIEW_KM = 10;
     const DEBUG = new URLSearchParams(location.search).has('debug');
     const debugState = { candidates: [] };
 
@@ -692,7 +695,7 @@
       }
 
       // Cone — reaches the matched boat (capped), not a fixed 3km
-      const coneKm = Math.max(2, Math.min(autoViewKm != null ? autoViewKm * 1.05 : 3, 15));
+      const coneKm = Math.max(2, Math.min(autoViewKm != null ? autoViewKm * 1.05 : DEFAULT_VIEW_KM, 15));
       if (userLat != null && smoothedHeading != null && active) {
         const cone = makeConeGeoJSON(userLng, userLat, smoothedHeading, CONE_HALF, coneKm);
         map.getSource('cone')?.setData({ type: 'FeatureCollection', features: [cone] });
@@ -1107,14 +1110,14 @@
             map.setPadding({ top: Math.round(map.getContainer().clientHeight * 0.35), left: 0, right: 0, bottom: 0 });
             $('spot-north').classList.add('visible');
             $('spot-zoom').classList.add('visible');
-            map.jumpTo({ center: [userLng, userLat], zoom: 14 });
+            map.jumpTo({ center: [userLng, userLat], zoom: zoomForDistanceKm(DEFAULT_VIEW_KM) });
 
             loadVessels();
             matchInterval = setInterval(() => {
               loadVessels();
               const match = findMatchingVessel();
-              // Drive auto-zoom: reach the matched boat; otherwise a ~3km view
-              autoViewKm = match ? match.dist : 3;
+              // Drive auto-zoom: reach the matched boat; otherwise the wide scan view
+              autoViewKm = match ? match.dist : DEFAULT_VIEW_KM;
               if (match) showResult(match);
               else showNoMatch();
             }, 1500);
