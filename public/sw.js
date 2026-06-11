@@ -1,4 +1,4 @@
-const CACHE_NAME = 'qnl-v33';
+const CACHE_NAME = 'qnl-v34';
 const PRECACHE_URLS = [
   '/',
   '/spot',

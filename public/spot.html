@@ -482,6 +482,9 @@
     let gotAbsolute = false;         // an absolute source is feeding us
     let iosAccuracy = null;          // webkitCompassAccuracy (deg, <0 = uncalibrated)
     let warnTimer = null;
+    let orientationSensor = null;    // AbsoluteOrientationSensor (Chrome Android)
+    let sensorActive = false;        // sensor delivered a reading; ignore event streams
+    let tiltMag = null;              // horizontal magnitude of camera vector (debug)
     let vessels = [];
     let active = false;
     let matchInterval = null;
@@ -810,32 +813,77 @@
     // absolute orientation > relative fallback), and a tilt-compensated heading
     // computed from the full alpha/beta/gamma rotation.
 
-    // Heading of where the phone "points", valid both flat and upright.
+    // Heading of where the CAMERA points. Camera-first: once the phone is
+    // tilted more than ~20° off flat (always true when aiming at a boat), the
+    // back-camera direction alone is the heading — it is literally where the
+    // user points, and it's immune to wrist roll and landscape grip. Only when
+    // the phone is near-flat (camera pointing at the ground, horizontal
+    // projection degenerate) do we crossfade to the top-edge direction.
+    // A naive sum of the two vectors (previous version) let the top edge drag
+    // the heading sideways whenever the phone was rolled — up to ~45° off in
+    // landscape, which read as "points left of the target".
+    function combineHeading(backE, backN, topE, topN) {
+      const backMag = Math.hypot(backE, backN);
+      const topMag = Math.hypot(topE, topN);
+      tiltMag = backMag;
+      const w = Math.min(backMag / 0.35, 1); // ≥ ~20° tilt -> pure camera
+      let e = 0, n = 0;
+      if (backMag > 1e-6) { e += (backE / backMag) * w; n += (backN / backMag) * w; }
+      if (topMag > 1e-6) { e += (topE / topMag) * (1 - w); n += (topN / topMag) * (1 - w); }
+      if (Math.abs(e) < 1e-9 && Math.abs(n) < 1e-9) return null;
+      return ((Math.atan2(e, n) * 180 / Math.PI) + 360) % 360;
+    }
+
     // Earth frame: X=east, Y=north, Z=up. Device rotation R = Rz(a)*Rx(b)*Ry(g)
-    // (W3C deviceorientation order). We project two device vectors onto the
-    // horizontal plane and sum them:
-    //   -Z (out the back camera)  carries the signal when the phone is upright
-    //   +Y (out the top edge)     carries the signal when the phone is flat
-    // Between postures their azimuths agree, so the blend is smooth and never
-    // degenerate in normal handheld use.
+    // (W3C deviceorientation order). Project the back camera (-Z_device) and
+    // top edge (+Y_device) onto the horizontal plane.
     function headingFromEuler(alpha, beta, gamma) {
       const d = Math.PI / 180;
       const a = alpha * d, b = beta * d, g = gamma * d;
       const ca = Math.cos(a), sa = Math.sin(a);
       const cb = Math.cos(b), sb = Math.sin(b);
       const cg = Math.cos(g), sg = Math.sin(g);
-
-      // Back-camera (-Z_device) horizontal components in the earth frame
       const backE = -(ca * sg + sa * sb * cg);
       const backN = -(sa * sg - ca * sb * cg);
-      // Top-edge (+Y_device) horizontal components
       const topE = -sa * cb;
       const topN = ca * cb;
+      return combineHeading(backE, backN, topE, topN);
+    }
 
-      const e = backE + topE;
-      const n = backN + topN;
-      if (Math.abs(e) < 1e-9 && Math.abs(n) < 1e-9) return null;
-      return ((Math.atan2(e, n) * 180 / Math.PI) + 360) % 360;
+    // Same projection from a unit quaternion [x,y,z,w] (device -> earth ENU).
+    // Used with AbsoluteOrientationSensor, which avoids Euler-angle ambiguity
+    // entirely (the gimbal weirdness near vertical that plagues alpha/beta/gamma).
+    function headingFromQuaternion(q) {
+      const [x, y, z, w] = q;
+      // Rotation-matrix columns: device Z and Y axes expressed in earth frame
+      const zx = 2 * (x * z + w * y), zy = 2 * (y * z - w * x);
+      const yx = 2 * (x * y - w * z), yy = 1 - 2 * (x * x + z * z);
+      return combineHeading(-zx, -zy, yx, yy);
+    }
+
+    // Chrome Android: prefer the fused quaternion sensor when available.
+    function startSensor() {
+      if (!('AbsoluteOrientationSensor' in window)) return false;
+      try {
+        const sensor = new AbsoluteOrientationSensor({ frequency: 20 });
+        sensor.addEventListener('reading', () => {
+          if (!sensor.quaternion) return;
+          sensorActive = true;
+          gotAbsolute = true;
+          acceptHeading(headingFromQuaternion(sensor.quaternion), 'sensor');
+        });
+        sensor.addEventListener('error', () => {
+          // Permission/availability problem — fall back to orientation events
+          try { sensor.stop(); } catch (e) { /* already stopped */ }
+          if (orientationSensor === sensor) { orientationSensor = null; sensorActive = false; }
+        });
+        sensor.start();
+        orientationSensor = sensor;
+        return true;
+      } catch (e) {
+        orientationSensor = null;
+        return false;
+      }
     }
 
     function acceptHeading(heading, source) {
@@ -852,6 +900,7 @@
 
     // Android Chrome: fused absolute orientation (magnetometer + gyro)
     function onOrientationAbsolute(e) {
+      if (sensorActive) return; // quaternion sensor is feeding us
       if (e.alpha == null) return;
       gotAbsolute = true;
       acceptHeading(headingFromEuler(e.alpha, e.beta || 0, e.gamma || 0), 'absolute');
@@ -860,6 +909,7 @@
     // iOS Safari (webkitCompassHeading) + Firefox Android (absolute flag) +
     // last-resort relative fallback for devices with neither.
     function onOrientationGeneric(e) {
+      if (sensorActive) return; // quaternion sensor is feeding us
       if (e.webkitCompassHeading != null) {
         gotAbsolute = true;
         iosAccuracy = e.webkitCompassAccuracy != null ? e.webkitCompassAccuracy : null;
@@ -898,6 +948,7 @@
       const lines = [
         'src: ' + (headingSource || '--') + (headingSource === 'relative' ? '  (!) no absolute compass' : ''),
         'heading: raw ' + f(rawHeading) + '°  smoothed ' + f(smoothedHeading) + '°  decl ' + DECLINATION + '°',
+        tiltMag != null ? 'tilt: ' + f(tiltMag, 2) + (tiltMag >= 0.35 ? '  (camera mode)' : '  (near-flat: top-edge blend)') : null,
         iosAccuracy != null ? 'ios accuracy: ±' + f(iosAccuracy) + '°' + (iosAccuracy < 0 ? ' (uncalibrated)' : '') : null,
         'gps: ' + f(userLat, 5) + ', ' + f(userLng, 5) + '  ±' + f(gpsAccuracy, 0) + 'm',
         'vessels: ' + vessels.length + '  cone ±' + CONE_HALF + '°',
@@ -956,10 +1007,12 @@
 
           // On first fix, start everything
           if (!active) {
-            // Compass: absolute stream (Android Chrome) + generic stream
+            // Compass priority: quaternion AbsoluteOrientationSensor (Chrome
+            // Android, no Euler ambiguity) > absolute stream > generic stream
             // (iOS webkitCompassHeading / Firefox absolute / relative fallback).
-            // onOrientationGeneric ignores the relative stream once any
-            // absolute source has produced a heading.
+            // Event listeners stay attached as fallback; they defer to the
+            // sensor once it produces readings.
+            startSensor();
             window.addEventListener('deviceorientationabsolute', onOrientationAbsolute, true);
             window.addEventListener('deviceorientation', onOrientationGeneric, true);
 
@@ -1003,6 +1056,11 @@
 
     function stopSpotting() {
       active = false;
+      if (orientationSensor) {
+        try { orientationSensor.stop(); } catch (e) { /* already stopped */ }
+        orientationSensor = null;
+      }
+      sensorActive = false;
       window.removeEventListener('deviceorientationabsolute', onOrientationAbsolute, true);
       window.removeEventListener('deviceorientation', onOrientationGeneric, true);
       if (warnTimer) { clearTimeout(warnTimer); warnTimer = null; }
@@ -1037,6 +1095,7 @@
       headingSource = null;
       gotAbsolute = false;
       iosAccuracy = null;
+      tiltMag = null;
       userLat = null;
       userLng = null;
       gpsAccuracy = null;
