@@ -23,7 +23,11 @@ import { haversine, bearingTo } from './geo.js';
 // Quy Nhon — same point the threat distance is measured to (matches map.js center).
 const QUY_NHON = { lat: 13.77, lng: 109.22 };
 
-const GDACS_EVENTLIST = 'https://www.gdacs.org/gdacsapi/api/events/geteventlist/MAP?eventtypes=TC';
+// EVENTS4APP returns every currently-active GDACS event and is reachable from
+// the production server. (The MAP/eventtypes=TC variant 404s from the server's
+// IP, and SEARCH returns historical storms.) We filter to active tropical
+// cyclones in parseEventList below.
+const GDACS_EVENTLIST = 'https://www.gdacs.org/gdacsapi/api/events/geteventlist/EVENTS4APP';
 
 // Our basin: South China Sea + Western Pacific genesis region, generous enough
 // to catch a storm a week out east of the Philippines, tight enough to skip
@@ -129,6 +133,9 @@ export function parseEventList(fc) {
   const byId = new Map();
   for (const f of (fc && fc.features) || []) {
     const p = f.properties || {};
+    // EVENTS4APP carries every hazard type; keep only active tropical cyclones.
+    if (p.eventtype !== 'TC') continue;
+    if (String(p.iscurrent).toLowerCase() === 'false') continue;
     const id = p.eventid;
     if (id == null) continue;
 
