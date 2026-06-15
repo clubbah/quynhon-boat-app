@@ -1,4 +1,4 @@
-import { t, setLang, getLang, getLanguages } from './i18n.js?v=30';
+import { t, setLang, getLang, getLanguages } from './i18n.js?v=31';
 
 // Storm tracker page. Its own MapLibre instance, separate from the home map:
 // a light, low-detail basemap framed at regional scale so an approaching storm
@@ -8,6 +8,12 @@ const MAPTILER_KEY = 'CKY69E5ib1MMQDfWMRvg';
 const STORM_STYLE = `https://api.maptiler.com/maps/dataviz/style.json?key=${MAPTILER_KEY}`;
 const QUY_NHON = [109.22, 13.77]; // [lng, lat]
 const BASIN_VIEW = { center: [118, 15], zoom: 4.2 }; // South China Sea + W. Pacific
+
+// Preview a synthetic storm with no live system: /storms?storm=warning|watch|monitor.
+const STORM_DEMO_LEVEL = (() => {
+  const v = new URLSearchParams(location.search).get('storm');
+  return ['warning', 'watch', 'monitor'].includes(v) ? v : null;
+})();
 
 let map;
 let mapReady = false;
@@ -28,7 +34,7 @@ updateDateline();
 setInterval(updateDateline, 60 * 60 * 1000);
 initStormMap();
 fetchStorms();
-setInterval(fetchStorms, 15 * 60 * 1000);
+setInterval(fetchStorms, 5 * 60 * 1000);
 fetchLocal();
 if (getLang() !== 'en') translatePage();
 
@@ -282,7 +288,8 @@ function updateRadarLabel() {
 // ── Data ──
 async function fetchStorms() {
   try {
-    const res = await fetch('/api/storms');
+    const url = STORM_DEMO_LEVEL ? `/api/storms?demo=${STORM_DEMO_LEVEL}` : '/api/storms';
+    const res = await fetch(url);
     const data = await res.json();
     render(data);
   } catch (err) {

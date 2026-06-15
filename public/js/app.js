@@ -1,11 +1,20 @@
 import { initMap, updateVesselMarker, showTrack, clearTrack, setSelectedMmsi, getSelectedMmsi, filterMarkersByType, setMapClickHandler, flyToVessel, recenterMap, highlightVessel, clearHighlight } from './map.js';
-import { showPanel, hidePanel, initPanel } from './vessel-card.js?v=2';
-import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js?v=30';
+import { showPanel, hidePanel, initPanel } from './vessel-card.js?v=3';
+import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js?v=31';
 import { scoreSunset } from './sunset.js';
 
 // State
 let vessels = {};
 let lastDataTime = 0;
+let lastStormData = null;   // latest /api/storms snapshot; declared here so translatePage() can read it at boot
+
+// Storm banner preview: /?storm=warning|watch|monitor renders a synthetic storm.
+// Declared up here so the boot block's fetchStorms() can read it (it would be in
+// the temporal dead zone if left next to the rest of the storm code below).
+const STORM_DEMO_LEVEL = (() => {
+  const v = new URLSearchParams(location.search).get('storm');
+  return ['warning', 'watch', 'monitor'].includes(v) ? v : null;
+})();
 
 // Escape AIS-supplied strings before they go into innerHTML. The server strips
 // angle brackets, but that's one filter away from an injection hole — escape at
@@ -51,7 +60,8 @@ fetchStorms();
 setInterval(fetchWeather, 15 * 60 * 1000); // refresh every 15 min
 setInterval(fetchPortStats, 60 * 1000);     // refresh every 1 min
 setInterval(fetchPortPulse, 5 * 60 * 1000); // refresh every 5 min
-setInterval(fetchStorms, 15 * 60 * 1000);   // storm threat check every 15 min
+setInterval(fetchStorms, 5 * 60 * 1000);    // storm threat check every 5 min
+setInterval(tickStormFreshness, 60 * 1000); // tick the banner "updated Xm ago" every min
 
 function initWebSocket() {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -658,13 +668,18 @@ async function fetchArchiveStats() {
 }
 
 // ── Storm warning banner ──
-// Reads the cached /api/storms snapshot and shows a banner only when a tropical
-// cyclone is a genuine threat to Quy Nhon (warning/watch). Links to /storms.
-let lastStormData = null;
+// Reads the /api/storms snapshot and shows a live banner whenever a tropical
+// cyclone is detected near Quy Nhon: red "warning" and amber "watch" for genuine
+// threats, calm "tracking" for a storm in the region that is not heading our way.
+// The banner shows the storm's current position, ETA, and a freshness line that
+// ticks each minute so it reads as a live, constantly-updating announcement.
+// Preview it with no live storm via /?storm=warning (or watch / monitor).
+// (lastStormData is declared near the top so translatePage() can read it at boot.)
 
 async function fetchStorms() {
   try {
-    const res = await fetch('/api/storms');
+    const url = STORM_DEMO_LEVEL ? `/api/storms?demo=${STORM_DEMO_LEVEL}` : '/api/storms';
+    const res = await fetch(url);
     lastStormData = await res.json();
     renderStormBanner(lastStormData);
   } catch (err) {
@@ -675,30 +690,87 @@ async function fetchStorms() {
 function renderStormBanner(data) {
   const banner = document.getElementById('storm-banner');
   if (!banner) return;
-  const level = data && data.active ? data.threat?.level : 'none';
+  const level = data && data.active ? (data.threat?.level || 'monitor') : 'none';
 
-  if (level !== 'warning' && level !== 'watch') {
-    banner.classList.remove('show', 'watch');
+  if (level !== 'warning' && level !== 'watch' && level !== 'monitor') {
+    banner.classList.remove('show', 'watch', 'monitor');
     banner.setAttribute('aria-hidden', 'true');
     return;
   }
 
   const storm = data.storm || {};
   const th = data.threat || {};
-  const labelKey = level === 'warning' ? 'storm_banner_warning_label' : 'storm_banner_watch_label';
+
+  // Tier: icon + label + accent. A near threat warns; a distant storm informs.
+  const icon = document.getElementById('storm-banner-icon');
+  const labelKey = level === 'warning' ? 'storm_banner_warning_label'
+    : level === 'watch' ? 'storm_banner_watch_label'
+    : 'storm_banner_monitor_label';
+  if (icon) icon.textContent = level === 'monitor' ? '🌀' : '⚠️';
   document.getElementById('storm-banner-label').textContent = t(labelKey);
 
-  let headline = t('storm_banner_headline')
-    .replace('{name}', storm.name || '')
-    .replace('{dist}', th.distanceKm != null ? th.distanceKm : '?');
-  if (th.etaHours != null) {
-    const eta = th.etaHours < 48 ? `${th.etaHours}h` : `${Math.round(th.etaHours / 24)}d`;
-    headline += ' · ' + t('storm_banner_eta').replace('{eta}', eta);
-  }
+  // Headline: storm name + where it is right now relative to Quy Nhon.
+  const dist = th.currentDistanceKm != null ? th.currentDistanceKm : th.distanceKm;
+  const headline = t('storm_banner_headline')
+    .replace('{name}', storm.name || t('storm_nav'))
+    .replace('{dist}', dist != null ? dist : '?')
+    .replace('{dir}', stormCompass(th.currentBearing))
+    .replace(/\s{2,}/g, ' ').trim();
   document.getElementById('storm-banner-headline').textContent = headline;
+
+  // Detail: ETA for an approaching storm, reassurance for a distant one.
+  let detail = '';
+  if (level === 'monitor') {
+    detail = t('storm_banner_monitor_note');
+  } else if (th.etaHours != null) {
+    detail = t('storm_banner_eta').replace('{eta}', stormEtaText(th.etaHours));
+  }
+  setStormMetaText(detail);
+  document.getElementById('storm-banner-live-text').textContent = t('storm_banner_live');
   document.getElementById('storm-banner-cta').textContent = t('storm_banner_cta');
 
-  banner.classList.toggle('watch', level === 'watch');
+  // In preview mode, carry the demo level through to the /storms page.
+  banner.setAttribute('href', STORM_DEMO_LEVEL ? `/storms?storm=${STORM_DEMO_LEVEL}` : '/storms');
+
+  banner.classList.remove('watch', 'monitor');
+  if (level === 'watch') banner.classList.add('watch');
+  if (level === 'monitor') banner.classList.add('monitor');
   banner.classList.add('show');
   banner.setAttribute('aria-hidden', 'false');
+}
+
+function setStormMetaText(detail) {
+  const freshEl = document.getElementById('storm-banner-fresh');
+  const detailEl = document.getElementById('storm-banner-detail');
+  // Separators come from CSS (::before middots), so set clean text here.
+  if (freshEl) freshEl.textContent = lastStormData ? stormFreshText(lastStormData.updatedAt) : '';
+  if (detailEl) detailEl.textContent = detail || '';
+}
+
+// Re-stamp the "updated X min ago" line every minute so the banner visibly stays
+// live between fetches.
+function tickStormFreshness() {
+  const banner = document.getElementById('storm-banner');
+  if (!banner || !banner.classList.contains('show') || !lastStormData) return;
+  const freshEl = document.getElementById('storm-banner-fresh');
+  if (freshEl) freshEl.textContent = stormFreshText(lastStormData.updatedAt);
+}
+
+function stormCompass(bearing) {
+  if (bearing == null) return '';
+  const arr = t('storm_compass');
+  const list = Array.isArray(arr) ? arr : ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  return list[Math.round(bearing / 45) % 8] || '';
+}
+
+function stormFreshText(updatedAt) {
+  if (!updatedAt) return '';
+  const min = Math.floor(Math.max(0, (Date.now() - new Date(updatedAt).getTime()) / 60000));
+  if (min < 1) return t('storm_banner_updated_now');
+  if (min < 60) return t('storm_banner_updated').replace('{n}', min);
+  return t('storm_banner_updated_hr').replace('{n}', Math.floor(min / 60));
+}
+
+function stormEtaText(h) {
+  return h < 48 ? `${h}h` : `${Math.round(h / 24)}d`;
 }

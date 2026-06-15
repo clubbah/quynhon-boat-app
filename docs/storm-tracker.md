@@ -18,11 +18,16 @@ User-facing surface:
   storm is active it shows the past track, forecast path, wind-impact cone, current
   category, and live distance/ETA to Quy Nhon, plus animated rain radar. When
   nothing is active it shows a calm "No storms threatening Quy Nhon" state.
-- **Home-page warning banner** — appears only when threat level is `warning` or
-  `watch`. Hidden otherwise. Links to `/storms`.
-- **Discoverability** — a live "Storm Tracker" card in the home "Explore Quy Nhon"
-  section (first card), plus a footer link. The banner is threat-only, so these are
-  the always-visible entry points.
+- **Home-page storm banner** — a live announcement that appears whenever a cyclone
+  is detected near Quy Nhon: red `warning` and amber `watch` for genuine threats,
+  calm slate `monitor` for a storm in the basin that is not heading our way (hidden
+  only at `none`). Shows the storm's current distance + compass direction and ETA,
+  plus a "Live · updated X ago" line that re-stamps every minute so it reads as a
+  live feed. Links to `/storms`. Preview it with no live storm via `/?storm=warning`
+  (or `watch` / `monitor`).
+- **Discoverability** — a "Storm Tracker" card in the home "Explore Quy Nhon" section
+  (first card), plus a footer link. The Explore grid is 3 cards (Storm Tracker,
+  Business Directory, Boat Tours); the Beach Guide placeholder was removed.
 
 ## Files
 
@@ -111,9 +116,25 @@ one endpoint for both the page and the banner.
 - Grade bands (tunable in `gradeThreat`):
   - `warning` (red banner): closest < 200 km within ~72h, OR GDACS Red affecting VN / < 400 km.
   - `watch` (amber banner): closest < 500 km within ~120h, OR GDACS Orange in region.
-  - `monitor`: a storm is in the basin but not a near threat (shown on the page, no banner).
+  - `monitor`: a storm is in the basin but not a near threat (calm slate banner +
+    the page; informs and reassures rather than alarms).
   - `none`: nothing relevant (page shows all-clear, banner hidden).
 - Primary storm = smallest closest-approach distance. `others[]` holds the rest.
+- `threat` also carries `currentBearing` (compass direction of the storm's current
+  position from Quy Nhon) for the banner headline, alongside `bearing` (to closest point).
+
+### Refresh cadence (adaptive)
+The monitor polls GDACS every 30 min when the basin is clear and every 10 min while a
+storm is active (cache TTL 20 / 8 min), so the banner stays live during an event without
+hammering the API when nothing is happening. The home banner re-fetches every 5 min and
+re-stamps its "updated X ago" line every minute.
+
+### Preview / demo mode
+With no live storm you cannot see the banner or a populated map. `/api/storms?demo=LEVEL`
+(`warning` | `watch` | `monitor`) returns a synthetic but realistic snapshot — including a
+generated past/forecast track — that **bypasses the cache and is never produced by the real
+poller**. The pages forward it from their own URL: `/?storm=warning` drives the home banner,
+`/storms?storm=warning` drives the map. Ordinary visitors never trigger it.
 
 ## Map rendering (`public/js/storm.js`)
 
@@ -166,8 +187,8 @@ ssh root@5.78.191.155 "cd /opt/quynhon-boat-app && git pull origin master && pm2
   `public/sw.js` PRECACHE_URLS, and bump `CACHE_NAME`.
 
 ### Current asset versions (keep in sync)
-- `app.js?v=32`, `storm.js?v=6`, `style.css?v=28`, `i18n.js?v=30`, `vessel-card.js?v=2`
-- `sw.js` `CACHE_NAME = 'qnl-v41'`
+- `app.js?v=34`, `storm.js?v=7`, `style.css?v=29`, `i18n.js?v=31`, `vessel-card.js?v=3`
+- `sw.js` `CACHE_NAME = 'qnl-v43'`
 - `map.js` is unversioned (busted only by the CACHE_NAME bump).
 
 ## Gotchas / lessons (the expensive ones)
@@ -189,6 +210,14 @@ ssh root@5.78.191.155 "cd /opt/quynhon-boat-app && git pull origin master && pm2
 7. The home `renderPulseTimeline` had a latent crash (replaced its own placeholder
    then dereferenced it). Fixed to recreate the placeholder. Unrelated to storms but
    fixed in the same work.
+8. **Module-level state read at boot must be declared before the boot block.** `app.js`
+   calls `translatePage()` at load for non-English visitors, and that reads the
+   module-level `lastStormData`. The `let` originally lived near the bottom of the file,
+   so a non-English first load hit a temporal-dead-zone `ReferenceError` and the whole
+   boot halted (blank page for vi/ko/zh/ja users). Fixed by hoisting `lastStormData` to
+   the top with the other state. Watch for this any time boot-time code touches a
+   `let`/`const` declared lower in the module. The banner demo (`/?storm=warning`) plus a
+   language switch is the fastest way to catch it.
 
 ## Ideas / future work
 

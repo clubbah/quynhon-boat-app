@@ -12,7 +12,7 @@ import { connectAisStream } from './ais-client.js';
 import { parseAisCatcherMessage, isWithinBounds, isNonVesselMmsi, QN_BOUNDS } from './ais-parser.js';
 import { startCleanup } from './cleanup.js';
 import { startHealthMonitor, getHealthSnapshot } from './health-monitor.js';
-import { startStormMonitor, getStormSnapshot } from './storm-monitor.js';
+import { startStormMonitor, getStormSnapshot, buildDemoSnapshot } from './storm-monitor.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -217,8 +217,16 @@ app.get('/api/weather', async (req, res) => {
   }
 });
 
-// Active tropical cyclones near Quy Nhon (cached, refreshed by the storm monitor)
+// Active tropical cyclones near Quy Nhon (cached, refreshed by the storm monitor).
+// ?demo=warning|watch|monitor returns a synthetic storm for previewing the banner
+// and map when nothing is live — it bypasses the cache and never affects real data.
 app.get('/api/storms', async (req, res) => {
+  const demo = req.query.demo;
+  if (demo) {
+    const sample = buildDemoSnapshot(String(demo));
+    if (sample) return res.json(sample);
+    return res.status(400).json({ error: 'Unknown demo level' });
+  }
   const data = await getStormSnapshot();
   if (data) {
     res.json(data);

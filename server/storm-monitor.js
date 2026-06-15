@@ -34,8 +34,12 @@ const GDACS_EVENTLIST = 'https://www.gdacs.org/gdacsapi/api/events/geteventlist/
 // Atlantic / East-Pacific systems we never need to fetch geometry for.
 const BASIN = { minLng: 99, maxLng: 170, minLat: -5, maxLat: 45 };
 
-const CACHE_TTL_MS = 20 * 60 * 1000;        // serve cached data for 20 min
-const CHECK_INTERVAL_MS = 30 * 60 * 1000;   // refresh the cache every 30 min
+// Refresh fast while a storm is active so the home banner reads as live, and
+// relax when the basin is clear to stay light on the GDACS API.
+const ACTIVE_TTL_MS = 8 * 60 * 1000;        // serve cached data for 8 min during a storm
+const CALM_TTL_MS = 20 * 60 * 1000;         // ...20 min when nothing is active
+const ACTIVE_INTERVAL_MS = 10 * 60 * 1000;  // re-poll GDACS every 10 min during a storm
+const CALM_INTERVAL_MS = 30 * 60 * 1000;    // ...every 30 min when clear
 const FIRST_RUN_DELAY_MS = 15 * 1000;       // warm the cache shortly after boot
 
 let stormCache = { data: null, fetchedAt: 0 };
@@ -46,7 +50,8 @@ let stormCache = { data: null, fetchedAt: 0 };
 // fetchWeather), which may be null until the first successful fetch.
 export async function getStormSnapshot() {
   const now = Date.now();
-  if (stormCache.data && (now - stormCache.fetchedAt) < CACHE_TTL_MS) {
+  const ttl = (stormCache.data && stormCache.data.active) ? ACTIVE_TTL_MS : CALM_TTL_MS;
+  if (stormCache.data && (now - stormCache.fetchedAt) < ttl) {
     return stormCache.data;
   }
   try {
@@ -61,19 +66,27 @@ export async function getStormSnapshot() {
 
 export function startStormMonitor() {
   console.log('[Storm] Monitor started. Source: GDACS tropical cyclones. ' +
-    `Refresh every ${CHECK_INTERVAL_MS / 60000} min.`);
-  const run = () => getStormSnapshot()
-    .then((s) => {
-      if (s && s.active) {
+    `Refresh every ${ACTIVE_INTERVAL_MS / 60000} min while active, ` +
+    `${CALM_INTERVAL_MS / 60000} min when clear.`);
+  // Self-rescheduling loop: poll often while a storm is active so the banner
+  // stays live, and back off when the basin is clear.
+  const run = async () => {
+    let active = false;
+    try {
+      const s = await getStormSnapshot();
+      active = !!(s && s.active);
+      if (active) {
         console.log(`[Storm] Active near basin: ${s.storm.name} ` +
           `(${s.threat.level}, ${s.threat.distanceKm} km from Quy Nhon)`);
       } else {
         console.log('[Storm] No active tropical cyclone threatening Quy Nhon.');
       }
-    })
-    .catch((err) => console.error('[Storm] Check failed:', err.message));
+    } catch (err) {
+      console.error('[Storm] Check failed:', err.message);
+    }
+    setTimeout(run, active ? ACTIVE_INTERVAL_MS : CALM_INTERVAL_MS);
+  };
   setTimeout(run, FIRST_RUN_DELAY_MS);
-  setInterval(run, CHECK_INTERVAL_MS);
 }
 
 // ── Snapshot builder ──
@@ -121,6 +134,105 @@ function emptySnapshot() {
     threat: { level: 'none', distanceKm: null, etaHours: null },
     storm: null,
     others: [],
+  };
+}
+
+// ── Demo / preview ──
+// There is usually no live storm, so the banner and /storms page can't be seen.
+// buildDemoSnapshot returns a synthetic but realistic snapshot for previewing:
+// visit /?storm=warning (or watch / monitor) on the home page, or
+// /storms?storm=warning. It is only ever returned for the explicit ?demo query
+// param on /api/storms — it never enters the cache and the real poller never
+// produces it, so ordinary visitors never see it.
+const DEMO_STORMS = {
+  warning: {
+    name: 'Kajiki', alertlevel: 'Red', windKmh: 165, category: 'Typhoon',
+    currentDistanceKm: 210, currentBearing: 115, closestKm: 90, etaHours: 30,
+  },
+  watch: {
+    name: 'Peipah', alertlevel: 'Orange', windKmh: 110, category: 'Severe Tropical Storm',
+    currentDistanceKm: 480, currentBearing: 100, closestKm: 360, etaHours: 78,
+  },
+  monitor: {
+    name: 'Fung-wong', alertlevel: 'Green', windKmh: 75, category: 'Tropical Storm',
+    currentDistanceKm: 1150, currentBearing: 95, closestKm: 720, etaHours: null,
+  },
+};
+
+export function buildDemoSnapshot(level) {
+  const d = DEMO_STORMS[level];
+  if (!d) return null;
+  const geom = synthGeometry(d.currentDistanceKm, d.currentBearing, d.closestKm);
+  const threat = {
+    level,
+    distanceKm: d.closestKm,
+    etaHours: d.etaHours,
+    currentDistanceKm: d.currentDistanceKm,
+    currentBearing: d.currentBearing,
+    closestAt: null,
+    bearing: d.currentBearing,
+  };
+  return {
+    active: true,
+    demo: true,
+    updatedAt: new Date().toISOString(),
+    quyNhon: QUY_NHON,
+    threat,
+    storm: {
+      eventid: `demo-${level}`,
+      name: d.name,
+      alertlevel: d.alertlevel,
+      windKmh: d.windKmh,
+      category: d.category,
+      current: geom.current,
+      bbox: geom.bbox,
+      pastTrack: geom.pastTrack,
+      forecastTrack: geom.forecastTrack,
+      cone: featureCollection([]),
+      points: geom.points,
+      threat,
+    },
+    others: [],
+  };
+}
+
+// Build a simple bent track: from far out, through the current position, toward
+// a closest-approach point ~closestKm off Quy Nhon. Equirectangular offsets are
+// accurate enough for a visual preview and are never used for real threat math.
+function synthGeometry(currentKm, bearingDeg, closestKm) {
+  const offset = (distKm, brg) => {
+    const br = (brg * Math.PI) / 180;
+    const dLat = (distKm / 111) * Math.cos(br);
+    const dLng = (distKm / (111 * Math.cos((QUY_NHON.lat * Math.PI) / 180))) * Math.sin(br);
+    return [QUY_NHON.lng + dLng, QUY_NHON.lat + dLat];
+  };
+  const lerp = (a, b, tt) => [a[0] + (b[0] - a[0]) * tt, a[1] + (b[1] - a[1]) * tt];
+
+  const origin = offset(currentKm + 750, bearingDeg + 8);
+  const cur = offset(currentKm, bearingDeg);
+  const closest = offset(closestKm, bearingDeg - 22);
+  const beyond = offset(closestKm + 300, bearingDeg - 38);
+
+  const past = [origin, lerp(origin, cur, 0.5), cur];
+  const forecast = [cur, lerp(cur, closest, 0.5), closest, beyond];
+
+  const bbox = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const [lng, lat] of [...past, ...forecast]) {
+    if (lng < bbox[0]) bbox[0] = lng;
+    if (lat < bbox[1]) bbox[1] = lat;
+    if (lng > bbox[2]) bbox[2] = lng;
+    if (lat > bbox[3]) bbox[3] = lat;
+  }
+
+  const line = (coords, fc) => ({ type: 'Feature', geometry: { type: 'LineString', coordinates: coords }, properties: { forecast: fc } });
+  const point = (coords, fc) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: coords }, properties: { forecast: fc } });
+
+  return {
+    current: { lng: cur[0], lat: cur[1] },
+    bbox,
+    pastTrack: featureCollection([line(past, false)]),
+    forecastTrack: featureCollection([line(forecast, true)]),
+    points: featureCollection([point(cur, false), point(closest, true)]),
   };
 }
 
@@ -294,6 +406,7 @@ export function computeThreat(points, current, ev) {
   }
 
   const currentDistance = current ? haversine(QUY_NHON.lat, QUY_NHON.lng, current.lat, current.lng) : null;
+  const currentBearing = current ? bearingTo(QUY_NHON.lat, QUY_NHON.lng, current.lat, current.lng) : null;
   const distanceKm = Number.isFinite(closest)
     ? Math.round(closest)
     : (currentDistance != null ? Math.round(currentDistance) : null);
@@ -309,6 +422,7 @@ export function computeThreat(points, current, ev) {
     distanceKm,
     etaHours,
     currentDistanceKm: currentDistance != null ? Math.round(currentDistance) : null,
+    currentBearing: currentBearing != null ? Math.round(currentBearing) : null,
     closestAt,
     bearing: closestBearing != null ? Math.round(closestBearing) : null,
   };

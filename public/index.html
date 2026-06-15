@@ -56,7 +56,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
-  <link rel="stylesheet" href="/css/style.css?v=28" />
+  <link rel="stylesheet" href="/css/style.css?v=29" />
 
   <!-- Schema.org Structured Data -->
   <script type="application/ld+json">
@@ -142,10 +142,15 @@
     <!-- ── Storm warning banner (shown only when a cyclone threatens Quy Nhon) ── -->
     <a class="storm-banner" id="storm-banner" href="/storms" aria-hidden="true">
       <span class="storm-banner-inner">
-        <span class="storm-banner-icon">&#9888;&#65039;</span>
+        <span class="storm-banner-icon" id="storm-banner-icon">&#9888;&#65039;</span>
         <span class="storm-banner-body">
           <span class="storm-banner-label" id="storm-banner-label"></span>
           <span class="storm-banner-headline" id="storm-banner-headline"></span>
+          <span class="storm-banner-meta">
+            <span class="storm-banner-live"><span class="storm-banner-dot" aria-hidden="true"></span><span id="storm-banner-live-text"></span></span>
+            <span class="storm-banner-fresh" id="storm-banner-fresh"></span>
+            <span class="storm-banner-detail" id="storm-banner-detail"></span>
+          </span>
         </span>
         <span class="storm-banner-cta" id="storm-banner-cta"></span>
       </span>
@@ -272,12 +277,6 @@
             <span class="explore-card-desc" data-i18n="explore_tours_desc">Island hopping, snorkeling, and bay cruises</span>
             <span class="explore-card-cta" data-i18n="explore_tours_cta">Browse on Klook →</span>
           </a>
-          <div class="explore-card">
-            <span class="explore-emoji">&#127958;</span>
-            <span class="explore-card-title" data-i18n="explore_beach_title">Beach Guide</span>
-            <span class="explore-card-desc" data-i18n="explore_beach_desc">Best beaches, swimming conditions, and hidden coves</span>
-            <span class="explore-card-tag" data-i18n="explore_coming_soon">Coming soon</span>
-          </div>
         </div>
       </div>
     </section>
@@ -372,7 +371,7 @@
   </a>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script type="module" src="/js/app.js?v=32"></script>
+  <script type="module" src="/js/app.js?v=34"></script>
   <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}</script>
 </body>
 </html>
