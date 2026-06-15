@@ -12,6 +12,7 @@ import { connectAisStream } from './ais-client.js';
 import { parseAisCatcherMessage, isWithinBounds, isNonVesselMmsi, QN_BOUNDS } from './ais-parser.js';
 import { startCleanup } from './cleanup.js';
 import { startHealthMonitor, getHealthSnapshot } from './health-monitor.js';
+import { startStormMonitor, getStormSnapshot } from './storm-monitor.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -49,6 +50,9 @@ app.get('/status', (req, res) => {
 });
 app.get('/trends', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'trends.html'));
+});
+app.get('/storms', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'storm.html'));
 });
 
 // Health/status endpoint (used by status page + external monitoring)
@@ -210,6 +214,16 @@ app.get('/api/weather', async (req, res) => {
     res.json(data);
   } else {
     res.status(503).json({ error: 'Weather data unavailable' });
+  }
+});
+
+// Active tropical cyclones near Quy Nhon (cached, refreshed by the storm monitor)
+app.get('/api/storms', async (req, res) => {
+  const data = await getStormSnapshot();
+  if (data) {
+    res.json(data);
+  } else {
+    res.status(503).json({ error: 'Storm data unavailable' });
   }
 });
 
@@ -473,6 +487,9 @@ startCleanup(db, pruneOldData, compressPositions);
 
 // Health monitor — alerts when AIS feed goes stale
 startHealthMonitor(db, feedStats);
+
+// Storm monitor — tracks tropical cyclones near Quy Nhon for the storm page + banner
+startStormMonitor();
 
 // Start
 server.listen(PORT, () => {

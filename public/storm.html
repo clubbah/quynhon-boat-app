@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Storm Tracker — Quy Nhon Life</title>
+  <meta name="description" content="Live tropical cyclone and typhoon tracking for Quy Nhon, Vietnam. See a storm's path, forecast, and how close it comes to Quy Nhon, with a clear warning when one approaches.">
+  <meta name="keywords" content="Quy Nhon typhoon, Quy Nhon storm, tropical cyclone Vietnam, typhoon tracker, Binh Dinh storm warning, bao Quy Nhon">
+  <meta name="author" content="Quy Nhon Life">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://quynhonlife.com/storms">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Quy Nhon Life">
+  <meta property="og:title" content="Storm Tracker — Quy Nhon Life">
+  <meta property="og:description" content="Live typhoon and tropical cyclone tracking for Quy Nhon, Vietnam, with a clear warning when a storm approaches.">
+  <meta property="og:url" content="https://quynhonlife.com/storms">
+  <meta property="og:image" content="https://quynhonlife.com/img/qnl-logo.png">
+
+  <!-- hreflang for multilingual -->
+  <link rel="alternate" hreflang="en" href="https://quynhonlife.com/storms">
+  <link rel="alternate" hreflang="vi" href="https://quynhonlife.com/storms">
+  <link rel="alternate" hreflang="ko" href="https://quynhonlife.com/storms">
+  <link rel="alternate" hreflang="zh" href="https://quynhonlife.com/storms">
+  <link rel="alternate" hreflang="ja" href="https://quynhonlife.com/storms">
+  <link rel="alternate" hreflang="x-default" href="https://quynhonlife.com/storms">
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0d9488">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Quy Nhon Life">
+
+  <!-- Favicons -->
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/img/icon-192.png">
+
+  <!-- Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-6Q874P6V67"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-6Q874P6V67');</script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  <link rel="stylesheet" href="/css/style.css?v=28" />
+</head>
+<body>
+
+  <!-- ── Dateline ── -->
+  <div class="dateline">
+    <div class="dateline-inner">
+      <span class="dateline-date" id="dateline-date"></span>
+      <span class="dateline-place" data-i18n="dateline_place">Quy Nh&#417;n, Vietnam</span>
+      <span class="dateline-live"><span class="dateline-dot"></span><span data-i18n="dateline_live">Live</span></span>
+    </div>
+  </div>
+
+  <!-- ── Masthead ── -->
+  <header class="masthead">
+    <div class="masthead-inner">
+      <div class="masthead-brand">
+        <a href="/" class="masthead-logo-link"><img src="/img/qnl-logo.png?v=4" alt="Quy Nhon Life" class="masthead-logo" /></a>
+        <p class="masthead-tagline" data-i18n="storm_subtitle">Live tropical cyclone tracking for Quy Nh&#417;n</p>
+      </div>
+      <h1 class="visually-hidden" data-i18n="storm_title">Storm Tracker</h1>
+      <div class="lang-switcher" id="lang-switcher"></div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ── Status hero ── -->
+    <section class="section section--storm-status">
+      <div class="section-inner">
+        <span class="section-label" data-i18n="storm_title">Storm Tracker</span>
+        <div class="storm-status" id="storm-status">
+          <span class="storm-status-icon" id="storm-status-icon">&#9203;</span>
+          <div class="storm-status-text">
+            <span class="storm-status-title" id="storm-status-title" data-i18n="storm_checking">Checking for storms&hellip;</span>
+            <span class="storm-status-desc" id="storm-status-desc"></span>
+          </div>
+        </div>
+
+        <!-- Storm facts (shown only when a storm is active) -->
+        <div class="storm-meta" id="storm-meta" hidden>
+          <div class="storm-meta-item"><span class="storm-meta-label" data-i18n="storm_cat">Category</span><span class="storm-meta-value" id="sm-category"></span></div>
+          <div class="storm-meta-item"><span class="storm-meta-label" data-i18n="storm_wind">Max wind</span><span class="storm-meta-value" id="sm-wind"></span></div>
+          <div class="storm-meta-item"><span class="storm-meta-label" data-i18n="storm_dist_now">Distance now</span><span class="storm-meta-value" id="sm-distance"></span></div>
+          <div class="storm-meta-item"><span class="storm-meta-label" data-i18n="storm_closest">Closest approach</span><span class="storm-meta-value" id="sm-closest"></span></div>
+          <div class="storm-meta-item"><span class="storm-meta-label" data-i18n="storm_eta">ETA to closest</span><span class="storm-meta-value" id="sm-eta"></span></div>
+          <div class="storm-meta-item"><span class="storm-meta-label" data-i18n="storm_alert">Alert level</span><span class="storm-meta-value" id="sm-alert"></span></div>
+        </div>
+      </div>
+
+      <!-- Map: full bleed -->
+      <div class="map-wrapper">
+        <div id="storm-map"></div>
+        <div class="storm-radar-label" id="storm-radar-label" hidden></div>
+        <div class="map-legend storm-legend" id="storm-legend">
+          <div class="legend-item"><span class="legend-line past"></span><span data-i18n="storm_leg_past">Past track</span></div>
+          <div class="legend-item"><span class="legend-line forecast"></span><span data-i18n="storm_leg_forecast">Forecast path</span></div>
+          <div class="legend-item"><span class="legend-swatch cone"></span><span data-i18n="storm_leg_cone">Wind impact zone</span></div>
+          <div class="legend-item"><span class="legend-mark storm">&#128168;</span><span data-i18n="storm_leg_now">Storm now</span></div>
+          <div class="legend-item"><span class="legend-dot" style="background:#0d9488"></span><span data-i18n="storm_leg_qn">Quy Nh&#417;n</span></div>
+        </div>
+        <div class="storm-controls">
+          <button class="map-recenter storm-ctrl" id="storm-focus" type="button" data-i18n-title="storm_focus" title="Focus Quy Nhon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+          </button>
+          <button class="map-recenter storm-ctrl" id="storm-fit" type="button" data-i18n-title="storm_whole" title="Whole storm">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9V5a2 2 0 0 1 2-2h4M21 9V5a2 2 0 0 0-2-2h-4M3 15v4a2 2 0 0 0 2 2h4M21 15v4a2 2 0 0 1-2 2h-4"/></svg>
+          </button>
+          <button class="map-recenter storm-ctrl" id="radar-toggle" type="button" data-i18n-title="storm_radar" title="Rain radar" aria-pressed="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12a10 10 0 0 1-10 10M16 12a4 4 0 0 1-4 4"/><circle cx="12" cy="12" r="1"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Local conditions + data source -->
+      <div class="section-inner storm-below">
+        <div class="storm-local" id="storm-local" hidden>
+          <span class="storm-local-label" data-i18n="storm_local">Now in Quy Nh&#417;n</span>
+          <span class="storm-local-values" id="storm-local-values"></span>
+        </div>
+        <p class="storm-updated" id="storm-updated"></p>
+      </div>
+    </section>
+
+    <!-- ── About / disclaimer ── -->
+    <section class="section section--storm-about">
+      <div class="section-inner">
+        <span class="section-label" data-i18n="storm_about_label">About this tracker</span>
+        <p class="storm-about-text" data-i18n="storm_about">Quy Nhon Life tracks tropical cyclones in the Western Pacific and South China Sea, the storms that reach central Vietnam. The map shows where a storm came from, its forecast path and likely wind zone, and how close it is expected to pass to Quy Nhon.</p>
+        <p class="storm-disclaimer" data-i18n="storm_disclaimer">For information only. In an emergency, follow official warnings from Vietnam's National Center for Hydro-Meteorological Forecasting and your local authorities.</p>
+        <p class="storm-source" id="storm-source" data-i18n="storm_source">Storm data: GDACS (UN/EU). Rain radar: RainViewer. Local weather: Open-Meteo.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <p id="footer-text">Quy Nhon Life &mdash; Tracking the waters of central Vietnam</p>
+    <p class="footer-links"><a href="/" data-i18n="storm_back_home">Home</a> &middot; <a href="/trends">Port in Numbers</a> &middot; <a href="/privacy">Privacy Policy</a> &middot; <a href="/terms">Terms of Service</a> &middot; <a href="/status">System Status</a> &middot; <a href="mailto:hello@quynhonlife.com">Contact</a></p>
+  </footer>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script type="module" src="/js/storm.js?v=5"></script>
+  <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}</script>
+</body>
+</html>

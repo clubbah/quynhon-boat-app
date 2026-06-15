@@ -47,9 +47,11 @@ fetchWeather();
 fetchPortStats();
 fetchPortPulse();
 fetchArchiveStats();
+fetchStorms();
 setInterval(fetchWeather, 15 * 60 * 1000); // refresh every 15 min
 setInterval(fetchPortStats, 60 * 1000);     // refresh every 1 min
 setInterval(fetchPortPulse, 5 * 60 * 1000); // refresh every 5 min
+setInterval(fetchStorms, 15 * 60 * 1000);   // storm threat check every 15 min
 
 function initWebSocket() {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -229,6 +231,7 @@ function translatePage() {
   fetchPortPulse();
   fetchArchiveStats();
   fetchWeather(); // Re-render sunset prediction in new language
+  renderStormBanner(lastStormData); // Re-render storm banner in new language
 
   // Update vessel card if open (re-render + re-fetch history for new language)
   const sel = getSelectedMmsi();
@@ -657,4 +660,50 @@ async function fetchArchiveStats() {
   } catch (err) {
     console.error('Archive stats fetch failed:', err);
   }
+}
+
+// ── Storm warning banner ──
+// Reads the cached /api/storms snapshot and shows a banner only when a tropical
+// cyclone is a genuine threat to Quy Nhon (warning/watch). Links to /storms.
+let lastStormData = null;
+
+async function fetchStorms() {
+  try {
+    const res = await fetch('/api/storms');
+    lastStormData = await res.json();
+    renderStormBanner(lastStormData);
+  } catch (err) {
+    console.error('Storm fetch failed:', err);
+  }
+}
+
+function renderStormBanner(data) {
+  const banner = document.getElementById('storm-banner');
+  if (!banner) return;
+  const level = data && data.active ? data.threat?.level : 'none';
+
+  if (level !== 'warning' && level !== 'watch') {
+    banner.classList.remove('show', 'watch');
+    banner.setAttribute('aria-hidden', 'true');
+    return;
+  }
+
+  const storm = data.storm || {};
+  const th = data.threat || {};
+  const labelKey = level === 'warning' ? 'storm_banner_warning_label' : 'storm_banner_watch_label';
+  document.getElementById('storm-banner-label').textContent = t(labelKey);
+
+  let headline = t('storm_banner_headline')
+    .replace('{name}', storm.name || '')
+    .replace('{dist}', th.distanceKm != null ? th.distanceKm : '?');
+  if (th.etaHours != null) {
+    const eta = th.etaHours < 48 ? `${th.etaHours}h` : `${Math.round(th.etaHours / 24)}d`;
+    headline += ' · ' + t('storm_banner_eta').replace('{eta}', eta);
+  }
+  document.getElementById('storm-banner-headline').textContent = headline;
+  document.getElementById('storm-banner-cta').textContent = t('storm_banner_cta');
+
+  banner.classList.toggle('watch', level === 'watch');
+  banner.classList.add('show');
+  banner.setAttribute('aria-hidden', 'false');
 }

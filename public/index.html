@@ -56,7 +56,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
-  <link rel="stylesheet" href="/css/style.css?v=25" />
+  <link rel="stylesheet" href="/css/style.css?v=28" />
 
   <!-- Schema.org Structured Data -->
   <script type="application/ld+json">
@@ -138,6 +138,18 @@
   </header>
 
   <main>
+
+    <!-- ── Storm warning banner (shown only when a cyclone threatens Quy Nhon) ── -->
+    <a class="storm-banner" id="storm-banner" href="/storms" aria-hidden="true">
+      <span class="storm-banner-inner">
+        <span class="storm-banner-icon">&#9888;&#65039;</span>
+        <span class="storm-banner-body">
+          <span class="storm-banner-label" id="storm-banner-label"></span>
+          <span class="storm-banner-headline" id="storm-banner-headline"></span>
+        </span>
+        <span class="storm-banner-cta" id="storm-banner-cta"></span>
+      </span>
+    </a>
 
     <!-- ── Live Vessels Section ── -->
     <section class="section section--vessels">
@@ -305,7 +317,7 @@
 
   <footer class="site-footer">
     <p id="footer-text">Quy Nhon Life &mdash; Tracking the waters of central Vietnam</p>
-    <p class="footer-links"><a href="/trends">Port in Numbers</a> &middot; <a href="/privacy">Privacy Policy</a> &middot; <a href="/terms">Terms of Service</a> &middot; <a href="/status">System Status</a> &middot; <a href="mailto:hello@quynhonlife.com">Contact</a></p>
+    <p class="footer-links"><a href="/storms" data-i18n="storm_nav">Storm Tracker</a> &middot; <a href="/trends">Port in Numbers</a> &middot; <a href="/privacy">Privacy Policy</a> &middot; <a href="/terms">Terms of Service</a> &middot; <a href="/status">System Status</a> &middot; <a href="mailto:hello@quynhonlife.com">Contact</a></p>
     <p class="footer-affiliate">Some links earn us a small commission at no extra cost to you.</p>
   </footer>
 
@@ -356,7 +368,7 @@
   </a>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script type="module" src="/js/app.js?v=27"></script>
+  <script type="module" src="/js/app.js?v=29"></script>
   <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}</script>
 </body>
 </html>

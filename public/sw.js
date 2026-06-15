@@ -1,9 +1,11 @@
-const CACHE_NAME = 'qnl-v37';
+const CACHE_NAME = 'qnl-v38';
 const PRECACHE_URLS = [
   '/',
   '/spot',
-  '/css/style.css?v=25',
-  '/js/app.js?v=27',
+  '/storms',
+  '/css/style.css?v=28',
+  '/js/app.js?v=29',
+  '/js/storm.js?v=5',
   '/js/i18n.js',
   '/js/map.js',
   '/js/sunset.js',
