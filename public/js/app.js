@@ -377,14 +377,7 @@ async function fetchWeather() {
     const m = data.marine?.current;
     if (!c) return;
 
-    const sunrise = d?.sunrise?.[0] || '';
-    const sunset = d?.sunset?.[0] || '';
-    const night = isNightTime(sunrise, sunset);
-    const codes = night ? WEATHER_CODES_NIGHT : WEATHER_CODES_DAY;
-    const [icon, desc] = codes[c.weather_code] || ['🌡️', ''];
-    document.getElementById('weather-icon').textContent = icon;
     document.getElementById('weather-temp').textContent = Math.round(c.temperature_2m) + '°C';
-    document.getElementById('weather-desc').textContent = desc;
 
     document.getElementById('weather-wind').innerHTML =
       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg> ${c.wind_speed_10m} km/h ${windDirection(c.wind_direction_10m)}`;

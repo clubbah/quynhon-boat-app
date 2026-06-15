@@ -157,9 +157,7 @@
         <div class="info-row">
           <div class="info-left">
             <div class="weather-bar" id="weather-bar">
-              <span class="weather-icon" id="weather-icon"></span>
               <span class="weather-temp" id="weather-temp">--</span>
-              <span class="weather-desc" id="weather-desc"></span>
               <span class="weather-detail" id="weather-wind"></span>
               <span class="weather-detail" id="weather-humidity"></span>
               <span class="weather-detail" id="weather-waves"></span>
@@ -255,6 +253,12 @@
       <div class="section-inner">
         <span class="section-label" data-i18n="explore_label">Explore Quy Nhon</span>
         <div class="explore-grid">
+          <a class="explore-card" href="/storms">
+            <span class="explore-emoji">&#127744;</span>
+            <span class="explore-card-title" data-i18n="storm_nav">Storm Tracker</span>
+            <span class="explore-card-desc" data-i18n="storm_subtitle">Live tropical cyclone tracking for Quy Nh&#417;n</span>
+            <span class="explore-card-cta"><span data-i18n="storm_banner_cta">Open tracker</span> &rarr;</span>
+          </a>
           <div class="explore-card">
             <span class="explore-emoji">&#127978;</span>
             <span class="explore-card-title" data-i18n="explore_directory_title">Business Directory</span>
@@ -368,7 +372,7 @@
   </a>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script type="module" src="/js/app.js?v=31"></script>
+  <script type="module" src="/js/app.js?v=32"></script>
   <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}</script>
 </body>
 </html>
