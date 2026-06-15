@@ -564,13 +564,15 @@ async function fetchPortPulse() {
 
 function renderPulseTimeline(visits) {
   const timeline = document.getElementById('pulse-timeline');
-  const empty = document.getElementById('pulse-empty');
+  if (!timeline) return;
 
   if (!visits || visits.length === 0) {
-    empty.style.display = '';
+    // Recreate the empty-state placeholder rather than toggling it: a prior
+    // non-empty render replaces the timeline's innerHTML, which deletes the
+    // original #pulse-empty node and made the old toggle throw on null.
+    timeline.innerHTML = `<div class="pulse-empty" id="pulse-empty" data-i18n="pulse_empty">${t('pulse_empty')}</div>`;
     return;
   }
-  empty.style.display = 'none';
 
   timeline.innerHTML = visits.map(v => buildPulseItemHTML(v)).join('');
   bindPulseClicks(timeline);
