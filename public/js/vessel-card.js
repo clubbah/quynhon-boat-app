@@ -1,4 +1,4 @@
-import { t, tType, tStatus } from './i18n.js';
+import { t, tType, tStatus } from './i18n.js?v=30';
 import { getFlagEmoji, getColorForType } from './vessel-icons.js';
 
 const $ = (id) => document.getElementById(id);
