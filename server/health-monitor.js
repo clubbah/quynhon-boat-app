@@ -19,6 +19,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Configuration
 const CHECK_INTERVAL_MS = 15 * 60 * 1000;         // Check every 15 min
 const STALE_THRESHOLD_MIN = 30;                    // Alert if no data for 30 min
+const STALLED_THRESHOLD_MIN = 15;                  // Alert if POSTs arrive but carry no vessels for 15 min
 const ALERT_REMINDER_HOURS = 24;                   // Re-alert after 24h of continued downtime
 const STATE_FILE = path.join(__dirname, '.health-state.json');
 
@@ -80,6 +81,15 @@ export function getHealthSnapshot(db, feedStats = {}) {
     ? Math.floor((now - new Date(feedStats.lastReceivedAt).getTime()) / 60000)
     : null;
 
+  // Time since a POST last contained at least one parseable vessel. The
+  // AIS-catcher Android app can lose the dongle and keep POSTing empty
+  // heartbeats, so POSTs keep arriving while this goes stale. If nothing has
+  // been processed since server start, count from startup.
+  const minutesSinceProcessed = feedStats.lastProcessedAt
+    ? Math.floor((now - new Date(feedStats.lastProcessedAt).getTime()) / 60000)
+    : null;
+  const minutesWithoutVessels = minutesSinceProcessed ?? Math.floor(startTime / 60);
+
   // Determine status based on relay activity first, DB second
   // If the relay is still POSTing, the antenna is fine — even if the parser
   // is filtering everything out (we'd want a different alert for that case).
@@ -104,6 +114,10 @@ export function getHealthSnapshot(db, feedStats = {}) {
     // Relay slow but not dead
     status = 'degraded';
     statusReason = `relay slow (last POST ${minutesSinceFeed} min ago)`;
+  } else if (minutesWithoutVessels >= STALLED_THRESHOLD_MIN) {
+    // POSTs arriving but empty: the receiver is stalled
+    status = 'down';
+    statusReason = `receiver stalled (POSTs arriving but no vessels for ${minutesWithoutVessels} min)`;
   } else if (total === 0) {
     // Relay pushing but nothing in DB
     status = 'down';
@@ -129,9 +143,11 @@ export function getHealthSnapshot(db, feedStats = {}) {
       last_received: feedStats.lastReceivedAt || null,
       last_processed: feedStats.lastProcessedAt || null,
       minutes_since_received: minutesSinceFeed,
+      minutes_since_processed: minutesSinceProcessed,
       total_requests: feedStats.totalRequests || 0,
       total_vessels_processed: feedStats.totalVesselsProcessed || 0,
       stale_threshold_minutes: STALE_THRESHOLD_MIN,
+      stalled_threshold_minutes: STALLED_THRESHOLD_MIN,
       is_stale: status === 'down',
     },
   };
@@ -195,7 +211,9 @@ async function sendPush(title, message, priority = 'high') {
 
 // Compose alert content
 function buildDownAlert(snapshot) {
-  const minutes = snapshot.vessels.minutes_since_update;
+  // Prefer the feed's own clock: a stalled receiver keeps POSTing, and other
+  // sources could still touch the DB, so updated_at can look fresher than it is.
+  const minutes = snapshot.ais_feed.minutes_since_processed ?? snapshot.vessels.minutes_since_update;
   const lastUpdate = snapshot.vessels.last_update || 'never';
   const total = snapshot.vessels.total;
 
@@ -207,7 +225,9 @@ function buildDownAlert(snapshot) {
 
   const subject = `[Quy Nhon Life] AIS feed is DOWN — no data for ${durationText}`;
   const pushTitle = 'Quy Nhon Life AIS Down';
-  const pushMessage = `No vessel data for ${durationText}. Total vessels: ${total}. Check antenna laptop.`;
+  // Keep "AIS Down" in pushTitle: the receiver phone's MacroDroid restart
+  // macro triggers on that text.
+  const pushMessage = `No vessel data for ${durationText}: ${snapshot.status_reason}. Total vessels: ${total}.`;
 
   const html = `
 <!DOCTYPE html>
@@ -218,6 +238,7 @@ function buildDownAlert(snapshot) {
   <div style="padding: 24px; background: #fafafa;">
     <p>No vessel data has been received for <strong>${durationText}</strong>.</p>
     <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+      <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">Reason:</td><td style="padding: 8px; border-bottom: 1px solid #ddd;">${snapshot.status_reason}</td></tr>
       <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">Last update:</td><td style="padding: 8px; border-bottom: 1px solid #ddd;"><code>${lastUpdate}</code></td></tr>
       <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">Vessels in DB:</td><td style="padding: 8px; border-bottom: 1px solid #ddd;">${total}</td></tr>
       <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">Server uptime:</td><td style="padding: 8px; border-bottom: 1px solid #ddd;">${Math.floor(snapshot.server_uptime_seconds / 3600)}h</td></tr>
