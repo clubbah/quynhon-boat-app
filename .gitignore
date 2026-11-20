@@ -9,5 +9,8 @@ server/.health-state.json
 # Kept local only; must not live in a public repo.
 CLAUDE.md
 
+# Working plan — describes receiver and alerting setup. Local only.
+docs/improvement-plan.md
+
 # Packaged antenna bundles (built locally, copied to the antenna laptop)
 scripts/*.zip
