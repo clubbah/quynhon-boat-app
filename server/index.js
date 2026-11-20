@@ -32,6 +32,28 @@ const db = createDb(path.join(__dirname, '..', 'vessels.db'));
 
 // Express
 const app = express();
+
+// Diagnostic for the planned http/www -> https://quynhonlife.com redirect.
+// Before redirecting anything we need to know which headers actually reach
+// Express through Cloudflare and Traefik. Logs each distinct combination once
+// (capped), then goes quiet. Remove once the redirect is in place.
+const seenSchemeHeaders = new Set();
+app.use((req, res, next) => {
+  if (seenSchemeHeaders.size < 20 && (req.method === 'GET' || req.method === 'HEAD')) {
+    const combo = JSON.stringify({
+      host: req.headers.host || null,
+      cfVisitor: req.headers['cf-visitor'] || null,
+      xfProto: req.headers['x-forwarded-proto'] || null,
+      xfHost: req.headers['x-forwarded-host'] || null,
+    });
+    if (!seenSchemeHeaders.has(combo)) {
+      seenSchemeHeaders.add(combo);
+      console.log('[Scheme] New header combination:', combo, 'path:', req.path);
+    }
+  }
+  next();
+});
+
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
@@ -109,9 +131,13 @@ function handleAisFeed(req, res) {
   try {
     const raw = req.body;
     // Log the payload shape only for the first request after startup (format
-    // diagnostics), not every request — that floods the logs and disk.
+    // diagnostics), not every request — that floods the logs and disk. The
+    // phone sends an envelope with msgs[], so also log one full message: the
+    // envelope alone used up the 500 characters before any message fields.
     if (feedStats.totalRequests === 1) {
       console.log('[AIS-Feed] First payload sample:', JSON.stringify(raw).substring(0, 500));
+      const one = Array.isArray(raw) ? raw[0] : (raw?.msgs?.[0] ?? raw?.values?.[0]);
+      if (one) console.log('[AIS-Feed] First message in full:', JSON.stringify(one));
     }
 
     // AIS-catcher may wrap messages in a top-level object
