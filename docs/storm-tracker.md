@@ -187,9 +187,11 @@ ssh root@5.78.191.155 "cd /opt/quynhon-boat-app && git pull origin master && pm2
   `public/sw.js` PRECACHE_URLS, and bump `CACHE_NAME`.
 
 ### Current asset versions (keep in sync)
-- `app.js?v=34`, `storm.js?v=7`, `style.css?v=29`, `i18n.js?v=31`, `vessel-card.js?v=3`
-- `sw.js` `CACHE_NAME = 'qnl-v43'`
-- `map.js` is unversioned (busted only by the CACHE_NAME bump).
+- app.js?v=38, storm.js?v=10, style.css?v=32, i18n.js?v=34, i18n-data.js?v=34 (imported by i18n.js), vessel-card.js?v=6, map.js?v=2, sunset.js?v=2, vessel-icons.js?v=2, trends-view.js?v=1. sw.js CACHE_NAME=qnl-v47
+- Every module import carries a `?v=`; bump it everywhere a file is imported.
+- Since Phase 2 the storm page template is `server/views/storm.html`, rendered by
+  `server/render.js` (status, meta grid and local weather are in the HTML), and the
+  strings live in `public/js/i18n-data.js`.
 
 ## Gotchas / lessons (the expensive ones)
 
