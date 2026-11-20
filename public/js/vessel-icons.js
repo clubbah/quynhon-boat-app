@@ -69,8 +69,9 @@ export function flagSrc(code, size = '20x15') {
   return /^[a-z]{2}$/.test(c) ? `https://flagcdn.com/${size}/${c}.png` : '';
 }
 
+// The page language comes from the address, which the server writes into <html lang>.
 function currentLang() {
-  try { return localStorage.getItem('lang') || 'en'; } catch { return 'en'; }
+  return (document.documentElement.lang || 'en').slice(0, 2);
 }
 
 // Country name for a 2-letter code, in the visitor's language where the

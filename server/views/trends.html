@@ -3,14 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Port in Numbers — Quy Nhon Life</title>
-  <meta name="description" content="A living record of every vessel tracked in Quy Nhon Bay: unique ships, flags seen, vessel types, arrivals over time, and the most frequent visitors. Built from live AIS data.">
+  <!--@head: title, description, canonical, hreflang, Open Graph (server/render.js)-->
   <meta name="robots" content="index, follow">
-  <link rel="canonical" href="https://quynhonlife.com/trends">
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="Port in Numbers — Quy Nhon Life">
-  <meta property="og:description" content="A living record of every vessel tracked in Quy Nhon Bay, built from live AIS data.">
-  <meta property="og:url" content="https://quynhonlife.com/trends">
+  <meta name="theme-color" content="#0d9488">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -78,6 +73,7 @@
     .list-metric small { display: block; font-size: 10px; font-weight: 600; color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.04em; }
 
     .empty { padding: 20px 16px; color: var(--ink-4); font-style: italic; font-size: 14px; background: var(--white); border: 1px solid var(--rule); }
+    .empty--inner { border: 0; }
     .err { padding: 16px; background: #fef2f2; border: 1px solid #fca5a5; color: #dc2626; font-size: 14px; }
 
     .refresh-bar { margin-top: 36px; padding: 12px 16px; background: var(--teal-wash); border: 1px solid var(--rule); font-size: 12px; color: var(--ink-3); display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -94,127 +90,59 @@
 </head>
 <body>
   <div class="page">
-    <a href="/" class="back">&larr; Back to map</a>
+    <a href="/" class="back">&larr; <span data-i18n="trends_back">Back to map</span></a>
     <div class="header">
-      <h1>Port in Numbers</h1>
-      <p class="subtitle">A living record of every vessel tracked in Quy Nh&#417;n Bay, built from a local AIS antenna. Updated continuously.</p>
+      <h1 data-i18n="nav_trends">Port in Numbers</h1>
+      <p class="subtitle" data-i18n="trends_subtitle">A living record of every vessel tracked in Quy Nh&#417;n Bay, built from a local AIS antenna. Updated continuously.</p>
     </div>
 
-    <div id="err" class="err" style="display:none">Could not load port statistics.</div>
-    <div id="content" style="display:none">
+    <div id="err" class="err" style="display:none" data-i18n="trends_error">Could not load port statistics.</div>
+    <div id="content">
       <div class="stats-grid">
-        <div class="stat"><div class="stat-value" id="s-unique">--</div><div class="stat-label">Unique vessels, all time</div></div>
-        <div class="stat"><div class="stat-value" id="s-month">--</div><div class="stat-label">New this month</div></div>
-        <div class="stat"><div class="stat-value" id="s-arrivals">--</div><div class="stat-label">Arrivals logged</div></div>
-        <div class="stat"><div class="stat-value" id="s-countries">--</div><div class="stat-label">Countries seen</div></div>
+        <div class="stat"><div class="stat-value" id="s-unique">--</div><div class="stat-label" data-i18n="trends_unique">Unique vessels, all time</div></div>
+        <div class="stat"><div class="stat-value" id="s-month">--</div><div class="stat-label" data-i18n="trends_month">New this month</div></div>
+        <div class="stat"><div class="stat-value" id="s-arrivals">--</div><div class="stat-label" data-i18n="trends_arrivals">Arrivals logged</div></div>
+        <div class="stat"><div class="stat-value" id="s-countries">--</div><div class="stat-label" data-i18n="trends_countries">Countries seen</div></div>
       </div>
 
-      <span class="section-label">Arrivals, last 14 days</span>
+      <h2 class="section-label" data-i18n="trends_chart">Arrivals, last 14 days</h2>
       <div class="chart" id="chart"></div>
 
-      <span class="section-label">Flags seen</span>
+      <h2 class="section-label" data-i18n="trends_flags">Flags seen</h2>
       <div class="bars" id="flags"></div>
 
-      <span class="section-label">Vessel types</span>
+      <h2 class="section-label" data-i18n="trends_types">Vessel types</h2>
       <div class="bars" id="types"></div>
 
-      <span class="section-label">Most frequent visitors</span>
+      <h2 class="section-label" data-i18n="trends_frequent">Most frequent visitors</h2>
       <div class="list" id="frequent"></div>
 
-      <span class="section-label">Largest vessels ever tracked</span>
+      <h2 class="section-label" data-i18n="trends_largest">Largest vessels ever tracked</h2>
       <div class="list" id="largest"></div>
     </div>
 
     <div class="refresh-bar">
-      <span id="refresh-info">Statistics from the permanent vessel archive</span>
-      <button class="refresh-btn" id="refresh-btn">Refresh</button>
+      <span id="refresh-info" data-i18n="trends_source">Statistics from the permanent vessel archive</span>
+      <button class="refresh-btn" id="refresh-btn" data-i18n="trends_refresh">Refresh</button>
     </div>
 
     <div class="footer-links">
-      <a href="/">Home</a> &middot;
-      <a href="/spot">What's That Boat?</a> &middot;
-      <a href="/status">System Status</a> &middot;
-      <a href="/privacy">Privacy</a>
+      <a href="/" data-i18n="storm_back_home">Home</a> &middot;
+      <a href="/storms" data-i18n="storm_nav">Storm Tracker</a> &middot;
+      <a href="/spot" data-i18n="sp_title">What's That Boat?</a> &middot;
+      <a href="/status" data-i18n="footer_status">System Status</a> &middot;
+      <a href="/privacy" data-i18n="footer_privacy">Privacy</a>
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    import { t, tType, getLang } from '/js/i18n.js?v=34';
+    import { trendsSections } from '/js/trends-view.js?v=1';
+
     const $ = (id) => document.getElementById(id);
-    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    // Strip the trailing battery indicator that VN fishing transponders append
-    // ("NHAT LINH45%" -> "NHAT LINH"), for archive rows seen before the fix.
-    const cleanName = (s) => String(s || '').replace(/[\s-]*\d{1,3}%\s*$/, '').trim() || String(s || '');
-    // Pre-fix archive rows can hold garbled names; fall back to the MMSI.
-    const displayName = (r) => {
-      const n = cleanName(r.name);
-      return (!n || /[<>\[\]{}|^;"!~*=]/.test(n)) ? r.mmsi : n;
-    };
-    // Only real 2-letter codes make a flag image; old rows stored names.
-    const cc = (s) => { const c = String(s || '').trim().toLowerCase(); return /^[a-z]{2}$/.test(c) ? c : ''; };
-    const flag = (country, cls) => cc(country) ? `<img class="${cls}" src="https://flagcdn.com/20x15/${cc(country)}.png" alt="" loading="lazy" />` : '';
-    const countryName = (code) => {
-      const c = String(code || '').trim().toUpperCase();
-      try { return /^[A-Z]{2}$/.test(c) ? (new Intl.DisplayNames(['en'], { type: 'region' }).of(c) || c) : (c || 'Unknown'); }
-      catch { return c || 'Unknown'; }
-    };
-    const typeClass = (label) => {
-      const l = (label || '').toLowerCase();
-      if (l.includes('cargo') || l.includes('container')) return 'cargo';
-      if (l.includes('tanker')) return 'tanker';
-      if (l.includes('passenger')) return 'passenger';
-      if (l.includes('fishing')) return 'fishing';
-      return 'other';
-    };
+    const tr = { lang: getLang(), t, tType };
 
-    function renderBars(el, rows, { keyHtml, colorFromType }) {
-      if (!rows || rows.length === 0) { el.outerHTML = '<div class="empty">Not enough data yet.</div>'; return; }
-      const max = Math.max(...rows.map(r => r.c), 1);
-      el.innerHTML = rows.map(r => {
-        const cls = colorFromType ? typeClass(r.vessel_type_label) : '';
-        return `<div class="bar-row">
-          <span class="bar-key">${keyHtml(r)}</span>
-          <span class="bar-track"><span class="bar-fill ${cls}" data-w="${Math.round((r.c / max) * 100)}"></span></span>
-          <span class="bar-count">${r.c}</span>
-        </div>`;
-      }).join('');
-      requestAnimationFrame(() => el.querySelectorAll('.bar-fill').forEach(f => { f.style.width = f.dataset.w + '%'; }));
-    }
-
-    function renderChart(byDay) {
-      const el = $('chart');
-      // Build a continuous 14-day window so gaps (zero-arrival days) show.
-      const days = [];
-      const map = Object.fromEntries((byDay || []).map(d => [d.day, d.c]));
-      for (let i = 13; i >= 0; i--) {
-        const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
-        days.push({ day: d, c: map[d] || 0 });
-      }
-      const max = Math.max(...days.map(d => d.c), 1);
-      el.innerHTML = days.map(d => {
-        const label = new Date(d.day + 'T00:00:00').toLocaleDateString('en-US', { day: 'numeric' });
-        return `<div class="chart-col" title="${d.day}: ${d.c} arrivals">
-          <span class="chart-num">${d.c || ''}</span>
-          <span class="chart-bar ${d.c === 0 ? 'dim' : ''}" data-h="${Math.round((d.c / max) * 100)}"></span>
-          <span class="chart-day">${label}</span>
-        </div>`;
-      }).join('');
-      requestAnimationFrame(() => el.querySelectorAll('.chart-bar').forEach(b => { b.style.height = Math.max(2, b.dataset.h) + '%'; }));
-    }
-
-    function renderList(el, rows, metric) {
-      if (!rows || rows.length === 0) { el.outerHTML = '<div class="empty">Not enough data yet.</div>'; return; }
-      el.innerHTML = rows.map((r, i) => `
-        <div class="list-row">
-          <span class="list-rank">${i + 1}</span>
-          ${flag(r.flag_country, 'list-flag')}
-          <span class="list-main">
-            <span class="list-name">${esc(displayName(r))}</span>
-            <span class="list-sub">${esc(r.vessel_type_label || 'Vessel')}</span>
-          </span>
-          <span class="list-metric">${metric(r)}</span>
-        </div>`).join('');
-    }
-
+    // The server already put the numbers in the page; this keeps them fresh.
     async function load() {
       try {
         const res = await fetch('/api/port-trends', { cache: 'no-store' });
@@ -222,25 +150,17 @@
         const d = await res.json();
         $('err').style.display = 'none';
         $('content').style.display = '';
-
-        $('s-unique').textContent = (d.totalUnique || 0).toLocaleString();
-        $('s-month').textContent = (d.newThisMonth || 0).toLocaleString();
-        $('s-arrivals').textContent = (d.totalArrivals || 0).toLocaleString();
-        $('s-countries').textContent = (d.countriesSeen || 0).toLocaleString();
-
-        renderChart(d.byDay);
-        renderBars($('flags'), d.flags, { keyHtml: (r) => `${flag(r.flag_country, '')}<span>${esc(countryName(r.flag_country))}</span>` });
-        renderBars($('types'), d.types, { colorFromType: true, keyHtml: (r) => `<span class="dot" style="background:${({cargo:'#2563eb',tanker:'#dc2626',passenger:'#16a34a',fishing:'#ca8a04',other:'#8ca5ad'})[typeClass(r.vessel_type_label)]}"></span><span>${esc(r.vessel_type_label || 'Other')}</span>` });
-        renderList($('frequent'), d.frequent, (r) => `${(r.visit_count || 0)}<small>visits</small>`);
-        renderList($('largest'), d.largest, (r) => r.length ? `${esc(r.length)}<small>m${r.width ? ' x ' + esc(r.width) : ''}</small>` : '');
+        for (const [id, html] of Object.entries(trendsSections(d, tr))) {
+          const el = $(id);
+          if (el) el.innerHTML = html;
+        }
       } catch (err) {
         $('err').style.display = '';
-        $('err').textContent = 'Could not load port statistics: ' + err.message;
+        $('err').textContent = t('trends_error') + ' ' + err.message;
       }
     }
 
     $('refresh-btn').addEventListener('click', load);
-    load();
     setInterval(load, 5 * 60 * 1000);
   </script>
 </body>

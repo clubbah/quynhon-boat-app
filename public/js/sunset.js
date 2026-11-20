@@ -81,3 +81,53 @@ export function scoreSunset({
 
   return { score, level, factors };
 }
+
+export const SUNSET_ICONS = { spectacular: '🔥', vivid: '✨', nice: '🌅', ordinary: '🌥️' };
+
+/**
+ * Tonight's (or tomorrow's) sunset rating from an Open-Meteo forecast, shared
+ * by the browser (app.js) and the server render so both pick the same hour.
+ *
+ * Open-Meteo times are Quy Nhon wall-clock with no offset. Vietnam is UTC+7
+ * all year, so '+07:00' turns them into real instants wherever this runs.
+ * The hourly bucket is matched on the raw "HH" of the sunset string, with no
+ * timezone math, falling back to the hour before.
+ *
+ * Returns null when the data is incomplete, otherwise
+ * { score, level, factors, when: 'today' | 'tomorrow' | 'past', time: 'HH:MM' }.
+ */
+export function sunsetForecast(weather, now = new Date()) {
+  const w = weather;
+  if (!w || !w.hourly || !w.daily) return null;
+  const sunsetISO = w.daily.sunset && w.daily.sunset[0];
+  if (!sunsetISO) return null;
+
+  const sunsetTimeStr = sunsetISO.split('T')[1] || '';
+  const sunsetHH = sunsetTimeStr.slice(0, 2);
+  const prevHH = String((parseInt(sunsetHH, 10) + 23) % 24).padStart(2, '0');
+  const times = w.hourly.time || [];
+  const hourOf = (s) => (String(s).split('T')[1] || '').slice(0, 2);
+  let idx = times.findIndex((s) => hourOf(s) === sunsetHH);
+  if (idx < 0) idx = times.findIndex((s) => hourOf(s) === prevHH);
+  if (idx < 0) return null;
+
+  const h = w.hourly;
+  const pick = (arr, fallback) => (arr && arr[idx] != null ? arr[idx] : fallback);
+  const { score, level, factors } = scoreSunset({
+    cloudLow: pick(h.cloud_cover_low, 50),
+    cloudMid: pick(h.cloud_cover_mid, 50),
+    cloudHigh: pick(h.cloud_cover_high, 50),
+    cloudTotal: pick(h.cloud_cover, 50),
+    visibility: pick(h.visibility, 20000),
+    precipProb: pick(h.precipitation_probability, 0),
+    humidity: (w.current && w.current.relative_humidity_2m != null) ? w.current.relative_humidity_2m : 70,
+  });
+
+  const sunsetAt = new Date(sunsetISO + '+07:00'); // daily.sunset is "YYYY-MM-DDTHH:MM"
+  if (now > sunsetAt) {
+    const tomorrow = w.daily.sunset[1];
+    if (tomorrow) return { score, level, factors, when: 'tomorrow', time: tomorrow.split('T')[1] || '' };
+    return { score, level, factors, when: 'past', time: sunsetTimeStr };
+  }
+  return { score, level, factors, when: 'today', time: sunsetTimeStr };
+}

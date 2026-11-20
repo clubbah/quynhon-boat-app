@@ -6,16 +6,22 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { createDb, upsertVessel, appendPosition, getVesselsByArea, getTrack, pruneOldData,
-  upsertArchive, incrementVisitCount, logVisit, getRecentVisits, getVesselVisitHistory,
+  upsertArchive, incrementVisitCount, logVisit, getVesselVisitHistory,
   getArchiveStats, getPortTrends, compressPositions, pruneSummaries } from './db.js';
 import { connectAisStream } from './ais-client.js';
 import { parseAisCatcherMessage, isWithinBounds, isNonVesselMmsi, QN_BOUNDS } from './ais-parser.js';
 import { startCleanup } from './cleanup.js';
 import { startHealthMonitor, getHealthSnapshot } from './health-monitor.js';
-import { startStormMonitor, getStormSnapshot, buildDemoSnapshot } from './storm-monitor.js';
+import { startStormMonitor, getStormSnapshot, peekStormSnapshot, buildDemoSnapshot } from './storm-monitor.js';
 import { canonicalRedirect } from './canonical.js';
 import { isFishingGear, withClass } from './vessel-class.js';
 import { createVisitTracker } from './visits.js';
+import { fetchWeather, peekWeather, startWeatherRefresh } from './weather.js';
+import { computePortStats, getPortPulse } from './port-data.js';
+import { createPageRenderer, VIEWS_DIR } from './render.js';
+import { resolvePath, PAGES } from './routes.js';
+import { buildSitemap } from './sitemap.js';
+import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -56,13 +62,59 @@ const app = express();
 // for why this never touches /api/, static files, or X-Forwarded-Proto).
 app.use(canonicalRedirect);
 
-app.use(express.json({ limit: '1mb' }));
-app.use(express.static(path.join(__dirname, '..', 'public')));
-
-// Static pages with clean URLs
-app.get('/spot', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'spot.html'));
+// ── Server-rendered pages ──
+// Home, /storms, /trends and /spot in five languages (/, /vi/, /ko/storms ...).
+// Each render reads only memory caches and SQLite, never an outside service,
+// and is cached per language for 60s. See render.js and routes.js.
+const pages = createPageRenderer({
+  stats: () => computePortStats(db),
+  pulse: () => getPortPulse(db, gearMmsis(), 10),
+  archive: () => getArchiveStats(db, gearMmsis()),
+  trends: () => getPortTrends(db, gearMmsis()),
+  weather: peekWeather,
+  storm: peekStormSnapshot,
 });
+
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  const route = resolvePath(req.path);
+  if (!route) return next();
+  if (route.redirect) {
+    const q = req.originalUrl.indexOf('?');
+    return res.redirect(301, route.redirect + (q >= 0 ? req.originalUrl.slice(q) : ''));
+  }
+  res.set('Cache-Control', 'no-cache');
+  res.type('html').send(pages.get(route.page, route.lang));
+});
+
+// Generated so it always lists every language address (see sitemap.js).
+function isoDay(ms) { return new Date(ms).toISOString().slice(0, 10); }
+function fileDay(file) { try { return isoDay(fs.statSync(file).mtimeMs); } catch { return null; } }
+app.get('/sitemap.xml', (req, res) => {
+  const pub = (f) => path.join(__dirname, '..', 'public', f);
+  const view = (f) => path.join(VIEWS_DIR, f);
+  // Home and trends change whenever the antenna hears a ship; storms whenever
+  // the tracker last checked; the others when their files last changed.
+  let lastData = null;
+  try { lastData = db.prepare('SELECT MAX(updated_at) AS t FROM vessels').get()?.t; } catch { /* empty db */ }
+  const dataDay = lastData ? isoDay(Date.parse(lastData)) : fileDay(view(PAGES.home.view));
+  const storm = peekStormSnapshot();
+  res.type('application/xml');
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.send(buildSitemap({
+    home: dataDay,
+    trends: dataDay,
+    storms: storm?.updatedAt ? isoDay(Date.parse(storm.updatedAt)) : fileDay(view(PAGES.storms.view)),
+    spot: fileDay(view(PAGES.spot.view)),
+    '/privacy': fileDay(pub('privacy.html')),
+    '/terms': fileDay(pub('terms.html')),
+  }));
+});
+
+app.use(express.json({ limit: '1mb' }));
+app.use(express.static(path.join(__dirname, '..', 'public'), { index: false }));
+
+// English-only static pages with clean URLs
 app.get('/privacy', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'privacy.html'));
 });
@@ -70,13 +122,8 @@ app.get('/terms', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'terms.html'));
 });
 app.get('/status', (req, res) => {
+  res.set('X-Robots-Tag', 'noindex');
   res.sendFile(path.join(__dirname, '..', 'public', 'status.html'));
-});
-app.get('/trends', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'trends.html'));
-});
-app.get('/storms', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'storm.html'));
 });
 
 // Health/status endpoint (used by status page + external monitoring)
@@ -210,31 +257,7 @@ function handleAisFeed(req, res) {
 app.post('/api/ais-feed', handleAisFeed);
 app.post('/api/ais-feed/:key', handleAisFeed);
 
-// Weather + marine data (cached, refreshed every 15 min)
-let weatherCache = { data: null, fetchedAt: 0 };
-const WEATHER_TTL = 15 * 60 * 1000;
-
-async function fetchWeather() {
-  const now = Date.now();
-  if (weatherCache.data && (now - weatherCache.fetchedAt) < WEATHER_TTL) {
-    return weatherCache.data;
-  }
-  try {
-    const [weatherRes, marineRes] = await Promise.all([
-      fetch('https://api.open-meteo.com/v1/forecast?latitude=13.76&longitude=109.23&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,apparent_temperature,precipitation&hourly=cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,visibility,precipitation_probability&daily=sunrise,sunset&timezone=Asia/Ho_Chi_Minh&forecast_days=2&models=gfs_seamless'),
-      fetch('https://marine-api.open-meteo.com/v1/marine?latitude=13.76&longitude=109.23&current=wave_height,wave_direction,wave_period,swell_wave_height&timezone=Asia/Ho_Chi_Minh'),
-    ]);
-    const weather = await weatherRes.json();
-    const marine = await marineRes.json();
-    weatherCache.data = { weather, marine };
-    weatherCache.fetchedAt = now;
-    return weatherCache.data;
-  } catch (err) {
-    console.error('[Weather] Fetch error:', err.message);
-    return weatherCache.data;
-  }
-}
-
+// Weather + marine data (cached and kept warm by weather.js, 15 min TTL)
 app.get('/api/weather', async (req, res) => {
   const data = await fetchWeather();
   if (data) {
@@ -262,53 +285,15 @@ app.get('/api/storms', async (req, res) => {
   }
 });
 
-// Port stats — arrivals, departures, vessel of the day
+// Port stats: counts, largest vessel, recent activity (see port-data.js)
 app.get('/api/port-stats', (req, res) => {
-  const now = new Date();
-  const today = now.toISOString().split('T')[0];
-  const yesterday = new Date(now - 86400000).toISOString().split('T')[0];
-
-  // All current ships. Fishing gear (net markers and buoys) stays on the map
-  // but is left out of every count and list here.
-  const allVessels = db.prepare('SELECT * FROM vessels').all().filter((v) => !isFishingGear(v));
-
-  // Ships seen in last 24h
-  const recentVessels = allVessels.filter((v) => v.updated_at > yesterday + 'T00:00:00');
-
-  // Moving vessels (speed > 0.5)
-  // Speed-based movement detection (more reliable than AIS nav_status)
-  const moving = allVessels.filter(v => v.speed != null && v.speed > 0.5);
-  const anchored = allVessels.filter(v => v.speed == null || v.speed <= 0.5);
-
-  // Vessel of the day — largest vessel currently visible
-  const vesselOfDay = allVessels
-    .filter(v => v.name && v.length)
-    .sort((a, b) => (b.length || 0) - (a.length || 0))[0] || null;
-
-  // Recent activity — last 10 updates
-  const recentActivity = [...allVessels]
-    .sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)))
-    .slice(0, 10)
-    .map(({ mmsi, name, vessel_type_label, flag_country, speed, nav_status_label, destination, updated_at }) =>
-      ({ mmsi, name, vessel_type_label, flag_country, speed, nav_status_label, destination, updated_at }));
-
-  res.json({
-    total: allVessels.length,
-    moving: moving.length,
-    anchored: anchored.length,
-    recentCount: recentVessels.length,
-    vesselOfDay,
-    recentActivity,
-  });
+  res.json(computePortStats(db));
 });
 
-// Port Pulse — recent arrivals and departures
+// Port Pulse: recent arrivals and departures
 app.get('/api/port-pulse', (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || 20, 50);
-  const gear = gearMmsis();
-  // Older history contains gear events; over-fetch and filter.
-  const visits = getRecentVisits(db, limit * 6).filter((v) => !gear.has(v.mmsi)).slice(0, limit);
-  res.json(visits);
+  res.json(getPortPulse(db, gearMmsis(), limit));
 });
 
 // Vessel visit history
@@ -518,6 +503,9 @@ startHealthMonitor(db, feedStats);
 
 // Storm monitor — tracks tropical cyclones near Quy Nhon for the storm page + banner
 startStormMonitor();
+
+// Weather — fill the cache at boot and keep it warm for page renders
+startWeatherRefresh();
 
 // Start
 server.listen(PORT, () => {

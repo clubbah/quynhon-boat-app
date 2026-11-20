@@ -64,6 +64,12 @@ export async function getStormSnapshot() {
   }
 }
 
+// Synchronous, never fetches: what page renders use, so a slow GDACS can never
+// hold up a page. Null until the first fetch after boot has finished.
+export function peekStormSnapshot() {
+  return stormCache.data;
+}
+
 export function startStormMonitor() {
   console.log('[Storm] Monitor started. Source: GDACS tropical cyclones. ' +
     `Refresh every ${ACTIVE_INTERVAL_MS / 60000} min while active, ` +

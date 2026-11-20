@@ -1,4 +1,4 @@
-import { t, setLang, getLang, getLanguages } from './i18n.js?v=33';
+import { t, getLocale, bindLangSwitcher } from './i18n.js?v=34';
 
 // Storm tracker page. Its own MapLibre instance, separate from the home map:
 // a light, low-detail basemap framed at regional scale so an approaching storm
@@ -29,37 +29,21 @@ function esc(s) {
 }
 
 // ── Boot ──
-buildLangSwitcher();
+// The server renders this page in its language with the current storm status
+// already filled in; the code below draws the map and keeps the status live.
+bindLangSwitcher();
 updateDateline();
 setInterval(updateDateline, 60 * 60 * 1000);
 initStormMap();
 fetchStorms();
 setInterval(fetchStorms, 5 * 60 * 1000);
 fetchLocal();
-if (getLang() !== 'en') translatePage();
 
-// ── Language + dateline (mirrors app.js) ──
-function buildLangSwitcher() {
-  const switcher = document.getElementById('lang-switcher');
-  const current = getLang();
-  switcher.innerHTML = getLanguages().map((l) =>
-    `<img class="lang-flag${l.code === current ? ' active' : ''}" src="https://flagcdn.com/24x18/${l.flag}.png" alt="${l.label}" title="${l.label}" data-lang="${l.code}" />`
-  ).join('');
-  switcher.addEventListener('click', (e) => {
-    const flag = e.target.closest('.lang-flag');
-    if (!flag) return;
-    setLang(flag.dataset.lang);
-    switcher.querySelectorAll('.lang-flag').forEach((f) => f.classList.remove('active'));
-    flag.classList.add('active');
-    translatePage();
-  });
-}
-
+// ── Dateline (mirrors app.js) ──
 function updateDateline() {
   const el = document.getElementById('dateline-date');
   if (!el) return;
-  const localeMap = { en: 'en-US', vi: 'vi-VN', ko: 'ko-KR', zh: 'zh-CN', ja: 'ja-JP' };
-  const locale = localeMap[getLang()] || 'en-US';
+  const locale = getLocale();
   try {
     el.textContent = new Date().toLocaleDateString(locale, {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -67,17 +51,6 @@ function updateDateline() {
   } catch (e) {
     el.textContent = new Date().toLocaleDateString();
   }
-}
-
-function translatePage() {
-  document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
-  document.querySelectorAll('[data-i18n-title]').forEach((el) => { el.title = t(el.dataset.i18nTitle); });
-  const footer = document.getElementById('footer-text');
-  if (footer) footer.textContent = t('footer_text');
-  updateDateline();
-  // Re-render dynamic content last so it overrides any static data-i18n defaults.
-  if (lastSnapshot) render(lastSnapshot);
-  renderLocal(localWeather);
 }
 
 // ── Map ──

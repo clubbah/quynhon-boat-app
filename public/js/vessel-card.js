@@ -1,5 +1,5 @@
-import { t, tType, tStatus } from './i18n.js?v=33';
-import { getColorForType, getCountryName, flagSrc } from './vessel-icons.js';
+import { t, tType, tStatus } from './i18n.js?v=34';
+import { getColorForType, getCountryName, flagSrc } from './vessel-icons.js?v=2';
 
 const $ = (id) => document.getElementById(id);
 

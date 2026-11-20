@@ -3,28 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Storm Tracker — Quy Nhon Life</title>
-  <meta name="description" content="Live tropical cyclone and typhoon tracking for Quy Nhon, Vietnam. See a storm's path, forecast, and how close it comes to Quy Nhon, with a clear warning when one approaches.">
-  <meta name="keywords" content="Quy Nhon typhoon, Quy Nhon storm, tropical cyclone Vietnam, typhoon tracker, Binh Dinh storm warning, bao Quy Nhon">
+  <!--@head: title, description, canonical, hreflang, Open Graph (server/render.js)-->
+  <meta name="keywords" content="Quy Nhon typhoon, Quy Nhon storm, tropical cyclone Vietnam, typhoon tracker, Gia Lai storm warning, Binh Dinh storm warning, bao Quy Nhon">
   <meta name="author" content="Quy Nhon Life">
   <meta name="robots" content="index, follow">
-  <link rel="canonical" href="https://quynhonlife.com/storms">
-
-  <!-- Open Graph -->
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Quy Nhon Life">
-  <meta property="og:title" content="Storm Tracker — Quy Nhon Life">
-  <meta property="og:description" content="Live typhoon and tropical cyclone tracking for Quy Nhon, Vietnam, with a clear warning when a storm approaches.">
-  <meta property="og:url" content="https://quynhonlife.com/storms">
-  <meta property="og:image" content="https://quynhonlife.com/img/qnl-logo.png">
-
-  <!-- hreflang for multilingual -->
-  <link rel="alternate" hreflang="en" href="https://quynhonlife.com/storms">
-  <link rel="alternate" hreflang="vi" href="https://quynhonlife.com/storms">
-  <link rel="alternate" hreflang="ko" href="https://quynhonlife.com/storms">
-  <link rel="alternate" hreflang="zh" href="https://quynhonlife.com/storms">
-  <link rel="alternate" hreflang="ja" href="https://quynhonlife.com/storms">
-  <link rel="alternate" hreflang="x-default" href="https://quynhonlife.com/storms">
 
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json">
@@ -44,7 +26,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
-  <link rel="stylesheet" href="/css/style.css?v=31" />
+  <link rel="stylesheet" href="/css/style.css?v=32" />
 </head>
 <body>
 
@@ -64,8 +46,7 @@
         <a href="/" class="masthead-logo-link"><img src="/img/qnl-logo.png?v=4" alt="Quy Nhon Life" class="masthead-logo" /></a>
         <p class="masthead-tagline" data-i18n="storm_subtitle">Live tropical cyclone tracking for Quy Nh&#417;n</p>
       </div>
-      <h1 class="visually-hidden" data-i18n="storm_title">Storm Tracker</h1>
-      <div class="lang-switcher" id="lang-switcher"></div>
+      <nav class="lang-switcher" id="lang-switcher" aria-label="Language"><!--@langs--></nav>
     </div>
   </header>
 
@@ -74,7 +55,7 @@
     <!-- ── Status hero ── -->
     <section class="section section--storm-status">
       <div class="section-inner">
-        <span class="section-label" data-i18n="storm_title">Storm Tracker</span>
+        <h1 class="section-label storm-h1" data-i18n="storm_title">Storm Tracker</h1>
         <div class="storm-status" id="storm-status">
           <span class="storm-status-icon" id="storm-status-icon">&#9203;</span>
           <div class="storm-status-text">
@@ -141,12 +122,12 @@
   </main>
 
   <footer class="site-footer">
-    <p id="footer-text">Quy Nhon Life &mdash; Tracking the waters of central Vietnam</p>
-    <p class="footer-links"><a href="/" data-i18n="storm_back_home">Home</a> &middot; <a href="/trends">Port in Numbers</a> &middot; <a href="/privacy">Privacy Policy</a> &middot; <a href="/terms">Terms of Service</a> &middot; <a href="/status">System Status</a> &middot; <a href="mailto:hello@quynhonlife.com">Contact</a></p>
+    <p id="footer-text" data-i18n="footer_text">Quy Nhon Life &middot; Tracking the waters of central Vietnam</p>
+    <p class="footer-links"><a href="/" data-i18n="storm_back_home">Home</a> &middot; <a href="/trends" data-i18n="nav_trends">Port in Numbers</a> &middot; <a href="/privacy" data-i18n="footer_privacy">Privacy Policy</a> &middot; <a href="/terms" data-i18n="footer_terms">Terms of Service</a> &middot; <a href="/status" data-i18n="footer_status">System Status</a> &middot; <a href="mailto:hello@quynhonlife.com" data-i18n="footer_contact">Contact</a></p>
   </footer>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script type="module" src="/js/storm.js?v=9"></script>
+  <script type="module" src="/js/storm.js?v=10"></script>
   <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}</script>
 </body>
 </html>

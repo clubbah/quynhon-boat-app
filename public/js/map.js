@@ -1,4 +1,4 @@
-import { getColorForType, getCountryName, flagSrc } from './vessel-icons.js';
+import { getColorForType, getCountryName, flagSrc } from './vessel-icons.js?v=2';
 
 const escHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

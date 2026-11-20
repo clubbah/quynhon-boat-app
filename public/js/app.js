@@ -1,13 +1,13 @@
-import { initMap, updateVesselMarker, showTrack, clearTrack, setSelectedMmsi, getSelectedMmsi, filterMarkersByType, setMapClickHandler, flyToVessel, recenterMap, highlightVessel, clearHighlight } from './map.js';
-import { showPanel, hidePanel, initPanel } from './vessel-card.js?v=5';
-import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js?v=33';
-import { scoreSunset } from './sunset.js';
-import { flagSrc, getCountryName } from './vessel-icons.js';
+import { initMap, updateVesselMarker, showTrack, clearTrack, setSelectedMmsi, getSelectedMmsi, filterMarkersByType, setMapClickHandler, flyToVessel, recenterMap, highlightVessel, clearHighlight } from './map.js?v=2';
+import { showPanel, hidePanel, initPanel } from './vessel-card.js?v=6';
+import { t, getLocale, localPath, bindLangSwitcher, tType, tStatus } from './i18n.js?v=34';
+import { sunsetForecast, SUNSET_ICONS } from './sunset.js?v=2';
+import { flagSrc, getCountryName } from './vessel-icons.js?v=2';
 
 // State
 let vessels = {};
 let lastDataTime = 0;
-let lastStormData = null;   // latest /api/storms snapshot; declared here so translatePage() can read it at boot
+let lastStormData = null;   // latest /api/storms snapshot
 
 // Storm banner preview: /?storm=warning|watch|monitor renders a synthetic storm.
 // Declared up here so the boot block's fetchStorms() can read it (it would be in
@@ -49,8 +49,8 @@ setInterval(updateLiveIndicator, 5000);
 updateDateline();
 setInterval(updateDateline, 60 * 60 * 1000); // refresh hourly to catch date rollover
 
-// Apply saved language on load (translates data-i18n elements + dynamic content)
-if (getLang() !== 'en') translatePage();
+// The page arrives already rendered in its language (from the address), with
+// live values filled in by the server. The fetches below keep it current.
 
 // Weather + port stats + port pulse
 fetchWeather();
@@ -172,8 +172,7 @@ function updateCardHistory(data) {
   document.getElementById('label-first-seen').textContent = t('card_first_seen');
   document.getElementById('label-visits').textContent = t('card_visit_count');
 
-  const localeMap = { en: 'en-US', vi: 'vi-VN', ko: 'ko-KR', zh: 'zh-CN', ja: 'ja-JP' };
-  const locale = localeMap[getLang()] || 'en-US';
+  const locale = getLocale();
   const firstSeen = archive.first_seen
     ? new Date(archive.first_seen).toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })
     : t('no_data');
@@ -207,24 +206,8 @@ function updateLiveIndicator() {
 }
 
 function initControls() {
-  // Build language flag switcher
-  const switcher = document.getElementById('lang-switcher');
-  const languages = getLanguages();
-  const current = getLang();
-
-  switcher.innerHTML = languages.map(l =>
-    `<img class="lang-flag${l.code === current ? ' active' : ''}" src="https://flagcdn.com/24x18/${l.flag}.png" alt="${l.label}" title="${l.label}" data-lang="${l.code}" />`
-  ).join('');
-
-  switcher.addEventListener('click', (e) => {
-    const flag = e.target.closest('.lang-flag');
-    if (!flag) return;
-    const lang = flag.dataset.lang;
-    setLang(lang);
-    switcher.querySelectorAll('.lang-flag').forEach(f => f.classList.remove('active'));
-    flag.classList.add('active');
-    translatePage();
-  });
+  // Flag switcher: server-rendered links to the same page in each language.
+  bindLangSwitcher();
 
   // Recenter button
   document.getElementById('map-recenter').addEventListener('click', () => {
@@ -232,43 +215,11 @@ function initControls() {
   });
 }
 
-function translatePage() {
-  // Core elements (title never translates — stays "Quy Nhon Life")
-  document.getElementById('hero-description').textContent = t('hero_description');
-  document.getElementById('footer-text').textContent = t('footer_text');
-  document.getElementById('search-input').placeholder = t('search_placeholder');
-
-  // All data-i18n elements
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    el.textContent = t(el.dataset.i18n);
-  });
-
-  // Refresh dynamic content
-  updateDateline();
-  updateStats();
-  fetchPortStats();
-  fetchPortPulse();
-  fetchArchiveStats();
-  fetchWeather(); // Re-render sunset prediction in new language
-  renderStormBanner(lastStormData); // Re-render storm banner in new language
-
-  // Update vessel card if open (re-render + re-fetch history for new language)
-  const sel = getSelectedMmsi();
-  if (sel && vessels[sel]) {
-    showPanel(vessels[sel]);
-    fetch(`/api/vessels/${sel}/visits`)
-      .then(r => r.json())
-      .then(data => updateCardHistory(data))
-      .catch(() => {});
-  }
-}
-
 // Localized long date for the masthead dateline (e.g. "Sunday, June 7, 2026")
 function updateDateline() {
   const el = document.getElementById('dateline-date');
   if (!el) return;
-  const localeMap = { en: 'en-US', vi: 'vi-VN', ko: 'ko-KR', zh: 'zh-CN', ja: 'ja-JP' };
-  const locale = localeMap[getLang()] || 'en-US';
+  const locale = getLocale();
   try {
     el.textContent = new Date().toLocaleDateString(locale, {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -363,25 +314,6 @@ const WEATHER_CODES_NIGHT = {
   95: ['⛈️', 'Thunderstorm'], 96: ['⛈️', 'Thunderstorm + hail'], 99: ['⛈️', 'Severe storm'],
 };
 
-// Open-Meteo returns Quy Nhon wall-clock times with NO timezone offset. Vietnam
-// is UTC+7 year-round (no DST), so anchoring with +07:00 yields a correct
-// absolute instant regardless of where the viewer is. Without this, day/night
-// and "this evening vs tomorrow" are wrong for anyone outside Vietnam.
-function vnDate(str) {
-  if (!str) return null;
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
-  const iso = str.includes('T') ? str : today + 'T' + str;
-  return new Date(iso + '+07:00');
-}
-
-function isNightTime(sunrise, sunset) {
-  const sr = vnDate(sunrise);
-  const ss = vnDate(sunset);
-  if (!sr || !ss) return false;
-  const now = new Date();
-  return now < sr || now > ss;
-}
-
 function windDirection(deg) {
   const dirs = ['N','NE','E','SE','S','SW','W','NW'];
   return dirs[Math.round(deg / 45) % 8];
@@ -424,76 +356,21 @@ async function fetchWeather() {
 }
 
 function updateSunsetPrediction(data) {
-  const w = data.weather;
-  if (!w?.hourly || !w?.daily) return;
+  // Hour selection and scoring live in sunset.js, shared with the server render.
+  const f = sunsetForecast(data.weather);
+  if (!f) return;
 
-  const sunsetISO = w.daily.sunset?.[0];
-  if (!sunsetISO) return;
-
-  const sunsetDate = vnDate(sunsetISO);
-  const sunsetTimeStr = sunsetISO.split('T')[1]; // "17:45" etc.
-
-  // Match the hourly bucket by Quy Nhon wall-clock hour. Both the sunset string
-  // and the hourly time strings are offset-less VN local, so compare the raw
-  // "HH" substrings — no Date/timezone math, no viewer-timezone skew.
-  const sunsetHH = sunsetTimeStr.slice(0, 2);
-  const prevHH = String((parseInt(sunsetHH, 10) + 23) % 24).padStart(2, '0');
-  const times = w.hourly.time || [];
-  const hourOf = (s) => (s.split('T')[1] || '').slice(0, 2);
-  let idx = times.findIndex((s) => hourOf(s) === sunsetHH);
-  if (idx < 0) idx = times.findIndex((s) => hourOf(s) === prevHH); // fallback: hour before
-  if (idx < 0) return;
-
-  const cloudLow = w.hourly.cloud_cover_low?.[idx] ?? 50;
-  const cloudMid = w.hourly.cloud_cover_mid?.[idx] ?? 50;
-  const cloudHigh = w.hourly.cloud_cover_high?.[idx] ?? 50;
-  const cloudTotal = w.hourly.cloud_cover?.[idx] ?? 50;
-  const visibility = w.hourly.visibility?.[idx] ?? 20000; // meters
-  const precipProb = w.hourly.precipitation_probability?.[idx] ?? 0;
-  const humidity = w.current?.relative_humidity_2m ?? 70;
-
-  // Pure scoring lives in sunset.js (testable). Factors come back as
-  // { key, status }; translate the key here for display.
-  const { score, level, factors } = scoreSunset({
-    cloudLow, cloudMid, cloudHigh, cloudTotal, visibility, precipProb, humidity,
-  });
-
-  const RATING = {
-    spectacular: { text: t('sunset_spectacular'), icon: '🔥', desc: t('sunset_desc_spectacular') },
-    vivid: { text: t('sunset_vivid'), icon: '✨', desc: t('sunset_desc_vivid') },
-    nice: { text: t('sunset_nice'), icon: '🌅', desc: t('sunset_desc_nice') },
-    ordinary: { text: t('sunset_ordinary'), icon: '🌥️', desc: t('sunset_desc_ordinary') },
-  };
-  const ratingText = RATING[level].text;
-  const icon = RATING[level].icon;
-  const desc = RATING[level].desc;
-
-  // Show contextual time label
-  const now = new Date();
-  if (now > sunsetDate) {
-    // Sunset has passed — show tomorrow's
-    const tomorrowSunset = w.daily.sunset?.[1];
-    if (tomorrowSunset) {
-      document.getElementById('sunset-time').textContent = `${t('sunset_tomorrow')} ${tomorrowSunset.split('T')[1]}`;
-    } else {
-      document.getElementById('sunset-time').textContent = sunsetTimeStr;
-    }
-  } else {
-    // Sunset is still ahead today
-    document.getElementById('sunset-time').textContent = `${t('sunset_this_evening')} ${sunsetTimeStr}`;
-  }
-
-  // Update DOM
-  document.getElementById('sunset-rating-icon').textContent = icon;
+  document.getElementById('sunset-time').textContent = f.when === 'today' ? `${t('sunset_this_evening')} ${f.time}`
+    : f.when === 'tomorrow' ? `${t('sunset_tomorrow')} ${f.time}` : f.time;
+  document.getElementById('sunset-rating-icon').textContent = SUNSET_ICONS[f.level];
   const ratingEl = document.getElementById('sunset-rating');
-  ratingEl.textContent = ratingText;
-  ratingEl.dataset.level = level;
-  document.getElementById('sunset-desc').textContent = desc;
+  ratingEl.textContent = t('sunset_' + f.level);
+  ratingEl.dataset.level = f.level;
+  document.getElementById('sunset-desc').textContent = t('sunset_desc_' + f.level);
 
-  // Factors
-  const factorsEl = document.getElementById('sunset-factors');
-  factorsEl.innerHTML = factors.map(f =>
-    `<span class="sunset-factor"><span class="sunset-factor-dot ${f.status}"></span>${esc(t('sunset_f_' + f.key))}</span>`
+  // Factors come back as { key, status }; translate the key for display.
+  document.getElementById('sunset-factors').innerHTML = f.factors.map(x =>
+    `<span class="sunset-factor"><span class="sunset-factor-dot ${x.status}"></span>${esc(t('sunset_f_' + x.key))}</span>`
   ).join('');
 }
 
@@ -522,7 +399,7 @@ async function fetchPortStats() {
         }
       });
       document.getElementById('votd-details').innerHTML = [
-        esc(v.vessel_type_label || ''),
+        v.vessel_type_label ? esc(tType(v.vessel_type_label)) : '',
         v.length && v.width ? `${esc(v.length)} x ${esc(v.width)}m` : '',
         esc(getCountryName(v.flag_country)),
         v.destination ? `→ ${esc(v.destination)}` : '',
@@ -669,7 +546,7 @@ async function fetchArchiveStats() {
     const el = document.getElementById('pulse-stat');
     if (el && stats.totalUnique > 0) {
       const label = esc(t('pulse_tracked_total').replace('{n}', stats.totalUnique));
-      el.innerHTML = `<a class="pulse-stat-link" href="/trends">${label} &rarr;</a>`;
+      el.innerHTML = `<a class="pulse-stat-link" href="${localPath('/trends')}">${label} &rarr;</a>`;
     }
   } catch (err) {
     console.error('Archive stats fetch failed:', err);
@@ -683,7 +560,6 @@ async function fetchArchiveStats() {
 // The banner shows the storm's current position, ETA, and a freshness line that
 // ticks each minute so it reads as a live, constantly-updating announcement.
 // Preview it with no live storm via /?storm=warning (or watch / monitor).
-// (lastStormData is declared near the top so translatePage() can read it at boot.)
 
 async function fetchStorms() {
   try {
@@ -739,7 +615,7 @@ function renderStormBanner(data) {
   document.getElementById('storm-banner-cta').textContent = t('storm_banner_cta');
 
   // In preview mode, carry the demo level through to the /storms page.
-  banner.setAttribute('href', STORM_DEMO_LEVEL ? `/storms?storm=${STORM_DEMO_LEVEL}` : '/storms');
+  banner.setAttribute('href', localPath('/storms') + (STORM_DEMO_LEVEL ? `?storm=${STORM_DEMO_LEVEL}` : ''));
 
   banner.classList.remove('watch', 'monitor');
   if (level === 'watch') banner.classList.add('watch');

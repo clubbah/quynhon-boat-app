@@ -3,39 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quy Nhon Life — Live Vessel Tracking, Sunset Predictions &amp; Coastal Guide</title>
-  <meta name="description" content="Track vessels in real time in Quy Nhon Bay with live AIS data. Sunset quality predictions, weather, port statistics, and your guide to coastal life in central Vietnam.">
-  <meta name="keywords" content="Quy Nhon, vessel tracking, AIS, ships, Vietnam, Binh Dinh, port, sunset prediction, coastal guide, marine traffic">
+  <!--@head: title, description, canonical, hreflang, Open Graph (server/render.js)-->
+  <meta name="keywords" content="Quy Nhon, vessel tracking, AIS, ships, Vietnam, Gia Lai, Binh Dinh, port, sunset prediction, weather, marine traffic">
   <meta name="author" content="Quy Nhon Life">
   <meta name="robots" content="index, follow">
-  <link rel="canonical" href="https://quynhonlife.com/">
-
-  <!-- Open Graph -->
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Quy Nhon Life">
-  <meta property="og:title" content="Quy Nhon Life — Live Vessel Tracking &amp; Coastal Guide">
-  <meta property="og:description" content="Track vessels in real time in Quy Nhon Bay with live AIS data. Sunset quality predictions, weather, and your guide to coastal Vietnam.">
-  <meta property="og:url" content="https://quynhonlife.com/">
-  <meta property="og:image" content="https://quynhonlife.com/img/qnl-logo.png">
-  <meta property="og:locale" content="en_US">
-  <meta property="og:locale:alternate" content="vi_VN">
-  <meta property="og:locale:alternate" content="ko_KR">
-  <meta property="og:locale:alternate" content="zh_CN">
-  <meta property="og:locale:alternate" content="ja_JP">
-
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Quy Nhon Life — Live Vessel Tracking &amp; Coastal Guide">
-  <meta name="twitter:description" content="Track vessels in real time in Quy Nhon Bay. Sunset predictions, weather, and coastal life in central Vietnam.">
-  <meta name="twitter:image" content="https://quynhonlife.com/img/qnl-logo.png">
-
-  <!-- hreflang for multilingual -->
-  <link rel="alternate" hreflang="en" href="https://quynhonlife.com/">
-  <link rel="alternate" hreflang="vi" href="https://quynhonlife.com/">
-  <link rel="alternate" hreflang="ko" href="https://quynhonlife.com/">
-  <link rel="alternate" hreflang="zh" href="https://quynhonlife.com/">
-  <link rel="alternate" hreflang="ja" href="https://quynhonlife.com/">
-  <link rel="alternate" hreflang="x-default" href="https://quynhonlife.com/">
 
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json">
@@ -56,7 +27,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
-  <link rel="stylesheet" href="/css/style.css?v=31" />
+  <link rel="stylesheet" href="/css/style.css?v=32" />
 
   <!-- Schema.org Structured Data -->
   <script type="application/ld+json">
@@ -80,11 +51,6 @@
         "email": "hello@quynhonlife.com",
         "contactType": "customer service"
       }
-    },
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "https://quynhonlife.com/?q={search_term_string}",
-      "query-input": "required name=search_term_string"
     }
   }
   </script>
@@ -94,7 +60,7 @@
     "@type": "TouristDestination",
     "name": "Quy Nhon",
     "alternateName": ["Quy Nh\u01A1n", "Qui Nhon"],
-    "description": "A coastal city in Binh Dinh province, central Vietnam, known for its pristine beaches, seafood, and growing tourism scene.",
+    "description": "A coastal city in Gia Lai province (formerly Binh Dinh), central Vietnam, known for its pristine beaches, seafood, and growing tourism scene.",
     "geo": {
       "@type": "GeoCoordinates",
       "latitude": 13.76,
@@ -102,7 +68,8 @@
     },
     "containedInPlace": {
       "@type": "AdministrativeArea",
-      "name": "Binh Dinh Province",
+      "name": "Gia Lai Province",
+      "alternateName": "Binh Dinh Province (former)",
       "containedInPlace": {
         "@type": "Country",
         "name": "Vietnam"
@@ -132,8 +99,8 @@
         <p class="masthead-tagline" data-i18n="masthead_tagline">Live from the bay &middot; vessels, sunsets &amp; coastal life</p>
       </div>
       <h1 class="visually-hidden" id="app-title">Quy Nhon Life</h1>
-      <p class="visually-hidden" id="hero-description">Your guide to coastal life in Quy Nhon</p>
-      <div class="lang-switcher" id="lang-switcher"></div>
+      <p class="visually-hidden" id="hero-description" data-i18n="hero_description">Your guide to coastal life in Quy Nhon</p>
+      <nav class="lang-switcher" id="lang-switcher" aria-label="Language"><!--@langs--></nav>
     </div>
   </header>
 
@@ -202,7 +169,7 @@
             <svg class="map-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
-            <input type="text" id="search-input" placeholder="Search vessel name..." autocomplete="off" aria-label="Search vessels by name or MMSI" />
+            <input type="text" id="search-input" placeholder="Search vessel name..." data-i18n-placeholder="search_placeholder" autocomplete="off" aria-label="Search vessels by name or MMSI" data-i18n-aria="search_aria" />
           </div>
           <div class="search-results hidden" id="search-results" role="listbox"></div>
         </div>
@@ -214,7 +181,7 @@
           <div class="legend-item"><span class="legend-dot" style="background:#6b7280"></span><span data-i18n="legend_other">Other</span></div>
           <div class="legend-item"><span class="legend-dot legend-dot--gear" style="background:#9ca3af"></span><span data-i18n="legend_gear">Fishing gear</span></div>
         </div>
-        <button class="map-recenter" id="map-recenter" title="Recenter on Quy Nhon">
+        <button class="map-recenter" id="map-recenter" title="Recenter on Quy Nhon" data-i18n-title="map_recenter">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
           </svg>
@@ -292,8 +259,8 @@
   </main>
 
   <footer class="site-footer">
-    <p id="footer-text">Quy Nhon Life &mdash; Tracking the waters of central Vietnam</p>
-    <p class="footer-links"><a href="/storms" data-i18n="storm_nav">Storm Tracker</a> &middot; <a href="/trends">Port in Numbers</a> &middot; <a href="/privacy">Privacy Policy</a> &middot; <a href="/terms">Terms of Service</a> &middot; <a href="/status">System Status</a> &middot; <a href="mailto:hello@quynhonlife.com">Contact</a></p>
+    <p id="footer-text" data-i18n="footer_text">Quy Nhon Life &middot; Tracking the waters of central Vietnam</p>
+    <p class="footer-links"><a href="/storms" data-i18n="storm_nav">Storm Tracker</a> &middot; <a href="/trends" data-i18n="nav_trends">Port in Numbers</a> &middot; <a href="/privacy" data-i18n="footer_privacy">Privacy Policy</a> &middot; <a href="/terms" data-i18n="footer_terms">Terms of Service</a> &middot; <a href="/status" data-i18n="footer_status">System Status</a> &middot; <a href="mailto:hello@quynhonlife.com" data-i18n="footer_contact">Contact</a></p>
   </footer>
 
   <!-- Vessel Card -->
@@ -339,11 +306,11 @@
   <!-- Floating spot button -->
   <a class="spot-float" href="/spot">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="18" r="1"/><line x1="9" y1="6" x2="15" y2="6"/></svg>
-    <span>ID a boat</span>
+    <span data-i18n="spot_float">ID a boat</span>
   </a>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script type="module" src="/js/app.js?v=37"></script>
+  <script type="module" src="/js/app.js?v=38"></script>
   <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}</script>
 </body>
 </html>

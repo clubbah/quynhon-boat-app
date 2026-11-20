@@ -191,6 +191,10 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
 }
 .lang-flag:hover { opacity: 0.8; }
 .lang-flag.active { opacity: 1; border-bottom: 2px solid var(--teal); }
+/* Flags are links to the same page in each language (/vi/, /ko/storms ...) */
+.lang-switcher a { display: inline-flex; line-height: 0; }
+/* Storm Tracker page: the section label is the page H1; keep it looking like a label */
+h1.section-label { margin-top: 0; line-height: inherit; }
 
 /* ════════════════════════════════════════
    SECTIONS
