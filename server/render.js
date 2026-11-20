@@ -480,7 +480,8 @@ export function renderPage(page, lang, data = {}, { now = new Date(), template }
     html = fillPortStats(html, lang, data.stats);
     html = fillPortPulse(html, lang, data.pulse, data.archive, now);
     html = fillStormBanner(html, lang, data.storm, now);
-    complete = !!(data.weather?.weather?.current && data.stats && data.storm);
+    // The storm banner is simply hidden without data, so it does not count here.
+    complete = !!(data.weather?.weather?.current && data.stats);
   } else if (page === 'storms') {
     html = fillStormPage(html, lang, data.storm, data.weather);
     complete = !!(data.storm && data.weather?.weather?.current);

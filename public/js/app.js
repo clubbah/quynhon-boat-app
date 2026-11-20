@@ -1,6 +1,6 @@
 import { initMap, updateVesselMarker, showTrack, clearTrack, setSelectedMmsi, getSelectedMmsi, filterMarkersByType, setMapClickHandler, flyToVessel, recenterMap, highlightVessel, clearHighlight } from './map.js?v=2';
-import { showPanel, hidePanel, initPanel } from './vessel-card.js?v=6';
-import { t, getLocale, localPath, bindLangSwitcher, tType, tStatus } from './i18n.js?v=34';
+import { showPanel, hidePanel, initPanel } from './vessel-card.js?v=7';
+import { t, getLocale, localPath, bindLangSwitcher, tType, tStatus } from './i18n.js?v=35';
 import { sunsetForecast, SUNSET_ICONS } from './sunset.js?v=2';
 import { flagSrc, getCountryName } from './vessel-icons.js?v=2';
 

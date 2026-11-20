@@ -7,7 +7,7 @@
 // inline script in server/render.js).
 import {
   LANGUAGES, LANG_CODES, LOCALES, translate, typeFor, statusFor, localizedPath,
-} from './i18n-data.js?v=34';
+} from './i18n-data.js?v=35';
 
 const pageLang = (document.documentElement.lang || 'en').slice(0, 2).toLowerCase();
 const currentLang = LANG_CODES.includes(pageLang) ? pageLang : 'en';

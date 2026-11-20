@@ -1,4 +1,4 @@
-import { t, getLocale, bindLangSwitcher } from './i18n.js?v=34';
+import { t, getLocale, bindLangSwitcher } from './i18n.js?v=35';
 
 // Storm tracker page. Its own MapLibre instance, separate from the home map:
 // a light, low-detail basemap framed at regional scale so an approaching storm
