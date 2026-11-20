@@ -2,7 +2,7 @@ import { initMap, updateVesselMarker, showTrack, clearTrack, setSelectedMmsi, ge
 import { showPanel, hidePanel, initPanel } from './vessel-card.js?v=4';
 import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js?v=32';
 import { scoreSunset } from './sunset.js';
-import { flagSrc } from './vessel-icons.js';
+import { flagSrc, getCountryName } from './vessel-icons.js';
 
 // State
 let vessels = {};
@@ -517,7 +517,7 @@ async function fetchPortStats() {
       document.getElementById('votd-details').innerHTML = [
         esc(v.vessel_type_label || ''),
         v.length && v.width ? `${esc(v.length)} x ${esc(v.width)}m` : '',
-        esc(v.flag_country || ''),
+        esc(getCountryName(v.flag_country)),
         v.destination ? `→ ${esc(v.destination)}` : '',
       ].filter(Boolean).join(' · ');
     }
