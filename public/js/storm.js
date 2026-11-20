@@ -1,4 +1,4 @@
-import { t, setLang, getLang, getLanguages } from './i18n.js?v=31';
+import { t, setLang, getLang, getLanguages } from './i18n.js?v=32';
 
 // Storm tracker page. Its own MapLibre instance, separate from the home map:
 // a light, low-detail basemap framed at regional scale so an approaching storm
@@ -91,6 +91,12 @@ function initStormMap() {
   });
   map.addControl(new maplibregl.NavigationControl(), 'top-right');
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+
+  // Wheel zoom only after the map is clicked, so scrolling the page past the
+  // full-width map does not get trapped. Touch pinch-zoom is unaffected.
+  map.scrollZoom.disable();
+  map.getContainer().addEventListener('mousedown', () => map.scrollZoom.enable());
+  map.getContainer().addEventListener('mouseleave', () => map.scrollZoom.disable());
 
   map.on('load', () => {
     // Wind impact zone (cone) — added first so it sits under the track lines.

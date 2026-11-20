@@ -1,4 +1,7 @@
-import { getFlagEmoji, getColorForType, getCountryName } from './vessel-icons.js';
+import { getColorForType, getCountryName, flagSrc } from './vessel-icons.js';
+
+const escHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 const MAPTILER_KEY = 'CKY69E5ib1MMQDfWMRvg';
 const MAP_CENTER = [109.22, 13.77]; // Quy Nhon port area
@@ -83,6 +86,7 @@ export function initMap() {
 
   map.addControl(new maplibregl.NavigationControl(), 'top-right');
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+  scrollZoomOnClick(map);
 
   map.on('load', () => {
     // Load ship icons for each type — each has unique hull shape
@@ -216,23 +220,23 @@ export function initMap() {
     let hoveredMmsi = null;
 
     function buildTooltipHtml(props) {
-      const countryCode = (props.flag_country || '').toLowerCase();
-      const countryName = getCountryName(props.flag_country);
+      const src = flagSrc(props.flag_country, '24x18');
+      const countryName = src ? getCountryName(props.flag_country) : '';
       const name = props.name || props.mmsi;
       const typeLabel = props.vessel_type_label || '';
       const typeColor = ICON_COLORS[typeLabel.toLowerCase()] || ICON_COLORS.other;
-      const flagImg = countryCode
-        ? `<img class="vt-flag" src="https://flagcdn.com/24x18/${countryCode}.png" alt="${countryCode}" />`
+      const flagImg = src
+        ? `<img class="vt-flag" src="${src}" alt="" />`
         : '<span class="vt-flag">\u{1F6A2}</span>';
 
       return `<div class="vt-row1">
         ${flagImg}
-        <span class="vt-name">${name}</span>
+        <span class="vt-name">${escHtml(name)}</span>
       </div>
       <div class="vt-row2">
-        ${countryName ? `<span class="vt-country">${countryName}</span>` : ''}
+        ${countryName ? `<span class="vt-country">${escHtml(countryName)}</span>` : ''}
         ${countryName && typeLabel ? '<span class="vt-sep">&middot;</span>' : ''}
-        ${typeLabel ? `<span class="vt-type"><span class="vt-dot" style="background:${typeColor}"></span>${typeLabel}</span>` : ''}
+        ${typeLabel ? `<span class="vt-type"><span class="vt-dot" style="background:${typeColor}"></span>${escHtml(typeLabel)}</span>` : ''}
       </div>`;
     }
 
@@ -260,6 +264,17 @@ export function initMap() {
   });
 
   return map;
+}
+
+// The map is full-width, so a mouse wheel over it used to zoom the map and trap
+// the page scroll. Wheel zoom now starts only after the map is clicked and stops
+// when the pointer leaves it. Touch pinch-zoom on phones is a separate handler
+// and is not affected.
+export function scrollZoomOnClick(m) {
+  m.scrollZoom.disable();
+  const el = m.getContainer();
+  el.addEventListener('mousedown', () => m.scrollZoom.enable());
+  el.addEventListener('mouseleave', () => m.scrollZoom.disable());
 }
 
 export function getMap() { return map; }

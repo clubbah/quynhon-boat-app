@@ -1,7 +1,8 @@
 import { initMap, updateVesselMarker, showTrack, clearTrack, setSelectedMmsi, getSelectedMmsi, filterMarkersByType, setMapClickHandler, flyToVessel, recenterMap, highlightVessel, clearHighlight } from './map.js';
-import { showPanel, hidePanel, initPanel } from './vessel-card.js?v=3';
-import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js?v=31';
+import { showPanel, hidePanel, initPanel } from './vessel-card.js?v=4';
+import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js?v=32';
 import { scoreSunset } from './sunset.js';
+import { flagSrc } from './vessel-icons.js';
 
 // State
 let vessels = {};
@@ -183,11 +184,12 @@ function updateLiveIndicator() {
     el.textContent = '';
     return;
   }
+  // The receiver posts once a minute, so anything under 90s is a normal gap.
   const ago = Math.round((Date.now() - lastDataTime) / 1000);
   el.className = 'stat-live';
-  if (ago < 15) {
+  if (ago < 90) {
     el.innerHTML = `<span class="live-dot"></span> ${t('live_data')}`;
-  } else if (ago < 60) {
+  } else if (ago < 300) {
     el.classList.add('stale-text');
     el.innerHTML = `<span class="live-dot stale"></span> ${t('updated_ago').replace('{n}', ago)}`;
   } else {
@@ -500,8 +502,8 @@ async function fetchPortStats() {
     // Vessel of the day
     if (data.vesselOfDay) {
       const v = data.vesselOfDay;
-      const cc = (v.flag_country || '').toLowerCase().replace(/[^a-z]/g, '');
-      const flagImg = cc ? `<img src="https://flagcdn.com/20x15/${cc}.png" style="border-radius:2px;vertical-align:middle;margin-right:4px" />` : '';
+      const src = flagSrc(v.flag_country, '20x15');
+      const flagImg = src ? `<img src="${src}" alt="" style="border-radius:2px;vertical-align:middle;margin-right:4px" />` : '';
       const nameEl = document.getElementById('votd-name');
       nameEl.innerHTML = flagImg + `<a class="vessel-link" data-mmsi="${esc(v.mmsi)}" href="#">${esc(cleanName(v.name) || v.mmsi)}</a>`;
       nameEl.querySelector('.vessel-link').addEventListener('click', (e) => {
@@ -523,8 +525,8 @@ async function fetchPortStats() {
     // Recent activity table
     const tbody = document.getElementById('activity-tbody');
     tbody.innerHTML = data.recentActivity.map(v => {
-      const cc = (v.flag_country || '').toLowerCase().replace(/[^a-z]/g, '');
-      const flagImg = cc ? `<img src="https://flagcdn.com/20x15/${cc}.png" />` : '';
+      const src = flagSrc(v.flag_country, '20x15');
+      const flagImg = src ? `<img src="${src}" alt="" />` : '';
       const time = v.updated_at ? new Date(v.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
       return `<tr>
         <td class="vessel-name-cell"><a class="vessel-link" data-mmsi="${esc(v.mmsi)}" href="#">${esc(cleanName(v.name) || v.mmsi)}</a></td>
@@ -582,8 +584,8 @@ function renderPulseTimeline(visits) {
 }
 
 function buildPulseItemHTML(v) {
-  const cc = (v.flag_country || '').toLowerCase().replace(/[^a-z]/g, '');
-  const flagImg = cc ? `<img class="pulse-flag" src="https://flagcdn.com/20x15/${cc}.png" alt="${cc}" />` : '';
+  const src = flagSrc(v.flag_country, '20x15');
+  const flagImg = src ? `<img class="pulse-flag" src="${src}" alt="" />` : '';
   const eventLabel = v.event === 'arrival' ? t('pulse_arrival') : t('pulse_departure');
   const eventClass = v.event === 'arrival' ? 'arrival' : 'departure';
   const typeLabel = v.vessel_type_label ? tType(v.vessel_type_label) : '';
