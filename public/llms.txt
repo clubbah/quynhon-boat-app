@@ -1,41 +1,24 @@
 # Quy Nhon Life
-> Live vessel tracking, sunset predictions, and coastal guide for Quy Nhon, Vietnam
 
-## What is Quy Nhon Life?
-Quy Nhon Life is a free, real-time vessel tracking portal for Quy Nhon Bay in Binh Dinh province, central Vietnam. It provides live AIS (Automatic Identification System) data received via a local RTL-SDR radio antenna, showing the position, speed, destination, and details of all vessels in the area.
+> Live ship tracking, weather, sunset forecasts and tropical storm tracking for Quy Nhon, a coastal city in Gia Lai province (formerly Binh Dinh), central Vietnam. Ship positions come from the site's own AIS radio receiver overlooking Quy Nhon Bay. The four pages below are available in English, Vietnamese, Korean, Chinese and Japanese.
 
-## Features
-- **Live Vessel Tracking**: Real-time positions of ~60 vessels including cargo ships, tankers, fishing boats, and passenger vessels in Quy Nhon Bay
-- **Sunset Quality Predictions**: Proprietary prediction model analyzing cloud layers, atmospheric haze, humidity, and precipitation to forecast sunset color quality (Spectacular, Vivid, Nice, or Ordinary)
-- **What's That Boat?**: Point your phone at any vessel from shore to identify it using GPS and compass
-- **Weather Data**: Live temperature, wind, humidity, wave height, sunrise/sunset times from Open-Meteo
-- **Port Statistics**: Total vessels, underway count, anchored count, and daily activity
-- **5 Languages**: English, Vietnamese, Korean, Chinese, Japanese
+## Pages
 
-## Location
-Quy Nhon (Quy Nhon) is a coastal city in Binh Dinh province, central Vietnam (13.76°N, 109.23°E). The port serves as a major commercial harbor for the central Vietnam region.
+- [Live ship map](https://quynhonlife.com/): every vessel the antenna hears in Quy Nhon Bay, with current weather, wave height, a sunset forecast, Port Pulse arrivals and departures, and recent activity.
+- [Storm Tracker](https://quynhonlife.com/storms): tropical storms and typhoons near Quy Nhon, with each storm's track, forecast path and expected closest approach. Data from GDACS.
+- [Port in Numbers](https://quynhonlife.com/trends): the site's own record of every ship seen: unique vessels, flags, vessel types, daily arrivals, frequent visitors and the largest ships.
+- [What's That Boat?](https://quynhonlife.com/spot): point a phone at a ship from the shore to identify it, using GPS, the compass and live AIS data.
 
-## Data Source
-AIS vessel data is received live via RTL-SDR hardware (RTL2832U+R820T2 dongle) positioned at approximately 80m elevation overlooking Quy Nhon Bay, with a reception range of approximately 50-70 km.
+## Other languages
 
-## URLs
-- Homepage: https://quynhonlife.com/
-- Vessel Identifier: https://quynhonlife.com/spot
-- System Status: https://quynhonlife.com/status
-- Privacy Policy: https://quynhonlife.com/privacy
-- Terms of Service: https://quynhonlife.com/terms
+- Vietnamese: https://quynhonlife.com/vi/
+- Korean: https://quynhonlife.com/ko/
+- Chinese: https://quynhonlife.com/zh/
+- Japanese: https://quynhonlife.com/ja/
 
-## API
-- Live vessel data: GET https://quynhonlife.com/api/vessels (JSON array)
-- Vessel track history: GET https://quynhonlife.com/api/vessels/{mmsi}/track
-- Weather + marine: GET https://quynhonlife.com/api/weather
-- Port statistics: GET https://quynhonlife.com/api/port-stats
-- Health/status snapshot: GET https://quynhonlife.com/api/status
+Each page has the same address under the language prefix, for example https://quynhonlife.com/vi/storms.
 
-## Reliability
-- 24/7 automated health monitoring with 15-minute check intervals
-- Public status page at /status shows live AIS feed health, vessel counts, and server uptime
-- Operators alerted via push notification and email if AIS feed goes stale (>30 min without data)
+## About
 
-## Contact
-- Email: hello@quynhonlife.com
+- Sitemap: https://quynhonlife.com/sitemap.xml
+- Contact: hello@quynhonlife.com
