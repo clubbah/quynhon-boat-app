@@ -360,6 +360,8 @@ a, button { transition: color 0.15s, background 0.15s, border-color 0.15s, opaci
   text-transform: uppercase; letter-spacing: 0.04em;
 }
 .legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+/* Fishing gear draws as a small dot on the map, so its legend mark is smaller */
+.legend-dot--gear { width: 5px; height: 5px; margin: 0 1px; }
 
 .map-recenter {
   position: absolute; bottom: 10px; right: 10px; z-index: 10;

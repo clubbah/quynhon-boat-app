@@ -181,63 +181,72 @@ export function incrementVisitCount(db, mmsi) {
   db.prepare('UPDATE vessel_archive SET visit_count = visit_count + 1 WHERE mmsi = ?').run(mmsi);
 }
 
-export function getArchiveStats(db) {
-  const total = db.prepare('SELECT COUNT(*) as c FROM vessel_archive').get();
-  const thisMonth = new Date();
-  thisMonth.setDate(1);
-  thisMonth.setHours(0, 0, 0, 0);
-  const monthCount = db.prepare(
-    'SELECT COUNT(*) as c FROM vessel_archive WHERE first_seen >= ?'
-  ).get(thisMonth.toISOString());
-  const frequent = db.prepare(
-    'SELECT mmsi, name, flag_country, vessel_type_label, visit_count, first_seen, last_seen FROM vessel_archive WHERE name IS NOT NULL ORDER BY visit_count DESC LIMIT 5'
-  ).all();
-  const largest = db.prepare(
-    'SELECT mmsi, name, flag_country, vessel_type_label, length, width FROM vessel_archive WHERE name IS NOT NULL AND length IS NOT NULL ORDER BY length DESC LIMIT 1'
-  ).get();
-  return { totalUnique: total.c, newThisMonth: monthCount.c, frequentVisitors: frequent, largestEver: largest };
+// The stats below take `gear`, a Set of MMSIs classed as fishing gear (see
+// vessel-class.js), and leave those out. Aggregation is done in JS because
+// the gear rule is JS; the archive is a few thousand rows.
+
+function monthStartIso() {
+  const d = new Date();
+  d.setDate(1);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
+function countBy(rows, key) {
+  const m = new Map();
+  for (const r of rows) {
+    const k = r[key];
+    if (k == null || k === '') continue;
+    m.set(k, (m.get(k) || 0) + 1);
+  }
+  return [...m.entries()].map(([k, c]) => ({ [key]: k, c })).sort((a, b) => b.c - a.c);
+}
+
+export function getArchiveStats(db, gear = new Set()) {
+  const ships = db.prepare('SELECT * FROM vessel_archive').all().filter((r) => !gear.has(r.mmsi));
+  const monthStart = monthStartIso();
+  const named = ships.filter((r) => r.name);
+  const pick = ({ mmsi, name, flag_country, vessel_type_label, visit_count, first_seen, last_seen, length, width }) =>
+    ({ mmsi, name, flag_country, vessel_type_label, visit_count, first_seen, last_seen, length, width });
+  return {
+    totalUnique: ships.length,
+    newThisMonth: ships.filter((r) => r.first_seen >= monthStart).length,
+    frequentVisitors: [...named].sort((a, b) => (b.visit_count || 0) - (a.visit_count || 0)).slice(0, 5).map(pick),
+    largestEver: named.filter((r) => r.length).sort((a, b) => b.length - a.length).map(pick)[0],
+  };
 }
 
 // ── Port Trends (aggregate stats over the permanent archive) ──
 
-export function getPortTrends(db) {
-  const monthStart = new Date();
-  monthStart.setDate(1);
-  monthStart.setHours(0, 0, 0, 0);
+export function getPortTrends(db, gear = new Set()) {
   const fourteenDaysAgo = new Date(Date.now() - 14 * 86400000).toISOString();
+  const ships = db.prepare('SELECT * FROM vessel_archive').all().filter((r) => !gear.has(r.mmsi));
+  const named = ships.filter((r) => r.name);
 
-  const one = (sql, ...args) => db.prepare(sql).get(...args);
-  const many = (sql, ...args) => db.prepare(sql).all(...args);
+  const arrivalsByMmsi = db.prepare("SELECT mmsi, COUNT(*) c FROM vessel_visits WHERE event = 'arrival' GROUP BY mmsi").all();
+  const recentArrivals = db.prepare("SELECT mmsi, substr(timestamp, 1, 10) day FROM vessel_visits WHERE event = 'arrival' AND timestamp >= ?")
+    .all(fourteenDaysAgo).filter((r) => !gear.has(r.mmsi));
+
+  const flags = countBy(ships, 'flag_country');
+  const byDay = countBy(recentArrivals, 'day').sort((a, b) => a.day.localeCompare(b.day));
 
   return {
-    totalUnique: one('SELECT COUNT(*) c FROM vessel_archive').c,
-    newThisMonth: one('SELECT COUNT(*) c FROM vessel_archive WHERE first_seen >= ?', monthStart.toISOString()).c,
-    totalArrivals: one("SELECT COUNT(*) c FROM vessel_visits WHERE event = 'arrival'").c,
-    countriesSeen: one("SELECT COUNT(DISTINCT flag_country) c FROM vessel_archive WHERE flag_country IS NOT NULL AND flag_country != ''").c,
-    flags: many(`
-      SELECT flag_country, COUNT(*) c FROM vessel_archive
-      WHERE flag_country IS NOT NULL AND flag_country != ''
-      GROUP BY flag_country ORDER BY c DESC LIMIT 10
-    `),
-    types: many(`
-      SELECT vessel_type_label, COUNT(*) c FROM vessel_archive
-      WHERE vessel_type_label IS NOT NULL AND vessel_type_label != ''
-      GROUP BY vessel_type_label ORDER BY c DESC
-    `),
-    byDay: many(`
-      SELECT substr(timestamp, 1, 10) day, COUNT(*) c FROM vessel_visits
-      WHERE event = 'arrival' AND timestamp >= ?
-      GROUP BY day ORDER BY day ASC
-    `, fourteenDaysAgo),
-    frequent: many(`
-      SELECT mmsi, name, flag_country, vessel_type_label, visit_count FROM vessel_archive
-      WHERE name IS NOT NULL ORDER BY visit_count DESC, last_seen DESC LIMIT 8
-    `),
-    largest: many(`
-      SELECT mmsi, name, flag_country, vessel_type_label, length, width FROM vessel_archive
-      WHERE name IS NOT NULL AND length IS NOT NULL AND length BETWEEN 1 AND 450
-      ORDER BY length DESC LIMIT 5
-    `),
+    totalUnique: ships.length,
+    newThisMonth: ships.filter((r) => r.first_seen >= monthStartIso()).length,
+    totalArrivals: arrivalsByMmsi.filter((r) => !gear.has(r.mmsi)).reduce((s, r) => s + r.c, 0),
+    countriesSeen: flags.length,
+    flags: flags.slice(0, 10),
+    types: countBy(ships, 'vessel_type_label'),
+    byDay,
+    frequent: [...named]
+      .sort((a, b) => (b.visit_count || 0) - (a.visit_count || 0) || String(b.last_seen).localeCompare(String(a.last_seen)))
+      .slice(0, 8)
+      .map(({ mmsi, name, flag_country, vessel_type_label, visit_count }) => ({ mmsi, name, flag_country, vessel_type_label, visit_count })),
+    largest: named
+      .filter((r) => r.length >= 1 && r.length <= 450)
+      .sort((a, b) => b.length - a.length)
+      .slice(0, 5)
+      .map(({ mmsi, name, flag_country, vessel_type_label, length, width }) => ({ mmsi, name, flag_country, vessel_type_label, length, width })),
   };
 }
 
@@ -263,6 +272,21 @@ export function getVesselVisitHistory(db, mmsi) {
 }
 
 // ── Position Summaries ──
+
+// Hourly summaries are written every cleanup cycle and nothing reads them yet,
+// so the table grew without limit (1.1M rows by Nov 2026). Keep a window and
+// delete the rest in small batches so the live server never blocks for long.
+export function pruneSummaries(db, olderThanMs, { batch = 5000, maxBatches = 40 } = {}) {
+  const cutoff = new Date(Date.now() - olderThanMs).toISOString();
+  const del = db.prepare('DELETE FROM position_summaries WHERE id IN (SELECT id FROM position_summaries WHERE timestamp < ? LIMIT ?)');
+  let total = 0;
+  for (let i = 0; i < maxBatches; i++) {
+    const n = del.run(cutoff, batch).changes;
+    total += n;
+    if (n < batch) break;
+  }
+  return total;
+}
 
 export function compressPositions(db, olderThanMs) {
   const cutoff = new Date(Date.now() - olderThanMs).toISOString();

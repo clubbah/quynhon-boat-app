@@ -1,6 +1,6 @@
 import { initMap, updateVesselMarker, showTrack, clearTrack, setSelectedMmsi, getSelectedMmsi, filterMarkersByType, setMapClickHandler, flyToVessel, recenterMap, highlightVessel, clearHighlight } from './map.js';
-import { showPanel, hidePanel, initPanel } from './vessel-card.js?v=4';
-import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js?v=32';
+import { showPanel, hidePanel, initPanel } from './vessel-card.js?v=5';
+import { t, setLang, getLang, getLanguages, tType, tStatus } from './i18n.js?v=33';
 import { scoreSunset } from './sunset.js';
 import { flagSrc, getCountryName } from './vessel-icons.js';
 
@@ -93,17 +93,24 @@ function initWebSocket() {
       }
     }
 
-    if (msg.type === 'arrival' || msg.type === 'departure') {
-      // Real-time arrival/departure — prepend to pulse timeline
+    if (msg.type === 'arrival') {
+      // Real-time arrival — prepend to pulse timeline
       const v = msg.vessel;
       prependPulseItem({
         mmsi: v.mmsi,
         name: cleanName(v.name) || v.mmsi,
         vessel_type_label: v.vessel_type_label,
         flag_country: v.flag_country,
-        event: msg.type,
+        event: 'arrival',
         timestamp: new Date().toISOString(),
       });
+    }
+
+    if (msg.type === 'departure') {
+      // A departure is logged 6 hours after the ship was last heard and is
+      // stamped with that time, so it belongs further down the timeline.
+      // Re-fetch rather than prepend it at the top.
+      fetchPortPulse();
     }
   });
 

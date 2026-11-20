@@ -1,4 +1,4 @@
-import { t, setLang, getLang, getLanguages } from './i18n.js?v=32';
+import { t, setLang, getLang, getLanguages } from './i18n.js?v=33';
 
 // Storm tracker page. Its own MapLibre instance, separate from the home map:
 // a light, low-detail basemap framed at regional scale so an approaching storm

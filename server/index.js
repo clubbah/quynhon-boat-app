@@ -7,13 +7,15 @@ import { fileURLToPath } from 'url';
 
 import { createDb, upsertVessel, appendPosition, getVesselsByArea, getTrack, pruneOldData,
   upsertArchive, incrementVisitCount, logVisit, getRecentVisits, getVesselVisitHistory,
-  getArchiveStats, getPortTrends, compressPositions } from './db.js';
+  getArchiveStats, getPortTrends, compressPositions, pruneSummaries } from './db.js';
 import { connectAisStream } from './ais-client.js';
 import { parseAisCatcherMessage, isWithinBounds, isNonVesselMmsi, QN_BOUNDS } from './ais-parser.js';
 import { startCleanup } from './cleanup.js';
 import { startHealthMonitor, getHealthSnapshot } from './health-monitor.js';
 import { startStormMonitor, getStormSnapshot, buildDemoSnapshot } from './storm-monitor.js';
 import { canonicalRedirect } from './canonical.js';
+import { isFishingGear, withClass } from './vessel-class.js';
+import { createVisitTracker } from './visits.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -29,7 +31,23 @@ function isValidFeedSecret(token) {
 }
 
 // Database
-const db = createDb(path.join(__dirname, '..', 'vessels.db'));
+// DB_PATH lets a local run point at a copy of the production database.
+const db = createDb(process.env.DB_PATH || path.join(__dirname, '..', 'vessels.db'));
+
+// MMSIs classed as fishing gear, from the permanent archive. Used to keep gear
+// out of stored history (Port Pulse, trends) whose rows lack the fields the
+// classifier needs. Rebuilt at most every 10 minutes.
+let gearCache = { set: new Set(), builtAt: 0 };
+function gearMmsis() {
+  if (Date.now() - gearCache.builtAt > 10 * 60 * 1000) {
+    const set = new Set();
+    for (const r of db.prepare('SELECT mmsi, name, call_sign, imo, vessel_type FROM vessel_archive').all()) {
+      if (isFishingGear(r)) set.add(r.mmsi);
+    }
+    gearCache = { set, builtAt: Date.now() };
+  }
+  return gearCache.set;
+}
 
 // Express
 const app = express();
@@ -67,10 +85,9 @@ app.get('/api/status', (req, res) => {
   res.json(snapshot);
 });
 
-// All vessels as JSON (for spot feature)
+// All vessels as JSON (for spot feature). Each row carries is_gear.
 app.get('/api/vessels', (req, res) => {
-  const vessels = getVesselsByArea(db);
-  res.json(vessels);
+  res.json(getVesselsByArea(db).map(withClass));
 });
 
 app.get('/api/vessels/:mmsi/track', (req, res) => {
@@ -171,7 +188,7 @@ function handleAisFeed(req, res) {
       const fullVessel = getVesselFromDb(db, parsed.mmsi);
       if (fullVessel && fullVessel.lat != null) {
         detectArrival(db, fullVessel);
-        broadcast({ type: 'update', vessel: fullVessel });
+        broadcast({ type: 'update', vessel: withClass(fullVessel) });
       }
     }
 
@@ -251,13 +268,12 @@ app.get('/api/port-stats', (req, res) => {
   const today = now.toISOString().split('T')[0];
   const yesterday = new Date(now - 86400000).toISOString().split('T')[0];
 
-  // All current vessels
-  const allVessels = db.prepare('SELECT * FROM vessels').all();
+  // All current ships. Fishing gear (net markers and buoys) stays on the map
+  // but is left out of every count and list here.
+  const allVessels = db.prepare('SELECT * FROM vessels').all().filter((v) => !isFishingGear(v));
 
-  // Vessels seen in last 24h (arrivals)
-  const recentVessels = db.prepare(
-    "SELECT * FROM vessels WHERE updated_at > ? ORDER BY updated_at DESC"
-  ).all(yesterday + 'T00:00:00');
+  // Ships seen in last 24h
+  const recentVessels = allVessels.filter((v) => v.updated_at > yesterday + 'T00:00:00');
 
   // Moving vessels (speed > 0.5)
   // Speed-based movement detection (more reliable than AIS nav_status)
@@ -270,9 +286,11 @@ app.get('/api/port-stats', (req, res) => {
     .sort((a, b) => (b.length || 0) - (a.length || 0))[0] || null;
 
   // Recent activity — last 10 updates
-  const recentActivity = db.prepare(
-    "SELECT mmsi, name, vessel_type_label, flag_country, speed, nav_status_label, destination, updated_at FROM vessels ORDER BY updated_at DESC LIMIT 10"
-  ).all();
+  const recentActivity = [...allVessels]
+    .sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)))
+    .slice(0, 10)
+    .map(({ mmsi, name, vessel_type_label, flag_country, speed, nav_status_label, destination, updated_at }) =>
+      ({ mmsi, name, vessel_type_label, flag_country, speed, nav_status_label, destination, updated_at }));
 
   res.json({
     total: allVessels.length,
@@ -287,7 +305,9 @@ app.get('/api/port-stats', (req, res) => {
 // Port Pulse — recent arrivals and departures
 app.get('/api/port-pulse', (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || 20, 50);
-  const visits = getRecentVisits(db, limit);
+  const gear = gearMmsis();
+  // Older history contains gear events; over-fetch and filter.
+  const visits = getRecentVisits(db, limit * 6).filter((v) => !gear.has(v.mmsi)).slice(0, limit);
   res.json(visits);
 });
 
@@ -300,13 +320,13 @@ app.get('/api/vessels/:mmsi/visits', (req, res) => {
 
 // Archive stats — overall port statistics
 app.get('/api/archive-stats', (req, res) => {
-  const stats = getArchiveStats(db);
+  const stats = getArchiveStats(db, gearMmsis());
   res.json(stats);
 });
 
 // Port trends — aggregate statistics for the "Port in Numbers" page
 app.get('/api/port-trends', (req, res) => {
-  res.json(getPortTrends(db));
+  res.json(getPortTrends(db, gearMmsis()));
 });
 
 // Quietly handle client-aborted request bodies. Flaky relays and internet
@@ -332,8 +352,8 @@ wss.on('connection', (ws) => {
   clients.add(ws);
   console.log(`[WS] Client connected (${clients.size} total)`);
 
-  // Send snapshot of all current vessels
-  const vessels = getVesselsByArea(db);
+  // Send snapshot of all current vessels (each with is_gear)
+  const vessels = getVesselsByArea(db).map(withClass);
   ws.send(JSON.stringify({ type: 'snapshot', vessels }));
 
   ws.on('close', () => {
@@ -352,32 +372,29 @@ function broadcast(data) {
 }
 
 // ── Arrival/Departure Detection ──
-// Track recently seen vessels to detect new arrivals
-const recentlySeenMMSIs = new Set();
+// See visits.js for the model: one 6-hour silence gap drives both events,
+// fishing gear is excluded, and departures wait out receiver outages.
+const visits = createVisitTracker(db);
+console.log(`[Visits] Restored ${visits.seed()} ships heard in the last 6 hours`);
+
 // Throttle archive writes: mmsi -> last write time (ms)
 const lastArchiveWrite = new Map();
 const ARCHIVE_MIN_INTERVAL = 60 * 60 * 1000; // 1h
 
-// On startup, populate from current vessels table
-for (const v of getVesselsByArea(db)) {
-  recentlySeenMMSIs.add(v.mmsi);
-}
-console.log(`[Visits] Loaded ${recentlySeenMMSIs.size} known vessels`);
-
 function detectArrival(db, vessel) {
   if (!vessel.mmsi || !vessel.name) return;
-  const isNew = !recentlySeenMMSIs.has(vessel.mmsi);
-  recentlySeenMMSIs.add(vessel.mmsi);
+  // Must run before upsertArchive below, which overwrites last_seen.
+  const isArrival = visits.observe(vessel);
 
-  // Update permanent archive, but throttle to arrival-or-hourly. Writing on
-  // every message (~60 vessels x 60s) was needless write amplification.
+  // Update permanent archive (gear included: it is the registry of everything
+  // heard), throttled to arrival-or-hourly to avoid write amplification.
   const now = Date.now();
-  if (isNew || (now - (lastArchiveWrite.get(vessel.mmsi) || 0)) > ARCHIVE_MIN_INTERVAL) {
+  if (isArrival || (now - (lastArchiveWrite.get(vessel.mmsi) || 0)) > ARCHIVE_MIN_INTERVAL) {
     upsertArchive(db, vessel);
     lastArchiveWrite.set(vessel.mmsi, now);
   }
 
-  if (isNew) {
+  if (isArrival) {
     incrementVisitCount(db, vessel.mmsi);
     logVisit(db, {
       mmsi: vessel.mmsi,
@@ -391,36 +408,29 @@ function detectArrival(db, vessel) {
       destination: vessel.destination || null,
     });
     console.log(`[Visits] ARRIVAL: ${vessel.name} (${vessel.mmsi})`);
-    broadcast({ type: 'arrival', vessel });
+    broadcast({ type: 'arrival', vessel: withClass(vessel) });
   }
 }
 
-// Check for departures every 10 minutes. A vessel that hasn't reported for an
-// hour has left the antenna's range (or port). Previously this required
-// speed > 0.5, which silently skipped every anchored vessel that departed.
+// Check for departures every 10 minutes. "Feed healthy" means vessel data was
+// processed in the last 15 minutes (from the antenna or the aisstream backup).
 setInterval(() => {
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const staleVessels = db.prepare(
-    "SELECT * FROM vessels WHERE updated_at < ?"
-  ).all(oneHourAgo);
-
-  for (const v of staleVessels) {
-    if (recentlySeenMMSIs.has(v.mmsi) && v.name) {
-      logVisit(db, {
-        mmsi: v.mmsi,
-        name: v.name,
-        vessel_type_label: v.vessel_type_label || null,
-        flag_country: v.flag_country || null,
-        length: v.length || null,
-        width: v.width || null,
-        event: 'departure',
-        timestamp: new Date().toISOString(),
-        destination: v.destination || null,
-      });
-      console.log(`[Visits] DEPARTURE: ${v.name} (${v.mmsi})`);
-      broadcast({ type: 'departure', vessel: v });
-    }
-    recentlySeenMMSIs.delete(v.mmsi);
+  const last = feedStats.lastProcessedAt ? Date.parse(feedStats.lastProcessedAt) : 0;
+  const feedHealthy = Date.now() - last < 15 * 60 * 1000;
+  for (const v of visits.checkDepartures(feedHealthy)) {
+    logVisit(db, {
+      mmsi: v.mmsi,
+      name: v.name,
+      vessel_type_label: v.vessel_type_label,
+      flag_country: v.flag_country,
+      length: v.length,
+      width: v.width,
+      event: 'departure',
+      timestamp: v.departedAt,
+      destination: v.destination,
+    });
+    console.log(`[Visits] DEPARTURE: ${v.name} (${v.mmsi}), last heard ${v.departedAt}`);
+    broadcast({ type: 'departure', vessel: v });
     lastArchiveWrite.delete(v.mmsi); // free memory for departed vessels
   }
 }, 10 * 60 * 1000);
@@ -474,7 +484,7 @@ function ingestVessel(parsed) {
   const full = getVesselFromDb(db, parsed.mmsi);
   if (full && full.lat != null) {
     detectArrival(db, full);
-    broadcast({ type: 'update', vessel: full });
+    broadcast({ type: 'update', vessel: withClass(full) });
   }
   feedStats.lastProcessedAt = new Date().toISOString();
 }
@@ -501,7 +511,7 @@ function manageFailover() {
 setInterval(manageFailover, 60 * 1000);
 
 // Cleanup — prune stale vessels from live map, compress old positions to hourly summaries
-startCleanup(db, pruneOldData, compressPositions);
+startCleanup(db, pruneOldData, compressPositions, 10 * 60 * 1000, pruneSummaries);
 
 // Health monitor — alerts when AIS feed goes stale
 startHealthMonitor(db, feedStats);

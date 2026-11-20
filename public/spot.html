@@ -788,7 +788,9 @@
     async function loadVessels() {
       try {
         const res = await fetch('/api/vessels');
-        vessels = await res.json();
+        // Leave out fishing gear: net markers sit at water level and can't be
+        // seen from shore, so pointing at a ship should never match one.
+        vessels = (await res.json()).filter(v => !v.is_gear);
         // Strip trailing battery indicator from fishing-boat names ("TY 15 D37 15%")
         for (const v of vessels) {
           if (v.name) v.name = String(v.name).replace(/[\s-]*\d{1,3}%\s*$/, '').trim() || v.name;

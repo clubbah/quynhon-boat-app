@@ -1,4 +1,4 @@
-import { t, tType, tStatus } from './i18n.js?v=32';
+import { t, tType, tStatus } from './i18n.js?v=33';
 import { getColorForType, getCountryName, flagSrc } from './vessel-icons.js';
 
 const $ = (id) => document.getElementById(id);
@@ -6,7 +6,7 @@ const $ = (id) => document.getElementById(id);
 export function showPanel(vessel) {
   const card = $('vessel-card');
   const src = flagSrc(vessel.flag_country, '32x24');
-  const typeLabel = vessel.vessel_type_label || 'Other';
+  const typeLabel = vessel.is_gear ? 'Fishing gear' : (vessel.vessel_type_label || 'Other');
   const color = getColorForType(typeLabel);
 
   const flagEl = $('card-flag');

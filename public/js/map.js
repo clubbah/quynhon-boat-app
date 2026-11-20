@@ -15,6 +15,9 @@ let mapReady = false;
 let pendingUpdates = [];
 let onVesselClickFn = null;
 
+// Layers a visitor can hover and click: ship icons and fishing-gear dots.
+const CLICKABLE_LAYERS = ['vessel-icons', 'gear-dots'];
+
 // Ship icon SVGs as data URLs for the map
 const SHIP_ICONS = {};
 const ICON_COLORS = {
@@ -110,11 +113,28 @@ export function initMap() {
         data: { type: 'FeatureCollection', features: [] },
       });
 
+      // Fishing gear (net markers, buoys): a small grey dot, drawn under ships.
+      map.addLayer({
+        id: 'gear-dots',
+        type: 'circle',
+        source: 'vessels',
+        filter: ['==', ['get', 'is_gear'], 1],
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 2, 14, 3.5],
+          'circle-color': '#9ca3af',
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-width': 1,
+          'circle-opacity': ['case', ['==', ['get', 'stale'], 1], 0.35, 0.9],
+          'circle-stroke-opacity': ['case', ['==', ['get', 'stale'], 1], 0.35, 0.9],
+        },
+      });
+
       // Vessel layer — icons rotate with heading, fade when stale
       map.addLayer({
         id: 'vessel-icons',
         type: 'symbol',
         source: 'vessels',
+        filter: ['!=', ['get', 'is_gear'], 1],
         layout: {
           'icon-image': ['get', 'icon'],
           'icon-size': ['interpolate', ['linear'], ['get', 'length'],
@@ -193,22 +213,24 @@ export function initMap() {
       refreshVesselSource();
     });
 
-    // Click on vessel
-    map.on('click', 'vessel-icons', (e) => {
-      if (e.features && e.features[0] && onVesselClickFn) {
-        const mmsi = e.features[0].properties.mmsi;
-        const vessel = vesselData[mmsi];
-        if (vessel) onVesselClickFn(vessel);
-      }
-    });
+    // Click on vessel (ship icon or gear dot)
+    for (const layer of CLICKABLE_LAYERS) {
+      map.on('click', layer, (e) => {
+        if (e.features && e.features[0] && onVesselClickFn) {
+          const mmsi = e.features[0].properties.mmsi;
+          const vessel = vesselData[mmsi];
+          if (vessel) onVesselClickFn(vessel);
+        }
+      });
 
-    // Hover cursor
-    map.on('mouseenter', 'vessel-icons', () => {
-      map.getCanvas().style.cursor = 'pointer';
-    });
-    map.on('mouseleave', 'vessel-icons', () => {
-      map.getCanvas().style.cursor = '';
-    });
+      // Hover cursor
+      map.on('mouseenter', layer, () => {
+        map.getCanvas().style.cursor = 'pointer';
+      });
+      map.on('mouseleave', layer, () => {
+        map.getCanvas().style.cursor = '';
+      });
+    }
 
     // Tooltip popup on hover — use mousemove to update between adjacent vessels
     const popup = new maplibregl.Popup({
@@ -240,23 +262,25 @@ export function initMap() {
       </div>`;
     }
 
-    map.on('mousemove', 'vessel-icons', (e) => {
-      if (!e.features || !e.features[0]) return;
-      const props = e.features[0].properties;
-      if (props.mmsi !== hoveredMmsi) {
-        hoveredMmsi = props.mmsi;
-        popup.setLngLat(e.lngLat).setHTML(buildTooltipHtml(props)).addTo(map);
-      }
-    });
+    for (const layer of CLICKABLE_LAYERS) {
+      map.on('mousemove', layer, (e) => {
+        if (!e.features || !e.features[0]) return;
+        const props = e.features[0].properties;
+        if (props.mmsi !== hoveredMmsi) {
+          hoveredMmsi = props.mmsi;
+          popup.setLngLat(e.lngLat).setHTML(buildTooltipHtml(props)).addTo(map);
+        }
+      });
 
-    map.on('mouseleave', 'vessel-icons', () => {
-      hoveredMmsi = null;
-      popup.remove();
-    });
+      map.on('mouseleave', layer, () => {
+        hoveredMmsi = null;
+        popup.remove();
+      });
+    }
 
     // Click on map (not vessel) to close card
     map.on('click', (e) => {
-      const features = map.queryRenderedFeatures(e.point, { layers: ['vessel-icons'] });
+      const features = map.queryRenderedFeatures(e.point, { layers: CLICKABLE_LAYERS });
       if (features.length === 0 && map._onMapClick) {
         map._onMapClick();
       }
@@ -310,7 +334,8 @@ function refreshVesselSource() {
           mmsi: v.mmsi,
           name: v.name || '',
           flag_country: v.flag_country || '',
-          vessel_type_label: v.vessel_type_label || 'Other',
+          is_gear: v.is_gear ? 1 : 0,
+          vessel_type_label: v.is_gear ? 'Fishing gear' : (v.vessel_type_label || 'Other'),
           icon: getIconType(v.vessel_type_label),
           heading: v.heading ?? v.course ?? 0,
           speed: v.speed ?? 0,
@@ -384,10 +409,12 @@ export function getSelectedMmsi() { return selectedMmsi; }
 
 export function filterMarkersByType(typeLabel) {
   if (!mapReady) return;
+  // Always keep gear out of the ship-icon layer (it has its own dot layer).
+  const notGear = ['!=', ['get', 'is_gear'], 1];
   if (typeLabel === 'all') {
-    map.setFilter('vessel-icons', null);
+    map.setFilter('vessel-icons', notGear);
   } else {
-    map.setFilter('vessel-icons', ['==', ['get', 'vessel_type_label'], typeLabel]);
+    map.setFilter('vessel-icons', ['all', notGear, ['==', ['get', 'vessel_type_label'], typeLabel]]);
   }
 }
 
