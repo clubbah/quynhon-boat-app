@@ -13,6 +13,7 @@ import { parseAisCatcherMessage, isWithinBounds, isNonVesselMmsi, QN_BOUNDS } fr
 import { startCleanup } from './cleanup.js';
 import { startHealthMonitor, getHealthSnapshot } from './health-monitor.js';
 import { startStormMonitor, getStormSnapshot, buildDemoSnapshot } from './storm-monitor.js';
+import { canonicalRedirect } from './canonical.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -33,26 +34,9 @@ const db = createDb(path.join(__dirname, '..', 'vessels.db'));
 // Express
 const app = express();
 
-// Diagnostic for the planned http/www -> https://quynhonlife.com redirect.
-// Before redirecting anything we need to know which headers actually reach
-// Express through Cloudflare and Traefik. Logs each distinct combination once
-// (capped), then goes quiet. Remove once the redirect is in place.
-const seenSchemeHeaders = new Set();
-app.use((req, res, next) => {
-  if (seenSchemeHeaders.size < 20 && (req.method === 'GET' || req.method === 'HEAD')) {
-    const combo = JSON.stringify({
-      host: req.headers.host || null,
-      cfVisitor: req.headers['cf-visitor'] || null,
-      xfProto: req.headers['x-forwarded-proto'] || null,
-      xfHost: req.headers['x-forwarded-host'] || null,
-    });
-    if (!seenSchemeHeaders.has(combo)) {
-      seenSchemeHeaders.add(combo);
-      console.log('[Scheme] New header combination:', combo, 'path:', req.path);
-    }
-  }
-  next();
-});
+// http:// and www. page requests -> https://quynhonlife.com (see canonical.js
+// for why this never touches /api/, static files, or X-Forwarded-Proto).
+app.use(canonicalRedirect);
 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
