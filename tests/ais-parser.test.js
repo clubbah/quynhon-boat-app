@@ -128,4 +128,19 @@ describe('parseAisCatcherMessage — data cleaning', () => {
   it('derives a 2-letter ISO flag code (not a country name)', () => {
     expect(parseAisCatcherMessage(validMsg({ mmsi: '574123456', country: undefined })).flag_country).toBe('VN');
   });
+
+  it('ignores a full country name sent by the receiver', () => {
+    // The phone build of AIS-catcher sends "country":"Vietnam"
+    expect(parseAisCatcherMessage(validMsg({ mmsi: '574123456', country: 'Vietnam' })).flag_country).toBe('VN');
+    expect(parseAisCatcherMessage(validMsg({ mmsi: '538123456', country: 'Marshall Is' })).flag_country).toBe('MH');
+  });
+
+  it('prefers the MMSI over a conflicting country field', () => {
+    expect(parseAisCatcherMessage(validMsg({ mmsi: '370123456', country: 'VN', country_code: 'VN' })).flag_country).toBe('PA');
+  });
+
+  it('keeps a valid code when the MMSI has no known flag', () => {
+    expect(parseAisCatcherMessage(validMsg({ mmsi: '815193914', country_code: 'vn' })).flag_country).toBe('VN');
+    expect(parseAisCatcherMessage(validMsg({ mmsi: '815193914', country: 'Somewhere' })).flag_country).toBeNull();
+  });
 });

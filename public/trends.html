@@ -149,8 +149,14 @@
       const n = cleanName(r.name);
       return (!n || /[<>\[\]{}|^;"!~*=]/.test(n)) ? r.mmsi : n;
     };
-    const cc = (s) => String(s || '').toLowerCase().replace(/[^a-z]/g, '');
-    const flag = (country, cls) => cc(country) ? `<img class="${cls}" src="https://flagcdn.com/20x15/${cc(country)}.png" alt="${esc(cc(country))}" loading="lazy" />` : '';
+    // Only real 2-letter codes make a flag image; old rows stored names.
+    const cc = (s) => { const c = String(s || '').trim().toLowerCase(); return /^[a-z]{2}$/.test(c) ? c : ''; };
+    const flag = (country, cls) => cc(country) ? `<img class="${cls}" src="https://flagcdn.com/20x15/${cc(country)}.png" alt="" loading="lazy" />` : '';
+    const countryName = (code) => {
+      const c = String(code || '').trim().toUpperCase();
+      try { return /^[A-Z]{2}$/.test(c) ? (new Intl.DisplayNames(['en'], { type: 'region' }).of(c) || c) : (c || 'Unknown'); }
+      catch { return c || 'Unknown'; }
+    };
     const typeClass = (label) => {
       const l = (label || '').toLowerCase();
       if (l.includes('cargo') || l.includes('container')) return 'cargo';
@@ -223,7 +229,7 @@
         $('s-countries').textContent = (d.countriesSeen || 0).toLocaleString();
 
         renderChart(d.byDay);
-        renderBars($('flags'), d.flags, { keyHtml: (r) => `${flag(r.flag_country, '')}<span>${esc((r.flag_country || '').toUpperCase())}</span>` });
+        renderBars($('flags'), d.flags, { keyHtml: (r) => `${flag(r.flag_country, '')}<span>${esc(countryName(r.flag_country))}</span>` });
         renderBars($('types'), d.types, { colorFromType: true, keyHtml: (r) => `<span class="dot" style="background:${({cargo:'#2563eb',tanker:'#dc2626',passenger:'#16a34a',fishing:'#ca8a04',other:'#8ca5ad'})[typeClass(r.vessel_type_label)]}"></span><span>${esc(r.vessel_type_label || 'Other')}</span>` });
         renderList($('frequent'), d.frequent, (r) => `${(r.visit_count || 0)}<small>visits</small>`);
         renderList($('largest'), d.largest, (r) => r.length ? `${esc(r.length)}<small>m${r.width ? ' x ' + esc(r.width) : ''}</small>` : '');

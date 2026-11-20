@@ -836,7 +836,8 @@
       $('no-match').classList.remove('visible');
       $('spot-result').classList.add('visible');
 
-      const cc = (vessel.flag_country || '').toLowerCase();
+      // Only real 2-letter codes make a flag image; old rows stored names.
+      const cc = /^[a-z]{2}$/i.test(vessel.flag_country || '') ? vessel.flag_country.toLowerCase() : '';
       $('result-flag').src = cc ? `https://flagcdn.com/40x30/${cc}.png` : '';
       $('result-flag').style.display = cc ? '' : 'none';
       $('result-name').textContent = vessel.name || vessel.mmsi;

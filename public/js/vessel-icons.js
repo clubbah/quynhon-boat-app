@@ -61,9 +61,30 @@ export function getFlagEmoji(country) {
   return COUNTRY_FLAGS[country] || '\u{1F6A2}';
 }
 
+// Flag image URL for a 2-letter country code, or '' when the value is not a
+// code (older rows stored names such as "Vietnam", which produced broken images).
+// size is a flagcdn size such as '20x15', '24x18', '32x24', '40x30'.
+export function flagSrc(code, size = '20x15') {
+  const c = String(code || '').trim().toLowerCase();
+  return /^[a-z]{2}$/.test(c) ? `https://flagcdn.com/${size}/${c}.png` : '';
+}
+
+function currentLang() {
+  try { return localStorage.getItem('lang') || 'en'; } catch { return 'en'; }
+}
+
+// Country name for a 2-letter code, in the visitor's language where the
+// browser supports it, falling back to the English table, then the code.
 export function getCountryName(code) {
   if (!code) return '';
-  return COUNTRY_NAMES[code] || code;
+  const c = String(code).trim().toUpperCase();
+  if (/^[A-Z]{2}$/.test(c)) {
+    try {
+      const name = new Intl.DisplayNames([currentLang(), 'en'], { type: 'region' }).of(c);
+      if (name && name !== c) return name;
+    } catch { /* older browser: use the table */ }
+  }
+  return COUNTRY_NAMES[c] || c;
 }
 
 export function getColorForType(typeLabel) {

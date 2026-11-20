@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getVesselTypeLabel, getVesselTypeColor, getNavStatusLabel, getFlagCountry } from '../server/ais-types.js';
+import { getVesselTypeLabel, getVesselTypeColor, getNavStatusLabel, getFlagCountry, normalizeFlagCountry } from '../server/ais-types.js';
 
 describe('getVesselTypeLabel', () => {
   it('maps cargo type codes to "Cargo"', () => {
@@ -45,9 +45,32 @@ describe('getNavStatusLabel', () => {
 describe('getFlagCountry', () => {
   it('maps Vietnamese MMSI to the VN code', () => { expect(getFlagCountry('574001234')).toBe('VN'); });
   it('maps Panamanian MMSI to the PA code', () => { expect(getFlagCountry('351234567')).toBe('PA'); });
+  it('covers flags the old partial table missed', () => {
+    expect(getFlagCountry('668123456')).toBe('ST'); // Sao Tome and Principe
+    expect(getFlagCountry('677123456')).toBe('TZ'); // Tanzania
+    expect(getFlagCountry('215123456')).toBe('MT'); // Malta
+  });
+  it('accepts a numeric MMSI', () => { expect(getFlagCountry(574001234)).toBe('VN'); });
   it('returns null for unknown MID', () => { expect(getFlagCountry('999000000')).toBeNull(); });
+  it('returns null for MMSIs that are not ship identities', () => {
+    expect(getFlagCountry('109030275')).toBeNull();
+    expect(getFlagCountry('815193914')).toBeNull();
+  });
   it('returns null for null/short MMSI', () => {
     expect(getFlagCountry(null)).toBeNull();
     expect(getFlagCountry('12')).toBeNull();
+  });
+});
+
+describe('normalizeFlagCountry', () => {
+  it('replaces a stored country name with the MMSI code', () => {
+    expect(normalizeFlagCountry('574001234', 'Vietnam')).toBe('VN');
+  });
+  it('keeps an existing 2-letter code when the MMSI gives nothing', () => {
+    expect(normalizeFlagCountry('109030275', 'pa')).toBe('PA');
+  });
+  it('drops names it cannot map', () => {
+    expect(normalizeFlagCountry('109030275', 'Vietnam')).toBeNull();
+    expect(normalizeFlagCountry('109030275', null)).toBeNull();
   });
 });

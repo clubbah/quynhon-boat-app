@@ -1,17 +1,18 @@
-import { t, tType, tStatus } from './i18n.js?v=31';
-import { getFlagEmoji, getColorForType } from './vessel-icons.js';
+import { t, tType, tStatus } from './i18n.js?v=32';
+import { getColorForType, getCountryName, flagSrc } from './vessel-icons.js';
 
 const $ = (id) => document.getElementById(id);
 
 export function showPanel(vessel) {
   const card = $('vessel-card');
-  const countryCode = (vessel.flag_country || '').toLowerCase();
+  const src = flagSrc(vessel.flag_country, '32x24');
   const typeLabel = vessel.vessel_type_label || 'Other';
   const color = getColorForType(typeLabel);
 
   const flagEl = $('card-flag');
-  if (countryCode) {
-    flagEl.innerHTML = `<img src="https://flagcdn.com/32x24/${countryCode}.png" alt="${countryCode}" style="width:32px;height:24px;border-radius:3px;object-fit:cover;" />`;
+  if (src) {
+    flagEl.innerHTML = `<img src="${src}" alt="" style="width:32px;height:24px;border-radius:3px;object-fit:cover;" />`;
+    flagEl.querySelector('img').title = getCountryName(vessel.flag_country);
   } else {
     flagEl.textContent = '\u{1F6A2}';
   }

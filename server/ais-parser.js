@@ -10,7 +10,7 @@
  *      positions that fall outside the Quy Nhon region (anti-spoofing).
  */
 
-import { getVesselTypeLabel, getNavStatusLabel, getFlagCountry } from './ais-types.js';
+import { getVesselTypeLabel, getNavStatusLabel, normalizeFlagCountry } from './ais-types.js';
 
 // Quy Nhon is at ~13.76N, 109.23E. The antenna reaches ~50-70km, but AIS can
 // occasionally be heard farther, so this box is generous (~200km). Its job is
@@ -72,7 +72,9 @@ export function parseAisCatcherMessage(msg) {
   if (rawCallsign && GARBLED.test(rawCallsign)) return null;
   if (rawCallsign === '1234567') return null;
 
-  const flag_country = msg.country || getFlagCountry(mmsi);
+  // Always a 2-letter code. The phone build of AIS-catcher sends a full name in
+  // `country` ("Vietnam"), which broke flag images and split the trends counts.
+  const flag_country = normalizeFlagCountry(mmsi, msg.country_code ?? msg.country);
   const updated_at = msg.timestamp || new Date().toISOString();
 
   // Build ETA string from separate fields if available
