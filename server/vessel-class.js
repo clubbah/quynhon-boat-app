@@ -22,9 +22,14 @@
 // Call signs that turn up on net markers and test transponders.
 const JUNK_CALL_SIGNS = new Set(['BO12345', '1234567', '0000000', 'ABCDEFG']);
 
+// Real call signs are either 4 letters (HPLG, XVXZ) or 4-7 letters and digits
+// mixed (3WBF9, 9V6016). All-letter values longer than 4 are words that small
+// transponders put in the field (LUOIRUT, VIETNAM, FISHING, TAUCA).
 export function isValidCallSign(cs) {
   const s = String(cs ?? '').trim().toUpperCase();
-  return /^[A-Z0-9]{4,7}$/.test(s) && /[A-Z]/.test(s) && /\d/.test(s) && !JUNK_CALL_SIGNS.has(s);
+  if (JUNK_CALL_SIGNS.has(s)) return false;
+  if (/^[A-Z]{4}$/.test(s)) return true;
+  return /^[A-Z0-9]{4,7}$/.test(s) && /[A-Z]/.test(s) && /\d/.test(s);
 }
 
 function hasValidImo(imo) {

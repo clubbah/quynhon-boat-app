@@ -44,8 +44,19 @@ export function createVisitTracker(db, {
   now = () => Date.now(),
 } = {}) {
   const present = new Map(); // mmsi -> { lastHeard: ms, info }
+  // mmsi -> { prevMs, at }: the archive's last_seen as it was when this
+  // sighting began. Small-craft transponders send the name and the ship type
+  // in separate messages, and the vessels row is pruned after 2 hours, so a
+  // returning boat is first seen named but untyped, which classes it as gear
+  // for a moment. index.js archives it during that moment, overwriting
+  // last_seen; without this, the real arrival would be swallowed.
+  const pending = new Map();
   let healthySince = null;
   const lastSeenStmt = db.prepare('SELECT last_seen FROM vessel_archive WHERE mmsi = ?');
+  const readLastSeen = (mmsi) => {
+    const prev = lastSeenStmt.get(mmsi)?.last_seen;
+    return prev ? Date.parse(prev) : NaN;
+  };
 
   /** Rebuild state after a restart: everything heard within the gap is present. */
   function seed() {
@@ -68,16 +79,23 @@ export function createVisitTracker(db, {
    * last_seen with the current time.
    */
   function observe(vessel) {
-    if (!vessel || !vessel.mmsi || !vessel.name || isFishingGear(vessel)) return false;
+    if (!vessel || !vessel.mmsi || !vessel.name) return false;
     const t = now();
     const entry = present.get(vessel.mmsi);
-    if (entry) {
+    if (entry && !isFishingGear(vessel)) {
       entry.lastHeard = t;
       entry.info = snapshot(vessel);
       return false;
     }
-    const prev = lastSeenStmt.get(vessel.mmsi)?.last_seen;
-    const prevMs = prev ? Date.parse(prev) : NaN;
+    // Remember last_seen from before this sighting, whatever class the first
+    // message gives the transponder (see `pending` above).
+    if (!entry && !pending.has(vessel.mmsi)) {
+      pending.set(vessel.mmsi, { prevMs: readLastSeen(vessel.mmsi), at: t });
+    }
+    if (isFishingGear(vessel)) return false;
+
+    const prevMs = pending.get(vessel.mmsi).prevMs;
+    pending.delete(vessel.mmsi);
     present.set(vessel.mmsi, { lastHeard: t, info: snapshot(vessel) });
     return !Number.isFinite(prevMs) || (t - prevMs) >= gapMs;
   }
@@ -89,6 +107,8 @@ export function createVisitTracker(db, {
    */
   function checkDepartures(feedHealthy) {
     const t = now();
+    // Real gear never leaves `pending`; drop entries older than the gap.
+    for (const [mmsi, p] of pending) if (t - p.at >= gapMs) pending.delete(mmsi);
     if (!feedHealthy) { healthySince = null; return []; }
     if (healthySince == null) healthySince = t;
     if (t - healthySince < settleMs) return [];

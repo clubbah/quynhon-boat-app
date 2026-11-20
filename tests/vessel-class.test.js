@@ -5,11 +5,11 @@ import { isFishingGear, isValidCallSign } from '../server/vessel-class.js';
 const row = (over) => ({ mmsi: '574100236', name: 'X', vessel_type: 0, call_sign: null, imo: null, length: 10, ...over });
 
 describe('isValidCallSign', () => {
-  it('accepts real call signs', () => {
-    for (const cs of ['XVDP7', '3WBF9', '9V6016', '3E8852', '3EIQ']) expect(isValidCallSign(cs)).toBe(true);
+  it('accepts real call signs, including 4-letter ones', () => {
+    for (const cs of ['XVDP7', '3WBF9', '9V6016', '3E8852', '3EIQ', 'XVAU', 'XVHQ', 'HPLG']) expect(isValidCallSign(cs)).toBe(true);
   });
   it('rejects junk seen on net markers', () => {
-    for (const cs of ['99%', '66%', 'LUOIRUT', 'BO12345', '1234', '345678', 'SSD', 'LR', '100200', '', null]) {
+    for (const cs of ['99%', '66%', 'LUOIRUT', 'VIETNAM', 'FISHING', 'TAUCA', 'BO12345', '1234', '345678', 'SSD', 'LR', '100200', '', null]) {
       expect(isValidCallSign(cs)).toBe(false);
     }
   });

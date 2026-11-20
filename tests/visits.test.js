@@ -43,6 +43,27 @@ describe('visit tracker', () => {
     expect(tracker.observe(ship())).toBe(true);
   });
 
+  it('logs the arrival when the name arrives before the ship type', () => {
+    // A returning boat, last seen 8 hours ago. Its vessels row was pruned, so
+    // the first message with a name has no type yet (classed as gear), and
+    // index.js archives it, overwriting last_seen. Then the type arrives.
+    archive(ship({ vessel_type: 30, call_sign: null }), clock - 8 * H);
+    const boat = { mmsi: '574012489', name: '92 D34-TIN', call_sign: null, vessel_type: null };
+    expect(tracker.observe(boat)).toBe(false);          // looks like gear for a moment
+    archive(boat, clock);                                // the archive write in detectArrival
+    clock += 40 * 1000;
+    expect(tracker.observe({ ...boat, vessel_type: 30 })).toBe(true);
+    expect(tracker.observe({ ...boat, vessel_type: 30 })).toBe(false);
+  });
+
+  it('a transponder that stays gear never arrives', () => {
+    archive(gear, clock - 8 * H);
+    expect(tracker.observe(gear)).toBe(false);
+    archive(gear, clock);
+    clock += 10 * M;
+    expect(tracker.observe(gear)).toBe(false);
+  });
+
   it('does not log an arrival for a ship heard again within the gap after a restart', () => {
     archive(ship(), clock - 2 * H);
     expect(tracker.observe(ship())).toBe(false);
