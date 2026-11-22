@@ -128,7 +128,8 @@ body.exploring .ex-top > *,body.exploring .ex-bottom > *{pointer-events:auto}
 .chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
 .chip{flex:none;min-height:46px;padding:0 16px;background:rgba(6,14,20,.86);color:#fff;border:1.5px solid transparent;font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}
 .chip.on{background:#fff;color:#0b1d24}
-.chip u{width:11px;height:11px;border-radius:50%;display:block;border:1.5px solid #0a1a24}
+.chip canvas{display:block}
+.card-art{margin-top:16px;padding:18px 12px;background:var(--sea);display:grid;place-items:center;transition:background-color 1.2s}
 
 /* Ship card */
 .card{position:fixed;z-index:95;left:0;right:0;bottom:0;background:var(--panel);color:var(--ink);border:1px solid var(--line);box-shadow:0 -18px 60px rgba(0,0,0,.4);padding:20px 20px calc(20px + env(safe-area-inset-bottom));transform:translateY(110%);transition:transform .45s var(--ease);max-height:78vh;overflow:auto}
@@ -546,7 +547,7 @@ function applySky(force) {
 }
 
 /* ---------- Map ---------- */
-let hiddenOnce = false;
+let hiddenOnce = false, shipsLit = null;
 function paintMap(w) {
   const set = (id, prop, v) => { try { map.setPaintProperty(id, prop, v); } catch { /* property not on this layer */ } };
   const hide = (id) => { try { map.setLayoutProperty(id, 'visibility', 'none'); } catch { /* ignore */ } };
@@ -582,45 +583,164 @@ function paintMap(w) {
     try { map.setSky({ 'sky-color': P.skyTop, 'horizon-color': P.skyHor, 'fog-color': P.fog, 'sky-horizon-blend': 0.75, 'horizon-fog-blend': 0.7, 'fog-ground-blend': 0.25 }); } catch { /* older build */ }
   }
   const dark = w.d < 0.5;
-  set('qn-halo', 'circle-opacity', dark ? 0.6 : 0.22);
+  if (dark !== shipsLit) { // ships switch their lights on when the scene goes dark
+    shipsLit = dark;
+    try {
+      map.setLayoutProperty('qn-ships', 'icon-image', ['concat', dark ? 'qn-sn-' : 'qn-sd-', ['get', 't']]);
+      map.setLayoutProperty('qn-ships-art', 'icon-image', ['concat', dark ? 'qn-an-' : 'qn-ad-', ['get', 't']]);
+    } catch { /* layers not added yet */ }
+  }
+  set('qn-halo', 'circle-opacity', dark ? 0.45 : 0.12);
   for (const l of map.getStyle().layers) if (l.type === 'line' && l['source-layer'] === 'transportation' && !l.id.startsWith('qn-')) set(l.id, 'line-opacity', w.n > 0.5 ? 0.55 : 0.9);
   set('qn-names', 'text-color', dark ? '#ffffff' : '#ffffff');
   set('qn-names', 'text-halo-color', P.seaDeep);
 }
 
-/* One hull shape stored as a distance field, so it can be tinted per ship type
-   and keeps a thin crisp outline whether it is drawn 8 or 120 pixels long. */
-const HULL_PX = 42; // hull length in screen pixels at icon-size 1
-function hullImage() {
-  const W = 44, H = 104, poly = [[22, 10], [35, 34], [35, 84], [31, 94], [13, 94], [9, 84], [9, 34]];
-  const data = new Uint8ClampedArray(W * H * 4);
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const px = x + 0.5, py = y + 0.5;
-    let d = Infinity, inside = false;
-    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-      const ax = poly[j][0], ay = poly[j][1], bx = poly[i][0], by = poly[i][1];
-      const t = clamp(((px - ax) * (bx - ax) + (py - ay) * (by - ay)) / ((bx - ax) ** 2 + (by - ay) ** 2), 0, 1);
-      d = Math.min(d, Math.hypot(px - (ax + t * (bx - ax)), py - (ay + t * (by - ay))));
-      if ((ay > py) !== (by > py) && px < ((bx - ax) * (py - ay)) / (by - ay) + ax) inside = !inside;
-    }
-    const o = (y * W + x) * 4;
-    data[o] = data[o + 1] = data[o + 2] = 255;
-    data[o + 3] = clamp(0.75 - (inside ? -d : d) / 8, 0, 1) * 255;
+/* ---------- Ship drawings ----------
+   Every ship type has its own top-down drawing: a simple one for when a ship is
+   only a few pixels long, and a detailed one that fades in as you zoom closer.
+   Each comes in a day livery and a night livery with its lights on.
+   All drawing is done in one design space: x across the beam (0 is the centre
+   line), y from 0 at the bow to 84 at the stern. */
+const ART = { R: 3, W: 30, H: 96, len: 84 };
+const MINI = { R: 3, W: 14, H: 40, len: 30 };
+const LIVERY = {
+  Cargo: { hull: '#22313f', deck: '#f3e7cf', dims: [9.5, 20, 4] },
+  Tanker: { hull: '#3a1a14', deck: '#e8583f', dims: [10.5, 22, 5] },
+  Passenger: { hull: '#f7fbfc', deck: '#54e0a0', dims: [8.5, 30, 6] },
+  Fishing: { hull: '#ffc233', deck: '#ffe08a', dims: [9, 26, 2.5] },
+  Other: { hull: '#3f5560', deck: '#b9c8cf', dims: [10, 16, 5] },
+};
+const BOXES = ['#c8553d', '#2e7f86', '#e0a23b', '#4a6fa5', '#8f9aa3', '#c8553d', '#4a6fa5', '#e0a23b', '#2e7f86', '#c8553d', '#8f9aa3', '#2e7f86'];
+const WARM = '#ffd98a', INK = '#1c2d3a';
+function hullPath(c, hw, bow, sr, inset) {
+  const top = inset * 1.9, bot = 84 - inset, w = hw - inset, b = Math.max(4, bow - inset), r = Math.max(0.6, sr - inset * 0.8);
+  c.beginPath();
+  c.moveTo(0, top);
+  c.bezierCurveTo(w * 0.55, top + b * 0.35, w, top + b * 0.7, w, top + b);
+  c.lineTo(w, bot - r); c.quadraticCurveTo(w, bot, w - r, bot);
+  c.lineTo(-w + r, bot); c.quadraticCurveTo(-w, bot, -w, bot - r);
+  c.lineTo(-w, top + b);
+  c.bezierCurveTo(-w, top + b * 0.7, -w * 0.55, top + b * 0.35, 0, top);
+  c.closePath();
+}
+function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+const box = (c, col, x, y, w, h) => { c.fillStyle = col; c.fillRect(x, y, w, h); };
+const disc = (c, col, x, y, r) => { c.fillStyle = col; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); };
+function bridge(c, hw, y, h, funnel, band) {
+  box(c, '#ffffff', -(hw - 1.9), y, 2 * (hw - 1.9), 2.2);
+  box(c, '#ffffff', -(hw - 2.4), y, 2 * (hw - 2.4), h);
+  box(c, INK, -(hw - 3), y + 0.5, 2 * (hw - 3), 1.3);
+  box(c, funnel, -2.3, y + h * 0.52, 4.6, 3.8);
+  box(c, band, -2.3, y + h * 0.52 + 1.1, 4.6, 1.1);
+}
+const DETAIL = {
+  Cargo(c, hw) {
+    const cw = (2 * (hw - 2.9)) / 3;
+    for (let b = 0; b < 4; b++) for (let i = 0; i < 3; i++) box(c, BOXES[b * 3 + i], -(hw - 2.9) + i * cw + 0.25, 24 + b * 11.6, cw - 0.5, 10);
+    disc(c, INK, -2.2, 15, 0.9); disc(c, INK, 2.2, 15, 0.9);
+    bridge(c, hw, 72, 10.5, '#22313f', '#e0a23b');
+  },
+  Tanker(c, hw) {
+    for (let y = 26; y <= 68; y += 7) box(c, 'rgba(120,30,18,.55)', -(hw - 2), y, 2 * (hw - 2), 0.6);
+    box(c, '#ffd3c8', -1.6, 21, 1.1, 50); box(c, '#ffd3c8', 0.5, 21, 1.1, 50);
+    box(c, '#ffe9e2', -(hw - 3.2), 43, 2 * (hw - 3.2), 1.4); box(c, '#ffe9e2', -(hw - 3.2), 46.4, 2 * (hw - 3.2), 1.4);
+    for (const y of [29, 36, 54, 61]) { disc(c, '#ffd3c8', -5.2, y, 1); disc(c, '#ffd3c8', 5.2, y, 1); }
+    bridge(c, hw, 73, 10, '#3a1a14', '#ffffff');
+  },
+  Passenger(c, hw) {
+    c.fillStyle = '#ffffff'; rr(c, -(hw - 2.2), 27, 2 * (hw - 2.2), 54, 4); c.fill();
+    c.fillStyle = '#e6eff2'; rr(c, -(hw - 4), 33, 2 * (hw - 4), 42, 3); c.fill();
+    box(c, '#1f9c8f', -(hw - 2.2), 30.5, 2 * (hw - 2.2), 0.9); box(c, '#1f9c8f', -(hw - 2.2), 77.5, 2 * (hw - 2.2), 0.9);
+    box(c, INK, -(hw - 3.4), 27.9, 2 * (hw - 3.4), 1.3);
+    for (const y of [38, 46, 54, 62, 70]) for (const s of [-1, 1]) { c.fillStyle = '#ff8a3d'; rr(c, s * (hw - 3.4) - 0.8, y, 1.6, 4.6, 0.8); c.fill(); }
+    c.fillStyle = '#0f4d57'; c.beginPath(); c.ellipse(0, 57, 2.4, 3.4, 0, 0, 7); c.fill(); box(c, '#54e0a0', -2.4, 56.4, 4.8, 1.1);
+    c.fillStyle = '#57c7ff'; rr(c, -2.2, 66, 4.4, 5.5, 1.2); c.fill();
+    c.strokeStyle = '#ffffff'; c.lineWidth = 0.8; c.beginPath(); c.arc(0, 19, 3, 0, 7); c.stroke();
+  },
+  Fishing(c, hw) {
+    for (let y = 22; y <= 80; y += 4.5) box(c, 'rgba(140,84,20,.4)', -hw, y, 2 * hw, 0.5);
+    c.fillStyle = '#9c6a32'; rr(c, -3.6, 30, 7.2, 11, 1); c.fill(); box(c, '#b9844a', -2.4, 31.4, 4.8, 8.2);
+    c.fillStyle = '#fdfdfd'; rr(c, -(hw - 3), 50, 2 * (hw - 3), 18, 1.5); c.fill();
+    box(c, '#2f7bd6', -(hw - 3), 50, 2 * (hw - 3), 3); box(c, INK, -(hw - 3.8), 53.6, 2 * (hw - 3.8), 1.2);
+    box(c, '#5b4020', -3, 72, 6, 4);
+  },
+  Other(c, hw) {
+    c.fillStyle = '#ff7a3d'; rr(c, -(hw - 3), 22, 2 * (hw - 3), 22, 2.5); c.fill();
+    c.fillStyle = '#ffa06e'; rr(c, -(hw - 4.6), 26, 2 * (hw - 4.6), 14, 2); c.fill();
+    box(c, INK, -(hw - 3.8), 22.8, 2 * (hw - 3.8), 1.4);
+    box(c, '#22313f', -4.4, 46, 2.6, 4); box(c, '#22313f', 1.8, 46, 2.6, 4);
+    disc(c, '#3f5560', 0, 61, 3); disc(c, '#22313f', 0, 61, 1.3);
+    c.strokeStyle = '#3f5560'; c.lineWidth = 0.8; c.beginPath(); c.arc(0, 61, 9, 0.15 * Math.PI, 0.85 * Math.PI); c.stroke();
+  },
+};
+/* the far-away drawings keep just the two or three marks that say what the ship is */
+const MINI_DETAIL = {
+  Cargo(c, hw) { box(c, '#c8553d', -(hw - 3.6), 25, 2 * (hw - 3.6), 17); box(c, '#2e7f86', -(hw - 3.6), 44.5, 2 * (hw - 3.6), 17); box(c, '#ffffff', -(hw - 3), 65, 2 * (hw - 3), 12); },
+  Tanker(c, hw) { box(c, '#ffd3c8', -1.2, 23, 2.4, 40); box(c, '#ffffff', -(hw - 3), 66, 2 * (hw - 3), 12); },
+  Passenger(c, hw) { c.fillStyle = '#ffffff'; rr(c, -(hw - 3), 27, 2 * (hw - 3), 50, 3); c.fill(); disc(c, '#0f4d57', 0, 54, 2.6); },
+  Fishing(c, hw) { box(c, '#ffffff', -(hw - 3.2), 46, 2 * (hw - 3.2), 17); box(c, '#2f7bd6', -(hw - 3.2), 46, 2 * (hw - 3.2), 4.5); },
+  Other(c, hw) { c.fillStyle = '#ff7a3d'; rr(c, -(hw - 3.2), 22, 2 * (hw - 3.2), 24, 2.5); c.fill(); disc(c, '#22313f', 0, 62, 2.6); },
+};
+const artCache = {};
+function shipCanvas(type, night, mini) {
+  const key = type + (night ? 'n' : 'd') + (mini ? 's' : 'a');
+  if (artCache[key]) return artCache[key];
+  const S = mini ? MINI : ART, k = S.len / 84, dpx = S.R * k; // dpx: bitmap pixels per design unit
+  const L = LIVERY[type], hw = L.dims[0] * (mini ? 1.18 : 1), bow = L.dims[1], sr = L.dims[2], rim = mini ? 2.6 : 1.7;
+  const cv = document.createElement('canvas'); cv.width = S.W * S.R; cv.height = S.H * S.R;
+  const c = cv.getContext('2d');
+  c.scale(S.R, S.R); c.translate(S.W / 2, (S.H - S.len) / 2); c.scale(k, k);
+  const glow = (col, x, y, r, blur) => { c.save(); c.shadowColor = col; c.shadowBlur = blur * dpx; disc(c, col, x, y, r); disc(c, col, x, y, r); c.restore(); };
+  // soft shadow underneath, so the ship sits on the water
+  c.save(); c.shadowColor = 'rgba(0,10,20,.6)'; c.shadowBlur = (mini ? 5 : 3.6) * dpx; hullPath(c, hw, bow, sr, 0); c.fillStyle = L.hull; c.fill(); c.restore();
+  if (type === 'Fishing') { // the long light booms of a Quy Nhon squid boat
+    c.strokeStyle = '#6b4a22'; c.lineWidth = mini ? 1.6 : 0.9; c.lineCap = 'round';
+    for (const s of [-1, 1]) { c.beginPath(); c.moveTo(0, 38); c.lineTo(s * 13.5, 32); c.moveTo(0, 62); c.lineTo(s * 13.5, 68); c.stroke(); }
   }
-  return { width: W, height: H, data };
+  hullPath(c, hw, bow, sr, 0); c.fillStyle = L.hull; c.fill();
+  c.save();
+  hullPath(c, hw, bow, sr, rim); c.fillStyle = L.deck; c.fill(); c.clip();
+  (mini ? MINI_DETAIL : DETAIL)[type](c, hw);
+  const g = c.createLinearGradient(-hw, 0, hw, 0); // light from one side gives the hull some roundness
+  g.addColorStop(0, 'rgba(255,255,255,.18)'); g.addColorStop(0.5, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(0,0,0,.2)');
+  c.fillStyle = g; c.fillRect(-20, -6, 40, 96);
+  c.restore();
+  hullPath(c, hw, bow, sr, 0); c.lineWidth = mini ? 1.5 : 0.8; c.strokeStyle = 'rgba(8,20,28,.85)'; c.stroke();
+  if (night) {
+    c.globalCompositeOperation = 'source-atop'; c.fillStyle = 'rgba(4,12,22,.62)'; c.fillRect(-20, -6, 40, 96); c.globalCompositeOperation = 'source-over';
+    if (type === 'Fishing') { for (const s of [-1, 1]) { glow('#eafff4', s * 13, 32.2, mini ? 2 : 1.3, 6); glow('#eafff4', s * 13, 67.8, mini ? 2 : 1.3, 6); if (!mini) glow('#eafff4', s * 6.8, 35, 0.9, 4); } glow(WARM, 0, 54, mini ? 2.2 : 1.2, 4); }
+    else if (mini) { glow(WARM, 0, type === 'Other' ? 26 : type === 'Passenger' ? 40 : 70, 2.6, 5); if (type === 'Passenger') glow(WARM, 0, 62, 2.6, 5); glow('#ffffff', 0, 7, 1.5, 3); }
+    else if (type === 'Passenger') { for (let y = 31; y <= 78; y += 3.3) for (const s of [-1, 1]) glow('#ffe2a6', s * (hw - 2.9), y, 0.65, 2.2); glow(WARM, 0, 28.5, 1.2, 4); glow('#9be3ff', 0, 68.7, 1.6, 4); }
+    else if (type === 'Other') { glow(WARM, -3, 23.5, 1, 3.5); glow(WARM, 3, 23.5, 1, 3.5); glow('#ffffff', -3.2, 68, 0.9, 4); glow('#ffffff', 3.2, 68, 0.9, 4); }
+    else { const by = type === 'Cargo' ? 72.6 : 73.6; for (const x of [-4, 0, 4]) glow(WARM, x, by, 0.9, 3.5); for (const y of [27, 39, 51, 63]) glow(WARM, 0, y, 0.7, 3); glow('#ffffff', 0, 7, 0.9, 3); glow('#ffffff', 0, 82, 0.8, 3); }
+  }
+  return (artCache[key] = cv);
+}
+/* a small picture of a ship, bow to the right, for the filter chips and the ship card */
+function thumb(type, len, night) {
+  const src = shipCanvas(type, !!night, false), dpr = Math.min(devicePixelRatio || 1, 2), hgt = (len * ART.W) / ART.H;
+  const cv = el('canvas'); cv.width = Math.round(len * dpr); cv.height = Math.round(hgt * dpr);
+  cv.style.width = len + 'px'; cv.style.height = hgt.toFixed(1) + 'px'; cv.setAttribute('aria-hidden', 'true');
+  const c = cv.getContext('2d'); c.scale(dpr, dpr); c.translate(len, 0); c.rotate(Math.PI / 2); c.drawImage(src, 0, 0, hgt, len);
+  return cv;
 }
 /* Ship length on screen, in pixels. Ships are drawn at twice true scale for the
    current zoom, with a small floor so the little boats stay visible and tappable. */
 const MPP0 = 76026; // metres per screen pixel at zoom 0 at Quy Nhon's latitude
 const SHIP_SCALE = 2;
 const MIN_PX = [7, 8, 10, 12, 14, 16, 18, 20, 22]; // zoom 9 to 17
+const pxAt = (z) => ['max', MIN_PX[z - 9], ['min', 150, ['*', (SHIP_SCALE * 2 ** z) / MPP0, ['coalesce', ['get', 'len'], 0]]]];
 function shipPx(factor) {
   const stops = [];
-  for (let z = 9; z <= 17; z++) {
-    const px = ['max', MIN_PX[z - 9], ['min', 140, ['*', (SHIP_SCALE * 2 ** z) / MPP0, ['coalesce', ['get', 'len'], 0]]]];
-    stops.push(z, ['*', factor, px]);
-  }
+  for (let z = 9; z <= 17; z++) stops.push(z, ['*', factor, pxAt(z)]);
   return ['interpolate', ['exponential', 2], ['zoom'], ...stops];
+}
+/* opacity that swaps the simple drawing for the detailed one once a ship is about 28 pixels long */
+function shipFade(detailed) {
+  const stops = [];
+  for (let z = 9; z <= 17; z++) stops.push(z, ['interpolate', ['linear'], pxAt(z), 22, detailed ? 0 : 1, 30, detailed ? 1 : 0]);
+  return ['interpolate', ['linear'], ['zoom'], ...stops];
 }
 
 const narrow = () => innerWidth < 760;
@@ -656,7 +776,10 @@ function initMap() {
       map.setTerrain({ source: 'qn-dem', exaggeration: 1.7 });
     } catch (e) { console.warn('Terrain unavailable', e); }
 
-    map.addImage('qn-hull', hullImage(), { sdf: true, pixelRatio: 2 });
+    for (const t of TYPES) for (const night of [false, true]) for (const mini of [false, true]) {
+      const cv = shipCanvas(t, night, mini);
+      map.addImage(`qn-${mini ? 's' : 'a'}${night ? 'n' : 'd'}-${t}`, cv.getContext('2d').getImageData(0, 0, cv.width, cv.height), { pixelRatio: (mini ? MINI : ART).R });
+    }
     const empty = { type: 'FeatureCollection', features: [] };
     map.addSource('qn-ships', { type: 'geojson', data: empty });
     map.addSource('qn-wakes', { type: 'geojson', data: empty, lineMetrics: true });
@@ -668,7 +791,9 @@ function initMap() {
     map.addLayer({ id: 'qn-halo', type: 'circle', source: 'qn-ships', filter: ['==', ['get', 'gear'], 0], paint: { 'circle-radius': shipPx(0.7), 'circle-color': TYPE_MATCH, 'circle-blur': 1, 'circle-opacity': 0.25, 'circle-pitch-alignment': 'map' } });
     map.addLayer({ id: 'qn-pulse', type: 'circle', source: 'qn-ships', filter: ['all', ['==', ['get', 'gear'], 0], ['>', ['get', 'sp'], 0.5]], paint: { 'circle-radius': 6, 'circle-color': 'rgba(255,255,255,0)', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.2, 'circle-stroke-opacity': 0.6, 'circle-pitch-alignment': 'map', 'circle-radius-transition': { duration: 0 }, 'circle-stroke-opacity-transition': { duration: 0 } } });
     map.addLayer({ id: 'qn-sel', type: 'circle', source: 'qn-sel', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 9, 13, 16, 15, 30], 'circle-color': 'rgba(255,255,255,.12)', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2.5, 'circle-pitch-alignment': 'map' } });
-    map.addLayer({ id: 'qn-ships', type: 'symbol', source: 'qn-ships', filter: ['==', ['get', 'gear'], 0], layout: { 'icon-image': 'qn-hull', 'icon-size': shipPx(1 / HULL_PX), 'icon-rotate': ['get', 'hd'], 'icon-rotation-alignment': 'map', 'icon-pitch-alignment': 'map', 'icon-allow-overlap': true, 'icon-ignore-placement': true, 'symbol-sort-key': ['get', 'len'] }, paint: { 'icon-color': TYPE_MATCH, 'icon-halo-color': '#0a1a24', 'icon-halo-width': 1.2 } });
+    const shipLayout = (prefix, len) => ({ 'icon-image': ['concat', prefix, ['get', 't']], 'icon-size': shipPx(1 / len), 'icon-rotate': ['get', 'hd'], 'icon-rotation-alignment': 'map', 'icon-pitch-alignment': 'map', 'icon-allow-overlap': true, 'icon-ignore-placement': true, 'symbol-sort-key': ['get', 'len'] });
+    map.addLayer({ id: 'qn-ships', type: 'symbol', source: 'qn-ships', filter: ['==', ['get', 'gear'], 0], layout: shipLayout('qn-sd-', MINI.len), paint: { 'icon-opacity': shipFade(false) } });
+    map.addLayer({ id: 'qn-ships-art', type: 'symbol', source: 'qn-ships', filter: ['==', ['get', 'gear'], 0], layout: shipLayout('qn-ad-', ART.len), paint: { 'icon-opacity': shipFade(true) } });
     const fontLayers = map.getStyle().layers.filter((l) => l.type === 'symbol' && l.layout && Array.isArray(l.layout['text-font']));
     const font = ((fontLayers.find((l) => l['source-layer'] === 'place' && !/italic/i.test(l.layout['text-font'].join(' '))) || fontLayers.find((l) => !/italic/i.test(l.layout['text-font'].join(' '))) || fontLayers[0] || { layout: {} }).layout['text-font']);
     if (font) map.addLayer({ id: 'qn-names', type: 'symbol', source: 'qn-ships', filter: NAME_FILTER, layout: { 'text-field': ['get', 'name'], 'text-font': font, 'text-size': ['interpolate', ['linear'], ['zoom'], 11, 10, 14, 13], 'text-offset': [0, 1.1], 'text-anchor': 'top', 'text-letter-spacing': 0.06, 'text-optional': true, 'text-padding': 6 }, paint: { 'text-color': '#ffffff', 'text-halo-color': P.seaDeep, 'text-halo-width': 1.6 } });
@@ -694,7 +819,7 @@ function setInteractive(on) {
 }
 function hit(pt) {
   if (!state.mapReady) return null;
-  const fs = map.queryRenderedFeatures([[pt[0] - 18, pt[1] - 18], [pt[0] + 18, pt[1] + 18]], { layers: ['qn-ships'] });
+  const fs = map.queryRenderedFeatures([[pt[0] - 18, pt[1] - 18], [pt[0] + 18, pt[1] + 18]], { layers: ['qn-ships', 'qn-ships-art'] });
   let best = null, bd = Infinity; // the ship nearest the tap wins, so close neighbours can be told apart
   for (const f of fs) {
     const p = map.project(f.geometry.coordinates);
@@ -829,6 +954,7 @@ function select(mmsi, fly) {
   const tt = el('div'); tt.append(el('h2', '', cleanName(v.name) || 'MMSI ' + v.mmsi), el('p', '', [v.vessel_type_label || 'Vessel', getCountryName(v.flag_country)].filter(Boolean).join(' · ')));
   const close = el('button', 'card-close', 'Close'); close.type = 'button'; close.addEventListener('click', closeCard);
   head.append(tt, close);
+  const art = el('div', 'card-art'); art.append(thumb(bucket(v), 190, document.documentElement.dataset.ui === 'dark'));
   const dl = el('dl');
   const moving = v.speed > 0.5;
   const facts = [
@@ -856,7 +982,7 @@ function select(mmsi, fly) {
   const centre = el('button', 'btn btn-line', 'Centre on map'); centre.type = 'button';
   centre.addEventListener('click', () => { scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' }); const cur = state.vessels.get(mmsi); if (cur && state.mapReady) map.easeTo({ center: [cur.lng, cur.lat], zoom: Math.max(map.getZoom(), 13.8), duration: reduced ? 0 : 1400 }); });
   actions.append(track, centre);
-  card.append(head, dl, actions);
+  card.append(head, art, dl, actions);
   card.classList.add('open');
 }
 function closeCard() {
@@ -891,7 +1017,7 @@ function renderChips() {
   const box = $('#chips'); box.textContent = '';
   for (const t of ['All', ...TYPES]) {
     const b = el('button', 'chip' + (state.filter === t ? ' on' : '')); b.type = 'button';
-    if (t !== 'All') { const u = el('u'); u.style.background = SHIP_COL[t]; b.append(u); }
+    if (t !== 'All') b.append(thumb(t, 38, false));
     b.append(document.createTextNode(t === 'All' ? 'All ships' : t));
     b.setAttribute('aria-pressed', state.filter === t ? 'true' : 'false');
     b.addEventListener('click', () => { state.filter = t; renderChips(); renderShips(); });
