@@ -45,7 +45,7 @@ html[data-ui="dark"]{--sil:#d6e2e6}
 .ctl{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
 .ctl .btn{min-height:50px;padding:0 16px;font-size:16px}
 .tune{grid-column:1/-1;display:none;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
-.vf.live .tune{display:flex}
+.vf.is-live .tune{display:flex}
 .tune button{min-height:44px;padding:0 14px;background:transparent;border:1.5px solid var(--line);font-weight:600;font-size:14px}
 @media (max-width:900px){
   .sheet-in{grid-template-columns:1fr;gap:12px}
@@ -533,7 +533,7 @@ async function startLive() {
           else if (!gotAbsolute) compassWarn();
         }, 3500);
         active = true; st.mode = 'live'; st.pinned = null;
-        vf.classList.add('live'); btn.disabled = false; btn.textContent = 'Stop the compass';
+        vf.classList.add('is-live'); btn.disabled = false; btn.textContent = 'Stop the compass';
         status('Located. Waiting for the compass…');
         tuneText(); placeRadar();
       }
@@ -553,7 +553,7 @@ function stopLive(message) {
   if (geoWatchId != null) { navigator.geolocation.clearWatch(geoWatchId); geoWatchId = null; }
   compassHeading = smoothedHeading = rawHeading = null; headingSource = null; gotAbsolute = false; iosAccuracy = null; tiltMag = null; gpsAccuracy = null;
   st.mode = 'look'; st.hasHeading = false; st.pinned = null; st.obs = { ...VIEWPOINT };
-  vf.classList.remove('live');
+  vf.classList.remove('is-live');
   const btn = $('#liveBtn'); btn.disabled = false; btn.textContent = "Use my phone's compass";
   status(message);
   compute(); renderList(); placeRadar(); st.lockId = undefined; draw();
