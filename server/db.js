@@ -83,6 +83,52 @@ export function createDb(path = './vessels.db') {
       timestamp TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_possummary_mmsi_ts ON position_summaries(mmsi, timestamp);
+
+    -- Daily record: one row per Quy Nhon calendar day (UTC+7). Written by
+    -- daily-log.js. A NULL means "not recorded", never zero or "clear".
+    CREATE TABLE IF NOT EXISTS daily_log (
+      day TEXT PRIMARY KEY,
+
+      -- Weather and sea: Open-Meteo daily values for the day (model data)
+      temp_min_c REAL,
+      temp_max_c REAL,
+      rain_mm REAL,
+      wind_max_kmh REAL,
+      gust_max_kmh REAL,
+      wave_max_m REAL,
+      sunrise TEXT,
+      sunset TEXT,
+      weather_source TEXT,
+      weather_at TEXT,
+
+      -- Sunset rating: 'forecast' is the last rating the site showed before
+      -- sunset, 'hindcast' is scored afterwards from the model's sunset hour
+      sunset_score INTEGER,
+      sunset_level TEXT,
+      sunset_source TEXT,
+
+      -- Ships heard by the antenna
+      transponders INTEGER,
+      ships_seen INTEGER,
+      arrivals INTEGER,
+      feed_hours INTEGER,
+      largest_mmsi TEXT,
+      largest_name TEXT,
+      largest_length_m REAL,
+      largest_width_m REAL,
+      largest_type TEXT,
+      largest_flag TEXT,
+      ships_at TEXT,
+
+      -- Highest storm threat level read during the day
+      storm_level TEXT,
+      storm_name TEXT,
+      storm_min_km INTEGER,
+      storm_wind_kmh INTEGER,
+      storm_checks INTEGER NOT NULL DEFAULT 0,
+
+      completed_at TEXT
+    );
   `);
 
   return db;
