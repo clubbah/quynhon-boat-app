@@ -226,6 +226,9 @@ export function parseDayWeather(day, { forecast, marine } = {}) {
  */
 export function stormReading(snapshot, nowMs) {
   if (!snapshot || snapshot.demo) return null;
+  // The tracker could not refresh and is repeating its last good snapshot.
+  // That reading was counted when it was fresh. It is not a new check.
+  if (snapshot.refreshFailedAt) return null;
   const at = Date.parse(snapshot.updatedAt);
   if (!Number.isFinite(at) || nowMs - at > STORM_FRESH_MS) return null;
   if (!snapshot.active || !snapshot.storm) return { level: 'none', name: null, km: null, wind: null };
