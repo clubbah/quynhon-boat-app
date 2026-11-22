@@ -300,7 +300,16 @@ function setInteractive(on) {
 function paint(force) {
   const next = skyNow('live'), changed = !state.sky || next.key !== state.sky.key;
   state.sky = next;
-  if (state.mapReady && (changed || force)) paintBase(map, next.P, { borders: true });
+  if (state.mapReady && (changed || force)) { paintBase(map, next.P, { borders: true }); tintRadar(); }
+}
+/* The free radar tiles come in blue only, which vanishes on a blue daytime sea.
+   By day they are shifted to violet so rain shows on sea and land alike. */
+function tintRadar() {
+  if (!state.mapReady || !map.getLayer('qn-radar')) return;
+  const dark = state.sky && state.sky.dark;
+  map.setPaintProperty('qn-radar', 'raster-hue-rotate', dark ? 0 : 85);
+  map.setPaintProperty('qn-radar', 'raster-saturation', dark ? 0 : 0.35);
+  map.setPaintProperty('qn-radar', 'raster-opacity', dark ? 0.7 : 0.8);
 }
 function initMap() {
   if (!window.maplibregl) return;
@@ -358,6 +367,7 @@ async function loadRadar() {
     radar.idx = past.length ? past.length - 1 : 0;
     map.addSource('qn-radar', { type: 'raster', tiles: [frameUrl(radar.frames[radar.idx])], tileSize: 256, maxzoom: 7 });
     map.addLayer({ id: 'qn-radar', type: 'raster', source: 'qn-radar', paint: { 'raster-opacity': 0.6, 'raster-fade-duration': 0 } }, 'qn-cone-fill');
+    tintRadar();
     radarLabel();
     $('#radarBtn').hidden = false;
     playRadar(radar.playing);
