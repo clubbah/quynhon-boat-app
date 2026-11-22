@@ -587,14 +587,39 @@ function paintMap(w) {
   set('qn-names', 'text-halo-color', P.seaDeep);
 }
 
-function shipImage(fill) {
-  const s = 2, w = 20, h = 48;
-  const c = document.createElement('canvas'); c.width = w * s; c.height = h * s;
-  const x = c.getContext('2d'); x.scale(s, s);
-  x.beginPath(); x.moveTo(10, 1.5); x.lineTo(17.5, 12); x.lineTo(17.5, 41); x.lineTo(15, 46.5); x.lineTo(5, 46.5); x.lineTo(2.5, 41); x.lineTo(2.5, 12); x.closePath();
-  x.fillStyle = fill; x.fill(); x.lineWidth = 1.6; x.strokeStyle = '#0a1a24'; x.stroke();
-  x.fillStyle = 'rgba(10,26,36,.8)'; x.fillRect(6, 34, 8, 6);
-  return x.getImageData(0, 0, c.width, c.height);
+/* One hull shape stored as a distance field, so it can be tinted per ship type
+   and keeps a thin crisp outline whether it is drawn 8 or 120 pixels long. */
+const HULL_PX = 42; // hull length in screen pixels at icon-size 1
+function hullImage() {
+  const W = 44, H = 104, poly = [[22, 10], [35, 34], [35, 84], [31, 94], [13, 94], [9, 84], [9, 34]];
+  const data = new Uint8ClampedArray(W * H * 4);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const px = x + 0.5, py = y + 0.5;
+    let d = Infinity, inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const ax = poly[j][0], ay = poly[j][1], bx = poly[i][0], by = poly[i][1];
+      const t = clamp(((px - ax) * (bx - ax) + (py - ay) * (by - ay)) / ((bx - ax) ** 2 + (by - ay) ** 2), 0, 1);
+      d = Math.min(d, Math.hypot(px - (ax + t * (bx - ax)), py - (ay + t * (by - ay))));
+      if ((ay > py) !== (by > py) && px < ((bx - ax) * (py - ay)) / (by - ay) + ax) inside = !inside;
+    }
+    const o = (y * W + x) * 4;
+    data[o] = data[o + 1] = data[o + 2] = 255;
+    data[o + 3] = clamp(0.75 - (inside ? -d : d) / 8, 0, 1) * 255;
+  }
+  return { width: W, height: H, data };
+}
+/* Ship length on screen, in pixels. Ships are drawn at 1.5 times true scale for the
+   current zoom, with a small floor so the little boats stay visible and tappable. */
+const MPP0 = 76026; // metres per screen pixel at zoom 0 at Quy Nhon's latitude
+const SHIP_SCALE = 1.5;
+const MIN_PX = [6, 7, 8, 9, 10.5, 12, 14, 16, 18]; // zoom 9 to 17
+function shipPx(factor) {
+  const stops = [];
+  for (let z = 9; z <= 17; z++) {
+    const px = ['max', MIN_PX[z - 9], ['min', 140, ['*', (SHIP_SCALE * 2 ** z) / MPP0, ['coalesce', ['get', 'len'], 0]]]];
+    stops.push(z, ['*', factor, px]);
+  }
+  return ['interpolate', ['exponential', 2], ['zoom'], ...stops];
 }
 
 const narrow = () => innerWidth < 760;
@@ -630,24 +655,22 @@ function initMap() {
       map.setTerrain({ source: 'qn-dem', exaggeration: 1.7 });
     } catch (e) { console.warn('Terrain unavailable', e); }
 
-    for (const t of TYPES) map.addImage('qn-ship-' + t, shipImage(SHIP_COL[t]), { pixelRatio: 2 });
+    map.addImage('qn-hull', hullImage(), { sdf: true, pixelRatio: 2 });
     const empty = { type: 'FeatureCollection', features: [] };
     map.addSource('qn-ships', { type: 'geojson', data: empty });
     map.addSource('qn-wakes', { type: 'geojson', data: empty, lineMetrics: true });
     map.addSource('qn-sel', { type: 'geojson', data: empty });
     map.addSource('qn-track', { type: 'geojson', data: empty });
-    const zs = (m) => ['interpolate', ['linear'], ['zoom'], 10, m * 0.45, 12.5, m, 15, m * 2.2];
-    const lenSize = ['interpolate', ['linear'], ['coalesce', ['get', 'len'], 30], 0, 0.55, 50, 0.75, 120, 1.05, 200, 1.5, 320, 1.85];
-    map.addLayer({ id: 'qn-track', type: 'line', source: 'qn-track', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 2.5, 'line-dasharray': [1, 2], 'line-opacity': 0.9 } });
-    map.addLayer({ id: 'qn-wakes', type: 'line', source: 'qn-wakes', layout: { 'line-cap': 'round' }, paint: { 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.5, 13, 3.5, 15, 6], 'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, 'rgba(255,255,255,0)', 1, 'rgba(255,255,255,0.9)'] } });
-    map.addLayer({ id: 'qn-gear', type: 'circle', source: 'qn-ships', filter: ['==', ['get', 'gear'], 1], paint: { 'circle-radius': 2.2, 'circle-color': '#ffffff', 'circle-opacity': 0.5, 'circle-pitch-alignment': 'map' } });
-    map.addLayer({ id: 'qn-halo', type: 'circle', source: 'qn-ships', filter: ['==', ['get', 'gear'], 0], paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 7, 12.5, 16, 15, 34], 'circle-color': TYPE_MATCH, 'circle-blur': 1, 'circle-opacity': 0.25, 'circle-pitch-alignment': 'map' } });
-    map.addLayer({ id: 'qn-pulse', type: 'circle', source: 'qn-ships', filter: ['all', ['==', ['get', 'gear'], 0], ['>', ['get', 'sp'], 0.5]], paint: { 'circle-radius': 10, 'circle-color': 'rgba(255,255,255,0)', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.5, 'circle-stroke-opacity': 0.6, 'circle-pitch-alignment': 'map', 'circle-radius-transition': { duration: 0 }, 'circle-stroke-opacity-transition': { duration: 0 } } });
-    map.addLayer({ id: 'qn-sel', type: 'circle', source: 'qn-sel', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 14, 13, 26, 15, 44], 'circle-color': 'rgba(255,255,255,.12)', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3, 'circle-pitch-alignment': 'map' } });
-    map.addLayer({ id: 'qn-ships', type: 'symbol', source: 'qn-ships', filter: ['==', ['get', 'gear'], 0], layout: { 'icon-image': ['concat', 'qn-ship-', ['get', 't']], 'icon-size': ['interpolate', ['linear'], ['zoom'], 10, ['*', 0.45, lenSize], 12.5, lenSize, 15, ['*', 2.2, lenSize]], 'icon-rotate': ['get', 'hd'], 'icon-rotation-alignment': 'map', 'icon-pitch-alignment': 'map', 'icon-allow-overlap': true, 'icon-ignore-placement': true, 'symbol-sort-key': ['get', 'len'] } });
+    map.addLayer({ id: 'qn-track', type: 'line', source: 'qn-track', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 2, 'line-dasharray': [1, 2], 'line-opacity': 0.9 } });
+    map.addLayer({ id: 'qn-wakes', type: 'line', source: 'qn-wakes', layout: { 'line-cap': 'round' }, paint: { 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1, 13, 1.8, 15, 3.5], 'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, 'rgba(255,255,255,0)', 1, 'rgba(255,255,255,0.9)'] } });
+    map.addLayer({ id: 'qn-gear', type: 'circle', source: 'qn-ships', filter: ['==', ['get', 'gear'], 1], paint: { 'circle-radius': 1.5, 'circle-color': '#ffffff', 'circle-opacity': 0.5, 'circle-pitch-alignment': 'map' } });
+    map.addLayer({ id: 'qn-halo', type: 'circle', source: 'qn-ships', filter: ['==', ['get', 'gear'], 0], paint: { 'circle-radius': shipPx(0.7), 'circle-color': TYPE_MATCH, 'circle-blur': 1, 'circle-opacity': 0.25, 'circle-pitch-alignment': 'map' } });
+    map.addLayer({ id: 'qn-pulse', type: 'circle', source: 'qn-ships', filter: ['all', ['==', ['get', 'gear'], 0], ['>', ['get', 'sp'], 0.5]], paint: { 'circle-radius': 6, 'circle-color': 'rgba(255,255,255,0)', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.2, 'circle-stroke-opacity': 0.6, 'circle-pitch-alignment': 'map', 'circle-radius-transition': { duration: 0 }, 'circle-stroke-opacity-transition': { duration: 0 } } });
+    map.addLayer({ id: 'qn-sel', type: 'circle', source: 'qn-sel', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 9, 13, 16, 15, 30], 'circle-color': 'rgba(255,255,255,.12)', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2.5, 'circle-pitch-alignment': 'map' } });
+    map.addLayer({ id: 'qn-ships', type: 'symbol', source: 'qn-ships', filter: ['==', ['get', 'gear'], 0], layout: { 'icon-image': 'qn-hull', 'icon-size': shipPx(1 / HULL_PX), 'icon-rotate': ['get', 'hd'], 'icon-rotation-alignment': 'map', 'icon-pitch-alignment': 'map', 'icon-allow-overlap': true, 'icon-ignore-placement': true, 'symbol-sort-key': ['get', 'len'] }, paint: { 'icon-color': TYPE_MATCH, 'icon-halo-color': '#0a1a24', 'icon-halo-width': 2 } });
     const fontLayers = map.getStyle().layers.filter((l) => l.type === 'symbol' && l.layout && Array.isArray(l.layout['text-font']));
     const font = ((fontLayers.find((l) => l['source-layer'] === 'place' && !/italic/i.test(l.layout['text-font'].join(' '))) || fontLayers.find((l) => !/italic/i.test(l.layout['text-font'].join(' '))) || fontLayers[0] || { layout: {} }).layout['text-font']);
-    if (font) map.addLayer({ id: 'qn-names', type: 'symbol', source: 'qn-ships', filter: ['all', ['==', ['get', 'gear'], 0], ['>=', ['coalesce', ['get', 'len'], 0], 95]], layout: { 'text-field': ['get', 'name'], 'text-font': font, 'text-size': ['interpolate', ['linear'], ['zoom'], 11, 10, 14, 14], 'text-offset': [0, 1.6], 'text-anchor': 'top', 'text-letter-spacing': 0.06, 'text-optional': true, 'text-padding': 6 }, paint: { 'text-color': '#ffffff', 'text-halo-color': P.seaDeep, 'text-halo-width': 1.6 } });
+    if (font) map.addLayer({ id: 'qn-names', type: 'symbol', source: 'qn-ships', filter: ['all', ['==', ['get', 'gear'], 0], ['>=', ['coalesce', ['get', 'len'], 0], 95]], layout: { 'text-field': ['get', 'name'], 'text-font': font, 'text-size': ['interpolate', ['linear'], ['zoom'], 11, 10, 14, 13], 'text-offset': [0, 1.1], 'text-anchor': 'top', 'text-letter-spacing': 0.06, 'text-optional': true, 'text-padding': 6 }, paint: { 'text-color': '#ffffff', 'text-halo-color': P.seaDeep, 'text-halo-width': 1.6 } });
 
     if (narrow()) { const a = $('#map .maplibregl-ctrl-attrib'); if (a) { a.classList.remove('maplibregl-compact-show'); a.removeAttribute('open'); } }
     state.mapReady = true;
@@ -669,8 +692,14 @@ function setInteractive(on) {
 }
 function hit(pt) {
   if (!state.mapReady) return null;
-  const fs = map.queryRenderedFeatures([[pt[0] - 16, pt[1] - 16], [pt[0] + 16, pt[1] + 16]], { layers: ['qn-ships'] });
-  return fs.length ? fs[0].properties.mmsi : null;
+  const fs = map.queryRenderedFeatures([[pt[0] - 18, pt[1] - 18], [pt[0] + 18, pt[1] + 18]], { layers: ['qn-ships'] });
+  let best = null, bd = Infinity; // the ship nearest the tap wins, so close neighbours can be told apart
+  for (const f of fs) {
+    const p = map.project(f.geometry.coordinates);
+    const d = (p.x - pt[0]) ** 2 + (p.y - pt[1]) ** 2;
+    if (d < bd) { bd = d; best = f.properties.mmsi; }
+  }
+  return best;
 }
 function pick(pt) {
   const mmsi = hit(pt);
@@ -685,7 +714,7 @@ function frame(ts) {
   if (!state.mapReady || document.hidden || !heroVisible) return;
   const t = (ts % 2600) / 2600;
   try {
-    map.setPaintProperty('qn-pulse', 'circle-radius', 8 + 30 * t);
+    map.setPaintProperty('qn-pulse', 'circle-radius', 4 + 14 * t);
     map.setPaintProperty('qn-pulse', 'circle-stroke-opacity', 0.75 * (1 - t));
     if (!state.interacted && !state.exploring && driftStart && !map.isEasing()) {
       map.setBearing(homeView().bearing + 5 * Math.sin((ts - driftStart) / 9000));
