@@ -21,6 +21,7 @@ import { computePortStats, getPortPulse } from './port-data.js';
 import { createPageRenderer, VIEWS_DIR } from './render.js';
 import { resolvePath, PAGES } from './routes.js';
 import { buildSitemap } from './sitemap.js';
+import { startDailyLog } from './daily-log.js';
 import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -506,6 +507,9 @@ startStormMonitor();
 
 // Weather — fill the cache at boot and keep it warm for page renders
 startWeatherRefresh();
+
+// Daily record: one row per Quy Nhon day (weather, sea, sunset, ships, storm level)
+startDailyLog(db, { weather: peekWeather, storm: peekStormSnapshot, gear: gearMmsis });
 
 // Start
 server.listen(PORT, () => {
