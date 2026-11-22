@@ -585,10 +585,9 @@ function paintMap(w) {
   const dark = w.d < 0.5;
   if (dark !== shipsLit) { // ships switch their lights on when the scene goes dark
     shipsLit = dark;
-    try {
-      map.setLayoutProperty('qn-ships', 'icon-image', ['concat', dark ? 'qn-sn-' : 'qn-sd-', ['get', 't']]);
-      map.setLayoutProperty('qn-ships-art', 'icon-image', ['concat', dark ? 'qn-an-' : 'qn-ad-', ['get', 't']]);
-    } catch { /* layers not added yet */ }
+    set('qn-3d', 'fill-extrusion-color', ['get', dark ? 'n' : 'c']);
+    set('qn-lights', 'circle-opacity', dark ? 0.95 : 0);
+    try { map.setLight({ anchor: 'viewport', position: [1.3, 215, 32], intensity: dark ? 0.22 : 0.42, color: '#ffffff' }); } catch { /* keep the default light */ }
   }
   set('qn-halo', 'circle-opacity', w.n > 0.5 ? 0.6 : dark ? 0.4 : 0.12);
   for (const l of map.getStyle().layers) if (l.type === 'line' && l['source-layer'] === 'transportation' && !l.id.startsWith('qn-')) set(l.id, 'line-opacity', w.n > 0.5 ? 0.55 : 0.9);
@@ -729,6 +728,73 @@ function thumb(type, len, night, mini) {
   const c = cv.getContext('2d'); c.scale(dpr, dpr); c.translate(len, 0); c.rotate(Math.PI / 2); c.drawImage(src, 0, 0, hgt, len);
   return cv;
 }
+/* ---------- 3D ship models ----------
+   On the map each ship is a small model built from extruded blocks: hull, deck,
+   then containers, pipes, bridge, funnel and so on. The parts are described in
+   the same design space as the drawings above, plus a base and a top height. */
+const FREEBOARD = { Cargo: 5, Tanker: 4, Passenger: 5, Fishing: 4, Other: 4.5 };
+const STACKS = [6, 7.5, 5, 7, 6, 8, 5.5, 7, 6.5, 5, 7.5, 6];
+const nightTone = (hex) => rgb2hex(hex2rgb(hex).map((v, i) => v * 0.42 + [4, 12, 22][i] * 0.58));
+function hullOutline(hw, bow, sr, inset) {
+  const top = inset * 1.9, bot = 84 - inset, w = hw - inset, b = Math.max(4, bow - inset), r = Math.max(0.6, sr - inset * 0.8);
+  const bez = (p0, p1, p2, p3, t) => { const u = 1 - t; return u * u * u * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t * p3; };
+  const right = [];
+  for (let i = 0; i <= 7; i++) { const t = i / 7; right.push([bez(0, w * 0.55, w, w, t), bez(top, top + b * 0.35, top + b * 0.7, top + b, t)]); }
+  right.push([w, bot - r], [w - r * 0.3, bot - r * 0.3], [w - r, bot]);
+  return [...right, ...right.slice(1).map(([x, y]) => [-x, y]).reverse()];
+}
+const partsCache = {};
+function shipParts(type) {
+  if (partsCache[type]) return partsCache[type];
+  const L = LIVERY[type], hw = L.dims[0], F = FREEBOARD[type], D = F + 0.4, parts = [];
+  const add = (poly, b, h, c, lit) => parts.push({ poly, b, h, c, n: lit || nightTone(c) });
+  const blk = (x0, y0, x1, y1, b, h, c, lit) => add([[x0, y0], [x1, y0], [x1, y1], [x0, y1]], b, h, c, lit);
+  const pole = (ax, ay, bx, by, w, b, h, c) => { const d = Math.hypot(bx - ax, by - ay), nx = (-(by - ay) / d) * w, ny = ((bx - ax) / d) * w; add([[ax + nx, ay + ny], [bx + nx, by + ny], [bx - nx, by - ny], [ax - nx, ay - ny]], b, h, c); };
+  add(hullOutline(hw, L.dims[1], L.dims[2], 0), 0, F, L.hull);
+  add(hullOutline(hw, L.dims[1], L.dims[2], 1.7), F, D, L.deck);
+  if (type === 'Cargo') {
+    const cw = (2 * (hw - 2.9)) / 3;
+    for (let b = 0; b < 4; b++) for (let i = 0; i < 3; i++) blk(-(hw - 2.9) + i * cw + 0.25, 24 + b * 11.6, -(hw - 2.9) + (i + 1) * cw - 0.25, 34 + b * 11.6, D, D + STACKS[b * 3 + i], BOXES[b * 3 + i]);
+    blk(-(hw - 2.4), 72, hw - 2.4, 82.5, D, D + 11, '#ffffff');
+    blk(-(hw - 3), 71.5, hw - 3, 72, D + 7.6, D + 9.6, INK, WARM);
+    blk(-2.3, 77.5, 2.3, 81.3, D + 11, D + 15, '#22313f');
+    blk(-0.5, 12, 0.5, 13, D, D + 8, '#dfe6ea');
+  } else if (type === 'Tanker') {
+    blk(-1.6, 21, -0.5, 71, D, D + 1.3, '#ffd3c8'); blk(0.5, 21, 1.6, 71, D, D + 1.3, '#ffd3c8');
+    blk(-(hw - 3.2), 43, hw - 3.2, 44.4, D, D + 1.8, '#ffe9e2'); blk(-(hw - 3.2), 46.4, hw - 3.2, 47.8, D, D + 1.8, '#ffe9e2');
+    for (const y of [29, 36, 54, 61]) for (const s of [-1, 1]) blk(s * 5.2 - 0.9, y - 0.9, s * 5.2 + 0.9, y + 0.9, D, D + 0.9, '#ffd3c8');
+    blk(-(hw - 2.4), 73, hw - 2.4, 83, D, D + 12, '#ffffff');
+    blk(-(hw - 3), 72.5, hw - 3, 73, D + 8.4, D + 10.4, INK, WARM);
+    blk(-2.3, 78, 2.3, 81.8, D + 12, D + 16, '#3a1a14');
+    blk(-0.5, 12, 0.5, 13, D, D + 8, '#dfe6ea');
+  } else if (type === 'Passenger') {
+    blk(-(hw - 2.2), 27, hw - 2.2, 81, D, D + 5, '#ffffff');
+    blk(-(hw - 3.4), 26.5, hw - 3.4, 27, D + 2.4, D + 4.2, INK, WARM);
+    for (const s of [-1, 1]) blk(s * (hw - 2.2), 30, s * (hw - 2.15), 78, D + 2, D + 3.6, '#cfe0e6', WARM);
+    blk(-(hw - 4), 33, hw - 4, 75, D + 5, D + 8.5, '#e6eff2');
+    for (const y of [38, 46, 54, 62, 70]) for (const s of [-1, 1]) blk(s * (hw - 3.1) - 0.8, y, s * (hw - 3.1) + 0.8, y + 4.6, D + 5, D + 6.3, '#ff8a3d');
+    blk(-2.2, 54, 2.2, 60.5, D + 8.5, D + 13, '#0f4d57');
+    blk(-2.2, 66, 2.2, 71.5, D + 8.5, D + 8.75, '#57c7ff', '#9be3ff');
+  } else if (type === 'Fishing') {
+    blk(-3.6, 30, 3.6, 41, D, D + 1.2, '#9c6a32');
+    blk(-(hw - 3), 50, hw - 3, 68, D, D + 7, '#fdfdfd');
+    blk(-(hw - 3), 50, hw - 3, 68, D + 7, D + 7.8, '#2f7bd6');
+    blk(-(hw - 3.8), 49.6, hw - 3.8, 50, D + 3.6, D + 5.4, INK, WARM);
+    for (const s of [-1, 1]) for (const [y0, y1] of [[38, 32], [62, 68]]) {
+      pole(0, y0, s * 13.5, y1, 0.3, D + 4.6, D + 5.2, '#6b4a22');
+      blk(s * 13.5 - 0.7, y1 - 0.7, s * 13.5 + 0.7, y1 + 0.7, D + 3.8, D + 5.2, '#ffffff', '#eafff4');
+    }
+    blk(-3, 72, 3, 76, D, D + 1.5, '#5b4020');
+  } else {
+    blk(-(hw - 3), 22, hw - 3, 44, D, D + 7, '#ff7a3d');
+    blk(-(hw - 4.6), 26, hw - 4.6, 40, D + 7, D + 9.5, '#ffa06e');
+    blk(-(hw - 3.8), 21.6, hw - 3.8, 22, D + 3.6, D + 5.6, INK, WARM);
+    blk(-4.4, 46, -1.8, 50, D, D + 8, '#22313f'); blk(1.8, 46, 4.4, 50, D, D + 8, '#22313f');
+    blk(-3, 58, 3, 64, D, D + 2.5, '#3f5560');
+  }
+  return (partsCache[type] = parts);
+}
+
 /* Ship length on screen, in pixels. Ships are drawn at twice true scale for the
    current zoom, with a small floor so the little boats stay visible and tappable. */
 const MPP0 = 76026; // metres per screen pixel at zoom 0 at Quy Nhon's latitude
@@ -740,11 +806,20 @@ function shipPx(factor) {
   for (let z = 9; z <= 17; z++) stops.push(z, ['*', factor, pxAt(z)]);
   return ['interpolate', ['exponential', 2], ['zoom'], ...stops];
 }
-/* opacity that swaps the simple drawing for the detailed one once a ship is about 28 pixels long */
-function shipFade(detailed) {
-  const stops = [];
-  for (let z = 9; z <= 17; z++) stops.push(z, ['interpolate', ['linear'], pxAt(z), 22, detailed ? 0 : 1, 30, detailed ? 1 : 0]);
-  return ['interpolate', ['linear'], ['zoom'], ...stops];
+/* The same rule in metres, for the 3D models: how long to build a ship at this zoom. */
+function modelLength(v, zoom) {
+  const mpp = MPP0 / 2 ** zoom, zi = clamp(zoom, 9, 17) - 9, i0 = Math.floor(zi);
+  const minPx = MIN_PX[i0] + (MIN_PX[Math.min(8, i0 + 1)] - MIN_PX[i0]) * (zi - i0);
+  return Math.min(150 * mpp, Math.max(SHIP_SCALE * (v.length || 0), minPx * mpp));
+}
+function modelFeatures(v, zoom) {
+  const s = modelLength(v, zoom) / 84, th = (headingOf(v) * Math.PI) / 180, cs = Math.cos(th), sn = Math.sin(th);
+  const kx = 1 / (111320 * Math.cos((v.lat * Math.PI) / 180)), ky = 1 / 111320, id = String(v.mmsi);
+  const place = ([x, y]) => { const dx = x * s, dy = (42 - y) * s; return [v.lng + (dx * cs + dy * sn) * kx, v.lat + (-dx * sn + dy * cs) * ky]; };
+  return shipParts(bucket(v)).map((p) => {
+    const ring = p.poly.map(place); ring.push(ring[0]);
+    return { type: 'Feature', geometry: { type: 'Polygon', coordinates: [ring] }, properties: { mmsi: id, c: p.c, n: p.n, b: p.b * s, h: p.h * s } };
+  });
 }
 
 const narrow = () => innerWidth < 760;
@@ -780,12 +855,9 @@ function initMap() {
       map.setTerrain({ source: 'qn-dem', exaggeration: 1.7 });
     } catch (e) { console.warn('Terrain unavailable', e); }
 
-    for (const t of TYPES) for (const night of [false, true]) for (const mini of [false, true]) {
-      const cv = shipCanvas(t, night, mini);
-      map.addImage(`qn-${mini ? 's' : 'a'}${night ? 'n' : 'd'}-${t}`, cv.getContext('2d').getImageData(0, 0, cv.width, cv.height), { pixelRatio: (mini ? MINI : ART).R });
-    }
     const empty = { type: 'FeatureCollection', features: [] };
     map.addSource('qn-ships', { type: 'geojson', data: empty });
+    map.addSource('qn-3d', { type: 'geojson', data: empty });
     map.addSource('qn-wakes', { type: 'geojson', data: empty, lineMetrics: true });
     map.addSource('qn-sel', { type: 'geojson', data: empty });
     map.addSource('qn-track', { type: 'geojson', data: empty });
@@ -795,9 +867,11 @@ function initMap() {
     map.addLayer({ id: 'qn-halo', type: 'circle', source: 'qn-ships', filter: ['==', ['get', 'gear'], 0], paint: { 'circle-radius': shipPx(0.7), 'circle-color': TYPE_MATCH, 'circle-blur': 1, 'circle-opacity': 0.25, 'circle-pitch-alignment': 'map' } });
     map.addLayer({ id: 'qn-pulse', type: 'circle', source: 'qn-ships', filter: ['all', ['==', ['get', 'gear'], 0], ['>', ['get', 'sp'], 0.5]], paint: { 'circle-radius': 6, 'circle-color': 'rgba(255,255,255,0)', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.2, 'circle-stroke-opacity': 0.6, 'circle-pitch-alignment': 'map', 'circle-radius-transition': { duration: 0 }, 'circle-stroke-opacity-transition': { duration: 0 } } });
     map.addLayer({ id: 'qn-sel', type: 'circle', source: 'qn-sel', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 9, 13, 16, 15, 30], 'circle-color': 'rgba(255,255,255,.12)', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2.5, 'circle-pitch-alignment': 'map' } });
-    const shipLayout = (prefix, len) => ({ 'icon-image': ['concat', prefix, ['get', 't']], 'icon-size': shipPx(1 / len), 'icon-rotate': ['get', 'hd'], 'icon-rotation-alignment': 'map', 'icon-pitch-alignment': 'map', 'icon-allow-overlap': true, 'icon-ignore-placement': true, 'symbol-sort-key': ['get', 'len'] });
-    map.addLayer({ id: 'qn-ships', type: 'symbol', source: 'qn-ships', filter: ['==', ['get', 'gear'], 0], layout: shipLayout('qn-sd-', MINI.len), paint: { 'icon-opacity': shipFade(false) } });
-    map.addLayer({ id: 'qn-ships-art', type: 'symbol', source: 'qn-ships', filter: ['==', ['get', 'gear'], 0], layout: shipLayout('qn-ad-', ART.len), paint: { 'icon-opacity': shipFade(true) } });
+    map.addLayer({ id: 'qn-3d', type: 'fill-extrusion', source: 'qn-3d', paint: { 'fill-extrusion-color': ['get', 'c'], 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': 1, 'fill-extrusion-vertical-gradient': true } });
+    map.addLayer({ id: 'qn-lights', type: 'circle', source: 'qn-ships', filter: ['==', ['get', 'gear'], 0], paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 1.2, 13, 2, 15, 3], 'circle-color': WARM, 'circle-blur': 0.5, 'circle-opacity': 0 } });
+    let zoomAt = 0; // the models are rebuilt as the zoom changes, so they keep the same on-screen size rule
+    map.on('zoom', () => { const now = performance.now(); if (now - zoomAt > 120) { zoomAt = now; renderModels(); } });
+    map.on('zoomend', renderModels);
     const fontLayers = map.getStyle().layers.filter((l) => l.type === 'symbol' && l.layout && Array.isArray(l.layout['text-font']));
     const font = ((fontLayers.find((l) => l['source-layer'] === 'place' && !/italic/i.test(l.layout['text-font'].join(' '))) || fontLayers.find((l) => !/italic/i.test(l.layout['text-font'].join(' '))) || fontLayers[0] || { layout: {} }).layout['text-font']);
     if (font) map.addLayer({ id: 'qn-names', type: 'symbol', source: 'qn-ships', filter: NAME_FILTER, layout: { 'text-field': ['get', 'name'], 'text-font': font, 'text-size': ['interpolate', ['linear'], ['zoom'], 11, 10, 14, 13], 'text-offset': [0, 1.1], 'text-anchor': 'top', 'text-letter-spacing': 0.06, 'text-optional': true, 'text-padding': 6 }, paint: { 'text-color': '#ffffff', 'text-halo-color': P.seaDeep, 'text-halo-width': 1.6 } });
@@ -823,12 +897,14 @@ function setInteractive(on) {
 }
 function hit(pt) {
   if (!state.mapReady) return null;
-  const fs = map.queryRenderedFeatures([[pt[0] - 18, pt[1] - 18], [pt[0] + 18, pt[1] + 18]], { layers: ['qn-ships', 'qn-ships-art'] });
+  const fs = map.queryRenderedFeatures([[pt[0] - 18, pt[1] - 18], [pt[0] + 18, pt[1] + 18]], { layers: ['qn-halo', 'qn-3d'] });
   let best = null, bd = Infinity; // the ship nearest the tap wins, so close neighbours can be told apart
   for (const f of fs) {
-    const p = map.project(f.geometry.coordinates);
+    const v = state.vessels.get(String(f.properties.mmsi));
+    if (!v) continue;
+    const p = map.project([v.lng, v.lat]);
     const d = (p.x - pt[0]) ** 2 + (p.y - pt[1]) ** 2;
-    if (d < bd) { bd = d; best = f.properties.mmsi; }
+    if (d < bd) { bd = d; best = String(v.mmsi); }
   }
   return best;
 }
@@ -891,6 +967,16 @@ function offset(lat, lng, bearing, metres) {
   const b = bearing * Math.PI / 180;
   return [lng + (metres * Math.sin(b)) / (111320 * Math.cos(lat * Math.PI / 180)), lat + (metres * Math.cos(b)) / 111320];
 }
+function renderModels() {
+  if (!state.mapReady || !map.getSource('qn-3d')) return;
+  const z = map.getZoom(), feats = [];
+  for (const v of state.vessels.values()) {
+    if (!isShip(v)) continue;
+    if (state.filter !== 'All' && bucket(v) !== state.filter) continue;
+    for (const f of modelFeatures(v, z)) feats.push(f);
+  }
+  map.getSource('qn-3d').setData({ type: 'FeatureCollection', features: feats });
+}
 let renderQueued = false;
 function queueRender() { if (renderQueued) return; renderQueued = true; setTimeout(() => { renderQueued = false; renderShips(); renderFleet(); }, 600); }
 function renderShips() {
@@ -908,6 +994,7 @@ function renderShips() {
   }
   map.getSource('qn-ships').setData({ type: 'FeatureCollection', features: feats });
   map.getSource('qn-wakes').setData({ type: 'FeatureCollection', features: wakes });
+  renderModels();
   const s = state.selected && state.vessels.get(state.selected);
   map.getSource('qn-sel').setData({ type: 'FeatureCollection', features: s ? [{ type: 'Feature', geometry: { type: 'Point', coordinates: [s.lng, s.lat] }, properties: {} }] : [] });
   maskNames(true);
