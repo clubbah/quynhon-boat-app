@@ -74,7 +74,9 @@ body.exploring #map{pointer-events:auto}
 body.exploring .hero .maplibregl-ctrl-top-right{display:block}
 body.exploring .hero .maplibregl-ctrl-bottom-right{bottom:0}
 .glow{position:absolute;left:4%;top:-22%;width:74%;height:70%;background:radial-gradient(closest-side,rgba(255,176,96,.6),rgba(255,176,96,0));opacity:var(--glow);mix-blend-mode:screen;pointer-events:none;transition:opacity 1.2s}
-.scrim-top{position:absolute;left:0;right:0;top:0;height:150px;background:linear-gradient(rgba(0,0,0,.34),rgba(0,0,0,0));pointer-events:none}
+.scrim-top{position:absolute;left:0;right:0;top:0;height:180px;background:linear-gradient(rgba(6,14,20,.7),rgba(6,14,20,.42) 40%,rgba(6,14,20,0));pointer-events:none}
+.top:not(.solid) .nav{text-shadow:0 1px 10px rgba(0,0,0,.55)}
+.live.stale .dot{background:#ffb347;animation:none}
 .scrim{position:absolute;left:0;right:0;bottom:0;height:66%;background:linear-gradient(to top,var(--scrim-a) 0%,var(--scrim-b) 42%,rgba(0,0,0,0) 100%);pointer-events:none;transition:opacity .4s}
 .hero-copy{position:absolute;left:clamp(16px,4vw,56px);right:clamp(16px,4vw,56px);bottom:calc(40px + clamp(20px,4vh,44px));pointer-events:none;transition:opacity .4s,transform .5s var(--ease)}
 .hero-copy > *{max-width:820px}
@@ -420,7 +422,7 @@ footer a{text-decoration:none}footer a:hover{text-decoration:underline}
 
 <section class="sec photos" id="photos">
   <div class="wrap" style="margin-left:max(0px,calc((100vw - 1240px)/2 - clamp(16px,4vw,56px)));margin-right:0;max-width:none">
-    <p class="kicker rv">From the 26th floor</p>
+    <p class="kicker rv">Seen from Quy Nhon</p>
     <h2 class="big rv" style="--i:1">The bay, photographed</h2>
     <div class="strip rv" style="--i:2" tabindex="0" aria-label="Photos of the bay">
       <figure class="frame"><img src="/img/preview-beach.jpg" alt="Quy Nhon Bay seen from the beach" loading="lazy" style="object-position:30% 50%"></figure>
@@ -884,9 +886,28 @@ function heroSub() {
   }
   $('#heroSub').textContent = bits.join(' · ') || ' ';
 }
-function liveLine() { const d = new Date(); $('#liveLine').textContent = 'Live ' + qnTime(d, { hour: '2-digit', minute: '2-digit' }) + ' · ' + qnTime(d, { weekday: 'long', day: 'numeric', month: 'long' }); }
+/* "Live" means the receiver was heard in the last 5 minutes, not just that the clock is running */
+function liveLine() {
+  const d = new Date();
+  let newest = 0;
+  for (const v of state.vessels.values()) { const t = v.updated_at ? new Date(v.updated_at).getTime() : 0; if (t > newest) newest = t; }
+  const stale = state.vessels.size > 0 && Date.now() - newest > 5 * 60000;
+  $('.live').classList.toggle('stale', stale);
+  $('#liveLine').textContent = (stale ? 'Last update ' + agoText(new Date(newest).toISOString()) : 'Live ' + qnTime(d, { hour: '2-digit', minute: '2-digit' })) + ' · ' + qnTime(d, { weekday: 'long', day: 'numeric', month: 'long' });
+}
 async function loadStats() { try { stats = await getJSON('/api/port-stats'); countUp($('#count'), stats.total); heroSub(); } catch (e) { console.warn(e); } }
-async function loadVessels() { try { const list = await getJSON('/api/vessels'); for (const v of list) state.vessels.set(String(v.mmsi), v); renderShips(); renderFleet(); } catch (e) { console.warn(e); } }
+/* replaces the whole list, so ships that have left the bay drop off the map */
+async function loadVessels() {
+  try {
+    const list = await getJSON('/api/vessels');
+    if (!Array.isArray(list)) return;
+    const next = new Map();
+    for (const v of list) next.set(String(v.mmsi), v);
+    state.vessels = next;
+    if (state.selected && !next.has(state.selected)) closeCard();
+    renderShips(); renderFleet(); liveLine();
+  } catch (e) { console.warn(e); }
+}
 function connect() {
   let ws;
   try { ws = new WebSocket((location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host); } catch { return; }
@@ -1066,7 +1087,11 @@ loadStats(); loadVessels(); loadWeather(); loadPulse(); loadStorm(); loadArchive
 connect();
 initMap();
 setInterval(() => { liveLine(); applySky(false); drawSun(); }, 30000);
-setInterval(() => { loadStats(); loadPulse(); }, 60000);
+setInterval(() => { loadStats(); loadPulse(); loadVessels(); }, 60000);
+/* the idle camera drift ends at the visitor's first touch, scroll or key press */
+const stopDrift = () => { state.interacted = true; };
+for (const ev of ['wheel', 'touchstart', 'pointerdown', 'keydown', 'scroll']) addEventListener(ev, stopDrift, { passive: true, once: true });
+addEventListener('orientationchange', () => setTimeout(() => { if (state.mapReady && !state.exploring && !state.selected) map.jumpTo(homeView()); }, 400));
 setInterval(loadWeather, 15 * 60000);
 </script>
 </body>
