@@ -57,7 +57,9 @@ html[data-ui="dark"]{--sil:#d6e2e6}
   .sheet{padding-top:12px}
   .sheet .facts div:nth-child(n+4){display:none}
   .who h2{font-size:22px}
-  .tune{font-size:13px;gap:8px}
+  .tune{font-size:13px;gap:8px;flex-wrap:nowrap;justify-content:space-between}
+  .tune button{flex:none}
+  .vf.is-live .ctl #liveBtn{flex:1 1 0}
   .radar{width:92px;height:92px;top:132px;bottom:auto !important}
   .status{right:118px;top:178px}
   .aim-read{top:132px}
@@ -120,7 +122,7 @@ html[data-ui="dark"]{--sil:#d6e2e6}
         <button class="btn btn-accent" id="liveBtn" type="button">Use my phone's compass</button>
       </div>
       <div class="tune">
-        <span id="tuneText">Ships not lining up with what you see? Drag the view sideways until they do.</span>
+        <span id="tuneText">Not lined up? Drag the view sideways.</span>
         <button type="button" id="tuneReset">Reset alignment</button>
       </div>
     </div>
@@ -380,7 +382,7 @@ vf.addEventListener('keydown', (e) => {
 });
 function tuneText() {
   const o = Math.round(st.offset);
-  $('#tuneText').textContent = o === 0 ? 'Ships not lining up with what you see? Drag the view sideways until they do.' : 'Alignment trimmed by ' + Math.abs(o) + '° to the ' + (o > 0 ? 'right' : 'left') + '. Drag sideways to adjust.';
+  $('#tuneText').textContent = o === 0 ? 'Not lined up? Drag the view sideways.' : 'Trimmed ' + Math.abs(o) + '° ' + (o > 0 ? 'right' : 'left') + '. Drag to adjust.';
 }
 $('#tuneReset').addEventListener('click', () => { st.offset = 0; try { localStorage.removeItem('qnSpotOffset'); } catch { /* storage blocked */ } applyHeading(); tuneText(); });
 
@@ -464,7 +466,10 @@ function acceptHeading(heading, source) {
   headingSource = source;
   smoothedHeading = smoothedHeading == null ? heading : lerpAngle(smoothedHeading, heading, SMOOTHING);
   compassHeading = smoothedHeading;
-  if (!st.hasHeading) { st.hasHeading = true; status('Using your compass. Point the phone at a ship.'); }
+  if (!st.hasHeading) {
+    st.hasHeading = true; status('Using your compass. Point the phone at a ship.');
+    setTimeout(() => { if (st.hasHeading && $('#status').textContent.startsWith('Using your compass')) status(''); }, 5000); // then get out of the way
+  }
   applyHeading();
 }
 function applyHeading() {
@@ -546,7 +551,7 @@ async function startLive() {
           else if (!gotAbsolute) compassWarn();
         }, 3500);
         active = true; st.mode = 'live'; st.pinned = null;
-        vf.classList.add('is-live'); btn.disabled = false; btn.textContent = 'Stop the compass';
+        vf.classList.add('is-live'); btn.disabled = false; btn.textContent = innerWidth < 900 ? 'Stop' : 'Stop the compass';
         status('Located. Waiting for the compass…');
         tuneText(); placeRadar(); listAt = 0;
       }
