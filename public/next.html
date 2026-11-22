@@ -42,9 +42,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 .top{position:fixed;z-index:60;top:0;left:0;right:0;height:68px;padding:0 clamp(16px,4vw,40px);display:flex;align-items:center;justify-content:space-between;gap:16px;color:#fff;transition:background-color .3s,color .3s,transform .3s}
 .top.solid{background:var(--bg);color:var(--ink);border-bottom:1px solid var(--line)}
 body.exploring .top{transform:translateY(-110%)}
-.brand{flex:none;width:52px;height:52px;background:#fff;display:grid;place-items:center}
-.brand-crop{width:43px;height:44px;overflow:hidden;display:block}
-.brand-crop img{width:122px;max-width:none;margin-left:-40px;margin-top:-19px}
+.brand{flex:none;display:flex;align-items:center;min-height:44px;font-family:var(--display);font-weight:800;font-size:26px;line-height:1;letter-spacing:-.035em;text-decoration:none;white-space:nowrap}
+.top:not(.solid) .brand{text-shadow:0 1px 10px rgba(0,0,0,.55)}
+@media (max-width:520px){.brand{font-size:22px}}
 .nav{display:flex;align-items:center;gap:clamp(16px,2.4vw,34px);font-weight:600;font-size:15px}
 .nav a{text-decoration:none;min-height:44px;display:flex;align-items:center;border-bottom:2px solid transparent}
 .nav a:hover,.nav a.on{border-bottom-color:currentColor}
@@ -285,7 +285,7 @@ footer a{text-decoration:none}footer a:hover{text-decoration:underline}
 <a class="skip" href="#now">Skip to conditions</a>
 
 <header class="top" id="top">
-  <a class="brand" href="/" aria-label="Quy Nhon Life, current home page"><span class="brand-crop"><img src="/img/qnl-logo.png" alt=""></span></a>
+  <a class="brand" href="/next.html">Quy Nhon Life</a>
   <button class="menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="nav">Menu</button>
   <nav class="nav" id="nav" aria-label="Main">
     <a href="#bay" class="on">Live map</a>
@@ -427,7 +427,7 @@ footer a{text-decoration:none}footer a:hover{text-decoration:underline}
     <p class="kicker rv">Seen from Quy Nhon</p>
     <h2 class="big rv" style="--i:1">The bay, photographed</h2>
     <div class="strip rv" style="--i:2" tabindex="0" aria-label="Photos of the bay">
-      <figure class="frame"><img src="/img/preview-beach.jpg" alt="Quy Nhon Bay seen from the beach" loading="lazy" style="object-position:30% 50%"></figure>
+      <figure class="frame"><svg viewBox="0 0 90 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="90" height="90" fill="#bfd9e6"></rect><polygon points="0,90 0,87 30,85 56,88 90,86 90,90" fill="#9fbfcd"></polygon><rect y="90" width="90" height="70" fill="#4f8f9e"></rect><rect x="50" y="87.6" width="18" height="1.7" fill="#28505b"></rect><rect x="64" y="85.8" width="2.8" height="1.9" fill="#28505b"></rect></svg><figcaption>Placeholder · your photo</figcaption></figure>
       <figure class="frame"><svg viewBox="0 0 90 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="90" height="86" fill="#d5e1e5"></rect><polygon points="0,86 0,82 12,80 24,83 38,81 50,84 90,84 90,86" fill="#b4c8ce"></polygon><rect y="86" width="90" height="74" fill="#7fa3ab"></rect><rect x="40" y="83.6" width="17" height="1.6" fill="#3c5a63"></rect><rect x="53" y="81.9" width="2.6" height="1.8" fill="#3c5a63"></rect></svg><figcaption>Placeholder · your photo</figcaption></figure>
       <figure class="frame"><svg viewBox="0 0 90 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="90" height="92" fill="#efc7a2"></rect><polygon points="0,92 0,89 20,87 44,90 90,90 90,92" fill="#c99b86"></polygon><rect y="92" width="90" height="68" fill="#5f6f8c"></rect><rect x="22" y="89.6" width="20" height="1.8" fill="#2b3350"></rect><rect x="37" y="87.7" width="3" height="2" fill="#2b3350"></rect></svg><figcaption>Placeholder · your photo</figcaption></figure>
       <figure class="frame"><svg viewBox="0 0 90 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="90" height="96" fill="#9fb3c4"></rect><polygon points="0,96 0,90 18,88 30,93 90,94 90,96" fill="#7f95a8"></polygon><rect y="96" width="90" height="64" fill="#34566a"></rect><rect x="30" y="93.4" width="22" height="1.9" fill="#152c3a"></rect><rect x="47" y="91.4" width="3" height="2.1" fill="#152c3a"></rect></svg><figcaption>Placeholder · your photo</figcaption></figure>
