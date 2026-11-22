@@ -1,0 +1,1053 @@
+<!doctype html>
+<html lang="en" data-ui="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Quy Nhon Life · design preview</title>
+<link rel="icon" href="/img/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Be+Vietnam+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<style>
+:root{
+  --sky-top:#2b7fd0; --sky-hor:#cfe9f6; --sea:#1c86b3; --sea-deep:#0f5f8c;
+  --scrim-a:rgba(15,95,140,.94); --scrim-b:rgba(15,95,140,.5); --glow:0;
+  --display:'Bricolage Grotesque',system-ui,sans-serif; --body:'Be Vietnam Pro',system-ui,sans-serif;
+  --ease:cubic-bezier(.2,.7,.2,1);
+  --m-cargo:#fff3dc; --m-tanker:#ff6b4a; --m-passenger:#54e0a0; --m-fishing:#ffc233; --m-other:#b9c8cf;
+}
+html[data-ui="light"]{
+  --bg:#f4f8f9; --panel:#ffffff; --ink:#0b1d24; --muted:#4a6169; --line:#d3dfe3; --accent:#0a6672; --accent-ink:#ffffff; --chip:#e4eef1;
+  --t-cargo:#17425c; --t-tanker:#d2452a; --t-passenger:#1b8f5d; --t-fishing:#b97f06; --t-other:#72878f;
+}
+html[data-ui="dark"]{
+  --bg:#060e14; --panel:#0c1a22; --ink:#eaf2f5; --muted:#93abb4; --line:#1d3440; --accent:#f6b73c; --accent-ink:#08141b; --chip:#11242e;
+  --t-cargo:#fff3dc; --t-tanker:#ff6b4a; --t-passenger:#54e0a0; --t-fishing:#ffc233; --t-other:#b9c8cf;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;font-family:var(--body);font-size:16px;line-height:1.5;background:var(--bg);color:var(--ink);transition:background-color .8s,color .8s;-webkit-font-smoothing:antialiased}
+body.exploring{overflow:hidden}
+a{color:inherit}
+img{max-width:100%;display:block}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-999px;top:0;z-index:200;background:#fff;color:#000;padding:12px 16px}
+.skip:focus{left:8px;top:8px}
+
+/* Top bar */
+.top{position:fixed;z-index:60;top:0;left:0;right:0;height:68px;padding:0 clamp(16px,4vw,40px);display:flex;align-items:center;justify-content:space-between;gap:16px;color:#fff;transition:background-color .3s,color .3s,transform .3s}
+.top.solid{background:var(--bg);color:var(--ink);border-bottom:1px solid var(--line)}
+body.exploring .top{transform:translateY(-110%)}
+.brand{flex:none;width:52px;height:52px;background:#fff;display:grid;place-items:center}
+.brand-crop{width:43px;height:44px;overflow:hidden;display:block}
+.brand-crop img{width:122px;max-width:none;margin-left:-40px;margin-top:-19px}
+.nav{display:flex;align-items:center;gap:clamp(16px,2.4vw,34px);font-weight:600;font-size:15px}
+.nav a{text-decoration:none;min-height:44px;display:flex;align-items:center;border-bottom:2px solid transparent}
+.nav a:hover,.nav a.on{border-bottom-color:currentColor}
+.langs{display:flex;gap:12px;font-size:13px;font-weight:600;padding-left:clamp(12px,2vw,28px);border-left:1px solid currentColor}
+.langs span{opacity:.8}
+.menu-btn{display:none;height:44px;padding:0 16px;background:transparent;border:1.5px solid currentColor;font-weight:600;font-size:14px}
+@media (max-width:860px){
+  .menu-btn{display:block}
+  .nav{position:absolute;top:68px;left:0;right:0;flex-direction:column;align-items:stretch;gap:0;background:var(--bg);color:var(--ink);border-bottom:1px solid var(--line);padding:8px 16px 16px;display:none}
+  .top.open .nav{display:flex}
+  .nav a{min-height:52px;border-bottom:1px solid var(--line);font-size:17px}
+  .langs{border-left:0;padding:14px 0 0}
+}
+
+/* Hero */
+.hero-wrap{position:relative;height:100vh;height:100svh;min-height:600px}
+.hero{position:absolute;inset:0;overflow:hidden;color:#fff;background:linear-gradient(var(--sky-top) 0%,var(--sky-hor) 25%,var(--sea) 25.2%,var(--sea-deep) 100%);transition:background 1.2s}
+body.exploring .hero{position:fixed;z-index:80}
+#map{position:absolute;inset:0;opacity:0;transition:opacity 1.4s;pointer-events:none}
+.hero.map-ready #map{opacity:1}
+body.exploring #map{pointer-events:auto}
+#map .maplibregl-ctrl-attrib{pointer-events:auto}
+.hero .maplibregl-ctrl-bottom-right{bottom:44px}
+.hero .maplibregl-ctrl-top-right{display:none;top:76px}
+body.exploring .hero .maplibregl-ctrl-top-right{display:block}
+body.exploring .hero .maplibregl-ctrl-bottom-right{bottom:0}
+.glow{position:absolute;left:4%;top:-22%;width:74%;height:70%;background:radial-gradient(closest-side,rgba(255,176,96,.6),rgba(255,176,96,0));opacity:var(--glow);mix-blend-mode:screen;pointer-events:none;transition:opacity 1.2s}
+.scrim-top{position:absolute;left:0;right:0;top:0;height:150px;background:linear-gradient(rgba(0,0,0,.34),rgba(0,0,0,0));pointer-events:none}
+.scrim{position:absolute;left:0;right:0;bottom:0;height:66%;background:linear-gradient(to top,var(--scrim-a) 0%,var(--scrim-b) 42%,rgba(0,0,0,0) 100%);pointer-events:none;transition:opacity .4s}
+.hero-copy{position:absolute;left:clamp(16px,4vw,56px);right:clamp(16px,4vw,56px);bottom:calc(40px + clamp(20px,4vh,44px));pointer-events:none;transition:opacity .4s,transform .5s var(--ease)}
+.hero-copy > *{max-width:820px}
+.live{margin:0 0 clamp(8px,1.6vh,18px);display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.dot{width:10px;height:10px;border-radius:50%;background:#5cf0a0;box-shadow:0 0 0 0 rgba(92,240,160,.7);animation:ping 2s infinite}
+@keyframes ping{70%{box-shadow:0 0 0 12px rgba(92,240,160,0)}100%{box-shadow:0 0 0 0 rgba(92,240,160,0)}}
+h1{margin:0;font-family:var(--display);font-weight:800;display:flex;flex-direction:column;gap:clamp(6px,1vh,14px);text-shadow:0 2px 24px rgba(0,0,0,.25)}
+.count{font-size:clamp(128px,30vw,330px);line-height:.78;letter-spacing:-.05em;margin-left:-.04em;font-variant-numeric:tabular-nums}
+.count-label{font-size:clamp(30px,5.2vw,64px);line-height:1;letter-spacing:-.025em;font-weight:700}
+.sub{margin:clamp(10px,1.6vh,18px) 0 0;font-size:clamp(15px,1.5vw,19px);font-weight:500;text-shadow:0 1px 12px rgba(0,0,0,.3)}
+.actions{margin-top:clamp(16px,2.6vh,28px);display:flex;flex-wrap:wrap;gap:12px;pointer-events:auto}
+.btn{min-height:54px;padding:0 26px;border:2px solid transparent;font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:-.01em;display:inline-flex;align-items:center;justify-content:center;gap:10px;text-decoration:none;transition:transform .2s var(--ease),background-color .2s,color .2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:translateY(0)}
+.btn-primary{background:#fff;color:#0b1d24}
+.btn-ghost{background:rgba(6,14,20,.35);border-color:#fff;color:#fff}
+.btn-accent{background:var(--accent);color:var(--accent-ink)}
+@media (max-width:520px){.actions .btn{flex:1 1 0;padding:0 12px;font-size:16px}}
+.viewas{position:absolute;top:84px;right:clamp(16px,4vw,40px);display:flex;align-items:center;background:rgba(6,14,20,.78);font-size:13px;font-weight:600;transition:opacity .3s}
+.viewas span{padding:0 12px}
+.viewas button{height:44px;padding:0 14px;background:transparent;border:0;color:#fff;font-weight:600}
+.viewas button.on{background:#fff;color:#0b1d24}
+@media (max-width:860px){.viewas{left:16px;right:auto;top:80px}.viewas span{display:none}}
+.ticker{position:absolute;left:0;right:0;bottom:0;height:40px;background:rgba(6,14,20,.86);overflow:hidden;display:flex;align-items:center;font-size:13px;white-space:nowrap}
+.ticker-track{display:flex;gap:44px;padding-left:24px;will-change:transform}
+.ticker-track.run{animation:marquee var(--dur,60s) linear infinite}
+.ticker:hover .ticker-track{animation-play-state:paused}
+@keyframes marquee{to{transform:translateX(-50%)}}
+.ticker b{font-weight:600;letter-spacing:.08em;color:#ffcf6b;margin-right:10px;font-size:11px}
+.ticker i{font-style:normal;opacity:.7;margin-left:10px}
+body.exploring .hero-copy,body.exploring .scrim,body.exploring .ticker,body.exploring .viewas{opacity:0;pointer-events:none}
+body.exploring .hero-copy{transform:translateY(30px)}
+body.exploring .actions{pointer-events:none}
+
+/* Explore mode */
+.explore-ui{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .35s}
+body.exploring .explore-ui{opacity:1}
+.ex-top{position:absolute;top:14px;left:14px;right:64px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start}
+.ex-top > *{pointer-events:none}
+body.exploring .ex-top > *,body.exploring .ex-bottom > *{pointer-events:auto}
+.search{position:relative;flex:1 1 240px;max-width:380px}
+.search input{width:100%;height:54px;padding:0 16px;border:0;background:#fff;color:#0b1d24;font:500 16px var(--body)}
+.results{position:absolute;top:58px;left:0;right:0;background:#fff;color:#0b1d24;max-height:50vh;overflow:auto;box-shadow:0 18px 40px rgba(0,0,0,.35)}
+.results button{width:100%;min-height:52px;padding:8px 16px;background:#fff;border:0;border-bottom:1px solid #dfe7ea;text-align:left;display:flex;justify-content:space-between;gap:12px;align-items:center;font-weight:600}
+.results button small{font-weight:400;color:#4a6169}
+.results button:hover{background:#eef4f6}
+.ex-bottom{position:absolute;left:14px;right:14px;bottom:34px;display:flex}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.chip{flex:none;min-height:46px;padding:0 16px;background:rgba(6,14,20,.86);color:#fff;border:1.5px solid transparent;font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}
+.chip.on{background:#fff;color:#0b1d24}
+.chip u{width:11px;height:11px;border-radius:50%;display:block;border:1.5px solid #0a1a24}
+
+/* Ship card */
+.card{position:fixed;z-index:95;left:0;right:0;bottom:0;background:var(--panel);color:var(--ink);border-top:4px solid var(--accent);box-shadow:0 -18px 60px rgba(0,0,0,.4);padding:20px 20px calc(20px + env(safe-area-inset-bottom));transform:translateY(110%);transition:transform .45s var(--ease);max-height:78vh;overflow:auto}
+.card.open{transform:none}
+@media (min-width:861px){.card{left:auto;right:24px;bottom:auto;top:92px;width:400px;border-top-width:4px;box-shadow:0 24px 70px rgba(0,0,0,.45);transform:translateX(120%)}}
+.card-head{display:flex;align-items:flex-start;gap:14px}
+.card-head img{width:40px;height:30px;margin-top:6px;border:1px solid var(--line)}
+.card h2{margin:0;font-family:var(--display);font-weight:800;font-size:30px;line-height:1.02;letter-spacing:-.02em;overflow-wrap:anywhere}
+.card-head p{margin:4px 0 0;color:var(--muted);font-size:14px}
+.card-close{margin-left:auto;flex:none;min-height:44px;padding:0 14px;background:transparent;border:1.5px solid var(--line);font-weight:600;font-size:14px}
+.card dl{margin:18px 0 0;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line)}
+.card dl div{background:var(--panel);padding:12px 14px}
+.card dt{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.card dd{margin:2px 0 0;font-family:var(--display);font-weight:700;font-size:20px;overflow-wrap:anywhere}
+.card-actions{margin-top:16px;display:flex;gap:10px}
+.card-actions .btn{flex:1;min-height:50px;font-size:16px;padding:0 12px}
+.btn-line{background:transparent;border-color:var(--line);color:var(--ink)}
+
+/* Sections */
+.sec{padding:clamp(64px,10vw,128px) clamp(16px,4vw,56px)}
+.wrap{max-width:1240px;margin:0 auto}
+.kicker{margin:0 0 14px;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+h2.big{margin:0;font-family:var(--display);font-weight:800;font-size:clamp(38px,6vw,84px);line-height:.96;letter-spacing:-.035em}
+.lede{margin:18px 0 0;max-width:560px;color:var(--muted);font-size:clamp(16px,1.4vw,19px)}
+.rv{opacity:0;transform:translateY(28px);transition:opacity .8s var(--ease),transform .8s var(--ease);transition-delay:calc(var(--i,0)*80ms)}
+.rv.in{opacity:1;transform:none}
+
+/* Right now */
+.tiles{margin-top:clamp(28px,4vw,56px);display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+.tile{background:var(--panel);padding:clamp(18px,2.2vw,30px);display:flex;flex-direction:column;gap:10px;min-height:290px;transition:background-color .8s}
+.tile-label{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.tile-viz{height:96px;display:flex;align-items:center;position:relative;overflow:hidden;color:var(--accent)}
+.tile-val{margin-top:auto;font-family:var(--display);font-weight:800;font-size:clamp(46px,5.6vw,84px);line-height:.9;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.tile-val small{font-size:.34em;font-weight:700;letter-spacing:0;margin-left:6px}
+.tile-note{color:var(--muted);font-size:14px;min-height:21px}
+@media (max-width:860px){.tiles{grid-template-columns:repeat(2,1fr)}.tile{min-height:250px}}
+.scale{position:relative;width:100%;height:10px;background:linear-gradient(90deg,#4aa3ff,#7fd6c2 35%,#ffd166 62%,#ff6b4a)}
+.scale i{position:absolute;top:-9px;width:4px;height:28px;background:var(--ink);left:0;transition:left 1.4s var(--ease)}
+.scale-ends{position:absolute;left:0;right:0;bottom:8px;display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+.compass{width:96px;height:96px}
+.compass .arrow{transform-origin:48px 48px;transition:transform 1.4s var(--ease)}
+.compass .streak{animation:streak var(--wind-dur,1.6s) linear infinite}
+.compass .streak:nth-child(2){animation-delay:calc(var(--wind-dur,1.6s) * -.33)}
+.compass .streak:nth-child(3){animation-delay:calc(var(--wind-dur,1.6s) * -.66)}
+@keyframes streak{0%{transform:translateY(26px);opacity:0}25%{opacity:.9}100%{transform:translateY(-30px);opacity:0}}
+.waves{position:absolute;left:0;bottom:0;width:200%;height:96px}
+.waves path{fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round}
+.waves.back{opacity:.35}
+.waves.run{animation:wave var(--wave-dur,7s) linear infinite}
+.waves.back.run{animation-duration:calc(var(--wave-dur,7s) * 1.7)}
+@keyframes wave{to{transform:translateX(-25%)}}
+.ring{width:96px;height:96px;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:9}
+.ring .bg{stroke:var(--chip)}
+.ring .fg{stroke:currentColor;stroke-dasharray:238.76;stroke-dashoffset:238.76;transition:stroke-dashoffset 1.6s var(--ease)}
+
+/* Sunset */
+.sunset{color:#fff;overflow:hidden}
+.sunset-sky{position:relative;height:clamp(260px,40vw,470px);transition:background 1.2s}
+.sunset-sky svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.sunset-sea{padding:clamp(28px,4vw,56px) clamp(16px,4vw,56px) clamp(56px,8vw,104px);transition:background-color 1.2s;position:relative}
+.sunset-sea::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:rgba(255,255,255,.28)}
+.sunset-grid{display:grid;grid-template-columns:auto 1fr;gap:clamp(24px,5vw,80px);align-items:end}
+@media (max-width:860px){.sunset-grid{grid-template-columns:1fr;align-items:start}}
+.sunset .kicker{color:#ffd9a8}
+.sun-time{font-family:var(--display);font-weight:800;font-size:clamp(110px,20vw,270px);line-height:.8;letter-spacing:-.05em;font-variant-numeric:tabular-nums;margin-left:-.03em}
+.sun-rating{margin-top:14px;font-family:var(--display);font-weight:700;font-size:clamp(30px,4vw,54px);line-height:1}
+.sun-count{margin-top:10px;font-size:16px;font-weight:500;opacity:.9}
+.sun-desc{margin:0;font-size:clamp(17px,1.6vw,21px);max-width:520px}
+.meter{margin-top:22px;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;max-width:520px}
+.meter div{height:10px;background:rgba(255,255,255,.22)}
+.meter div.on{background:#ffcf6b}
+.meter-labels{margin-top:8px;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;max-width:520px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+.meter-labels span.on{opacity:1;color:#ffcf6b}
+.factors{margin-top:22px;display:flex;flex-wrap:wrap;gap:8px;max-width:520px}
+.factors span{padding:8px 12px;border:1.5px solid rgba(255,255,255,.45);font-size:14px;font-weight:500}
+.shimmer line{stroke:#fff;stroke-linecap:round;animation:shim 3.2s ease-in-out infinite}
+.shimmer line:nth-child(2n){animation-delay:-1.1s}
+.shimmer line:nth-child(3n){animation-delay:-2.1s}
+@keyframes shim{0%,100%{opacity:.15}50%{opacity:.75}}
+
+/* Fleet */
+.fleet-grid{margin-top:clamp(28px,4vw,56px);display:grid;grid-template-columns:1.6fr 1fr;gap:clamp(32px,5vw,80px);align-items:start}
+@media (max-width:980px){.fleet-grid{grid-template-columns:1fr}}
+.rows{display:flex;flex-direction:column;border-top:3px solid var(--ink)}
+.ship-row{width:100%;background:transparent;border:0;border-bottom:1px solid var(--line);padding:14px 0;display:grid;grid-template-columns:minmax(170px,260px) 1fr 70px;gap:16px;align-items:center;text-align:left;min-height:64px;transition:background-color .2s,padding .2s var(--ease)}
+.ship-row:hover{background:var(--chip);padding-left:10px}
+.sr-name{display:flex;align-items:center;gap:10px;font-weight:600;font-size:16px;min-width:0}
+.sr-name img{flex:none;width:24px;height:18px;border:1px solid var(--line)}
+.sr-name span{min-width:0;display:flex;flex-direction:column}
+.sr-name b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sr-name small{font-weight:400;font-size:13px;color:var(--muted)}
+.sr-bar{height:16px}
+.sr-bar i{display:block;height:100%;width:var(--w,10%);clip-path:polygon(0 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,0 100%);transform:scaleX(0);transform-origin:left;transition:transform 1.1s var(--ease);transition-delay:calc(var(--i,0)*70ms)}
+.rows.in .sr-bar i{transform:none}
+.sr-len{font-family:var(--display);font-weight:700;font-size:18px;text-align:right;font-variant-numeric:tabular-nums}
+@media (max-width:620px){.ship-row{grid-template-columns:1fr 64px;grid-template-areas:"n l" "b b";gap:8px 12px}.sr-name{grid-area:n}.sr-len{grid-area:l}.sr-bar{grid-area:b}}
+.t-Cargo{background:var(--t-cargo)}.t-Tanker{background:var(--t-tanker)}.t-Passenger{background:var(--t-passenger)}.t-Fishing{background:var(--t-fishing)}.t-Other{background:var(--t-other)}
+.side-h{margin:0 0 6px;font-family:var(--display);font-weight:800;font-size:clamp(26px,2.6vw,36px);letter-spacing:-.02em;line-height:1.05}
+.pulse{list-style:none;margin:14px 0 0;padding:0;border-top:3px solid var(--ink)}
+.pulse li{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;min-height:60px;border-bottom:1px solid var(--line);font-size:15px}
+.pulse li.new{animation:flash 2.4s var(--ease)}
+@keyframes flash{0%{background:var(--accent);color:var(--accent-ink)}100%{background:transparent}}
+.pulse img{width:24px;height:18px;border:1px solid var(--line)}
+.pulse b{font-weight:600;display:block;overflow-wrap:anywhere}
+.pulse small{color:var(--muted);font-size:13px}
+.pulse time{color:var(--muted);font-size:13px;white-space:nowrap}
+.more{display:inline-flex;align-items:center;min-height:52px;font-weight:600;color:var(--accent);text-decoration:none;border-bottom:2px solid transparent}
+.more:hover{border-bottom-color:currentColor}
+
+/* Photos */
+.photos{padding-right:0}
+.strip{margin-top:clamp(28px,4vw,56px);display:flex;gap:clamp(12px,1.6vw,22px);overflow-x:auto;scroll-snap-type:x mandatory;padding:0 clamp(16px,4vw,56px) 44px 0;scrollbar-width:thin}
+.frame{flex:none;width:clamp(220px,62vw,320px);aspect-ratio:9/16;scroll-snap-align:start;position:relative;overflow:hidden;background:var(--chip)}
+.frame:nth-child(even){transform:translateY(32px)}
+.frame img,.frame svg{width:100%;height:100%;object-fit:cover;display:block;transition:transform 1.2s var(--ease)}
+.frame:hover img,.frame:hover svg{transform:scale(1.05)}
+.frame figcaption{position:absolute;left:10px;top:10px;padding:6px 9px;background:#0b1d24;color:#fff;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+figure{margin:0}
+
+/* Tools */
+.tools{display:grid;grid-template-columns:1fr 1fr;gap:clamp(12px,1.6vw,22px)}
+@media (max-width:860px){.tools{grid-template-columns:1fr}}
+.tool{padding:clamp(26px,3.4vw,52px);min-height:clamp(260px,26vw,360px);display:flex;flex-direction:column;justify-content:space-between;gap:28px;text-decoration:none;transition:transform .35s var(--ease)}
+.tool:hover{transform:translateY(-6px)}
+.tool h3{margin:0;font-family:var(--display);font-weight:800;font-size:clamp(32px,4.2vw,60px);line-height:.98;letter-spacing:-.03em}
+.tool p{margin:12px 0 0;font-size:17px;max-width:440px}
+.tool .go{font-family:var(--display);font-weight:700;font-size:19px;display:flex;align-items:center;gap:10px}
+.tool .go::after{content:"";width:34px;height:2px;background:currentColor;transition:width .3s var(--ease)}
+.tool:hover .go::after{width:64px}
+.tool-spot{background:var(--accent);color:var(--accent-ink)}
+.tool-storm{background:var(--panel);border:1px solid var(--line);color:var(--ink)}
+.tool .kicker{color:inherit}
+
+.about p{max-width:680px;color:var(--muted);font-size:17px}
+.about h2{margin:0 0 20px;font-family:var(--display);font-weight:800;font-size:clamp(28px,3.4vw,44px);letter-spacing:-.02em;line-height:1.05;max-width:760px}
+footer{padding:36px clamp(16px,4vw,56px) 48px;border-top:1px solid var(--line);color:var(--muted);font-size:14px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
+footer a{text-decoration:none}footer a:hover{text-decoration:underline}
+.toast{position:fixed;z-index:120;left:50%;bottom:28px;transform:translate(-50%,40px);background:#0b1d24;color:#fff;padding:14px 20px;font-weight:600;font-size:15px;opacity:0;transition:opacity .3s,transform .3s var(--ease);pointer-events:none;max-width:calc(100vw - 32px)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .rv{opacity:1;transform:none;transition:none}
+  .dot,.ticker-track.run,.compass .streak,.waves.run,.shimmer line{animation:none}
+  .sr-bar i{transform:none;transition:none}
+  .btn:hover,.tool:hover{transform:none}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#now">Skip to conditions</a>
+
+<header class="top" id="top">
+  <a class="brand" href="/" aria-label="Quy Nhon Life, current home page"><span class="brand-crop"><img src="/img/qnl-logo.png" alt=""></span></a>
+  <button class="menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="nav">Menu</button>
+  <nav class="nav" id="nav" aria-label="Main">
+    <a href="#bay" class="on">Live map</a>
+    <a href="/storms">Storm tracker</a>
+    <a href="/trends">Port in numbers</a>
+    <a href="/spot">What's that boat?</a>
+    <div class="langs" title="This preview is in English only"><b>EN</b><span>VI</span><span>KO</span><span>ZH</span><span>JA</span></div>
+  </nav>
+</header>
+
+<main>
+<div class="hero-wrap">
+<section class="hero" id="bay" aria-label="Quy Nhon Bay, live">
+  <div id="map"></div>
+  <div class="glow" aria-hidden="true"></div>
+  <div class="scrim-top" aria-hidden="true"></div>
+  <div class="scrim" aria-hidden="true"></div>
+
+  <div class="hero-copy">
+    <p class="live"><span class="dot" aria-hidden="true"></span><span id="liveLine">Live from Quy Nhon Bay</span></p>
+    <h1><span class="count" id="count">&nbsp;</span><span class="count-label">ships in the bay right now</span></h1>
+    <p class="sub" id="heroSub">&nbsp;</p>
+    <div class="actions">
+      <button class="btn btn-primary" id="exploreBtn" type="button">Explore the map</button>
+      <button class="btn btn-ghost" id="findBtn" type="button">Find a ship</button>
+    </div>
+  </div>
+
+  <div class="viewas" role="group" aria-label="View the bay at a time of day">
+    <span>View as</span>
+    <button type="button" data-sky="live" class="on">Now</button>
+    <button type="button" data-sky="day">Day</button>
+    <button type="button" data-sky="sunset">Sunset</button>
+    <button type="button" data-sky="night">Night</button>
+  </div>
+
+  <div class="ticker" aria-label="Latest arrivals and departures"><div class="ticker-track" id="ticker"></div></div>
+
+  <div class="explore-ui">
+    <div class="ex-top">
+      <button class="btn btn-primary" id="exitBtn" type="button">Back to the page</button>
+      <div class="search">
+        <label class="vh" for="q">Search for a ship</label>
+        <input id="q" type="search" placeholder="Search ship name or MMSI" autocomplete="off">
+        <div class="results" id="results"></div>
+      </div>
+    </div>
+    <div class="ex-bottom"><div class="chips" id="chips" role="group" aria-label="Show ship types"></div></div>
+  </div>
+</section>
+</div>
+
+<section class="sec" id="now">
+  <div class="wrap">
+    <p class="kicker rv">Right now in Quy Nhon</p>
+    <h2 class="big rv" style="--i:1">On the water</h2>
+    <div class="tiles">
+      <div class="tile rv" style="--i:0">
+        <div class="tile-label">Temperature</div>
+        <div class="tile-viz"><div class="scale"><i id="tempMark"></i></div><div class="scale-ends"><span>10°</span><span>40°</span></div></div>
+        <div class="tile-val"><span id="tempVal">--</span><small>°C</small></div>
+        <div class="tile-note" id="tempNote"></div>
+      </div>
+      <div class="tile rv" style="--i:1">
+        <div class="tile-label">Wind</div>
+        <div class="tile-viz">
+          <svg class="compass" viewBox="0 0 96 96" aria-hidden="true">
+            <circle cx="48" cy="48" r="44" fill="none" stroke="currentColor" stroke-opacity=".3" stroke-width="2"></circle>
+            <path d="M48 4v8M48 84v8M4 48h8M84 48h8" stroke="currentColor" stroke-opacity=".5" stroke-width="2"></path>
+            <text x="48" y="24" text-anchor="middle" font-size="10" font-weight="700" fill="currentColor" opacity=".7">N</text>
+            <g class="arrow" id="windArrow">
+              <g><path class="streak" d="M36 40v16" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><path class="streak" d="M60 44v14" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><path class="streak" d="M48 52v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></g>
+              <path d="M48 20 L57 40 L48 35 L39 40 Z" fill="currentColor"></path>
+            </g>
+          </svg>
+        </div>
+        <div class="tile-val"><span id="windVal">--</span><small>km/h</small></div>
+        <div class="tile-note" id="windNote"></div>
+      </div>
+      <div class="tile rv" style="--i:2">
+        <div class="tile-label">Waves</div>
+        <div class="tile-viz">
+          <svg class="waves back" viewBox="0 0 800 96" preserveAspectRatio="none" aria-hidden="true"><path id="waveBack"></path></svg>
+          <svg class="waves" viewBox="0 0 800 96" preserveAspectRatio="none" aria-hidden="true"><path id="waveFront"></path></svg>
+        </div>
+        <div class="tile-val"><span id="waveVal">--</span><small>m</small></div>
+        <div class="tile-note" id="waveNote"></div>
+      </div>
+      <div class="tile rv" style="--i:3">
+        <div class="tile-label">Humidity</div>
+        <div class="tile-viz">
+          <svg class="ring" viewBox="0 0 96 96" aria-hidden="true"><circle class="bg" cx="48" cy="48" r="38"></circle><circle class="fg" id="humRing" cx="48" cy="48" r="38"></circle></svg>
+        </div>
+        <div class="tile-val"><span id="humVal">--</span><small>%</small></div>
+        <div class="tile-note" id="humNote"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sunset" id="sunset" aria-label="Tonight's sunset forecast">
+  <div class="sunset-sky" id="sunSky"><svg id="sunScene" aria-hidden="true"></svg></div>
+  <div class="sunset-sea" id="sunSea">
+    <div class="wrap sunset-grid">
+      <div class="rv">
+        <p class="kicker" id="sunKicker">Tonight's sunset</p>
+        <div class="sun-time" id="sunTime">--:--</div>
+        <div class="sun-rating" id="sunRating">&nbsp;</div>
+        <div class="sun-count" id="sunCount">&nbsp;</div>
+      </div>
+      <div class="rv" style="--i:2">
+        <p class="sun-desc" id="sunDesc">&nbsp;</p>
+        <div class="meter" id="meter"><div></div><div></div><div></div><div></div></div>
+        <div class="meter-labels" id="meterLabels"><span>Ordinary</span><span>Nice</span><span>Vivid</span><span>Spectacular</span></div>
+        <div class="factors" id="factors"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="fleet">
+  <div class="wrap">
+    <p class="kicker rv">In the bay now</p>
+    <h2 class="big rv" style="--i:1">The biggest ships in view</h2>
+    <p class="lede rv" style="--i:2">Bars are drawn to scale. Pick a ship to see it on the map.</p>
+    <div class="fleet-grid">
+      <div class="rows rv" id="rows"></div>
+      <div class="rv" style="--i:2">
+        <h3 class="side-h">Just arrived</h3>
+        <ul class="pulse" id="pulse"></ul>
+        <a class="more" href="/trends" id="trendsLink">Port in numbers</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec photos" id="photos">
+  <div class="wrap" style="margin-left:max(0px,calc((100vw - 1240px)/2 - clamp(16px,4vw,56px)));margin-right:0;max-width:none">
+    <p class="kicker rv">From the 26th floor</p>
+    <h2 class="big rv" style="--i:1">The bay, photographed</h2>
+    <div class="strip rv" style="--i:2" tabindex="0" aria-label="Photos of the bay">
+      <figure class="frame"><img src="/img/preview-beach.jpg" alt="Quy Nhon Bay seen from the beach" loading="lazy" style="object-position:30% 50%"></figure>
+      <figure class="frame"><svg viewBox="0 0 90 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="90" height="86" fill="#d5e1e5"></rect><polygon points="0,86 0,82 12,80 24,83 38,81 50,84 90,84 90,86" fill="#b4c8ce"></polygon><rect y="86" width="90" height="74" fill="#7fa3ab"></rect><rect x="40" y="83.6" width="17" height="1.6" fill="#3c5a63"></rect><rect x="53" y="81.9" width="2.6" height="1.8" fill="#3c5a63"></rect></svg><figcaption>Placeholder · your photo</figcaption></figure>
+      <figure class="frame"><svg viewBox="0 0 90 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="90" height="92" fill="#efc7a2"></rect><polygon points="0,92 0,89 20,87 44,90 90,90 90,92" fill="#c99b86"></polygon><rect y="92" width="90" height="68" fill="#5f6f8c"></rect><rect x="22" y="89.6" width="20" height="1.8" fill="#2b3350"></rect><rect x="37" y="87.7" width="3" height="2" fill="#2b3350"></rect></svg><figcaption>Placeholder · your photo</figcaption></figure>
+      <figure class="frame"><svg viewBox="0 0 90 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="90" height="96" fill="#9fb3c4"></rect><polygon points="0,96 0,90 18,88 30,93 90,94 90,96" fill="#7f95a8"></polygon><rect y="96" width="90" height="64" fill="#34566a"></rect><rect x="30" y="93.4" width="22" height="1.9" fill="#152c3a"></rect><rect x="47" y="91.4" width="3" height="2.1" fill="#152c3a"></rect></svg><figcaption>Placeholder · your photo</figcaption></figure>
+      <figure class="frame"><svg viewBox="0 0 90 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="90" height="84" fill="#f3d9b8"></rect><rect y="84" width="90" height="76" fill="#6f7f95"></rect><rect x="14" y="81.6" width="15" height="1.5" fill="#333d55"></rect><rect x="58" y="81.8" width="12" height="1.3" fill="#333d55"></rect></svg><figcaption>Placeholder · your photo</figcaption></figure>
+      <figure class="frame"><svg viewBox="0 0 90 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="90" height="88" fill="#c7d6dc"></rect><polygon points="0,88 0,86 40,85 70,83 90,80 90,88" fill="#a7bcc4"></polygon><rect y="88" width="90" height="72" fill="#5b8590"></rect><rect x="36" y="85.6" width="18" height="1.6" fill="#2a4a54"></rect></svg><figcaption>Placeholder · your photo</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section class="sec" style="padding-top:0">
+  <div class="wrap tools">
+    <a class="tool tool-spot rv" href="/spot">
+      <div><p class="kicker">What's that boat?</p><h3>See a boat? Identify it instantly.</h3><p>Point your phone at any vessel nearby, from the beach, the port or your balcony, and find out its name, flag and speed.</p></div>
+      <span class="go">Identify a vessel</span>
+    </a>
+    <a class="tool tool-storm rv" style="--i:1" href="/storms">
+      <div><p class="kicker">Storm tracker</p><h3 id="stormHead">Checking for storms</h3><p id="stormSub">Tropical cyclones near Quy Nhon, with forecast path and rain radar.</p></div>
+      <span class="go">Open the tracker</span>
+    </a>
+  </div>
+</section>
+
+<section class="sec about" style="padding-top:0">
+  <div class="wrap">
+    <p class="kicker rv">About Quy Nhon Life</p>
+    <h2 class="rv" style="--i:1">Real-time vessel tracking for Quy Nhon, Vietnam</h2>
+    <p class="rv" style="--i:2">Quy Nhon Life provides live AIS vessel tracking for Quy Nhon Bay and the surrounding waters of Gia Lai province (formerly Binh Dinh) in central Vietnam. Our data comes directly from a local radio antenna receiving real AIS transponder signals from ships, fishing boats, tankers, and passenger vessels operating in the area.</p>
+    <p class="rv" style="--i:3">Beyond vessel tracking, Quy Nhon Life offers sunset quality predictions based on atmospheric conditions, live weather data including wave height, and tools to identify vessels from the shore using your phone's GPS and compass.</p>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div><b style="color:var(--ink)">Quy Nhon Life</b> · Tracking the waters of central Vietnam · Design preview, not the live home page</div>
+  <div><a href="/">Current home page</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/status">System status</a></div>
+</footer>
+
+<aside class="card" id="card" aria-label="Ship details"></aside>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script type="module">
+import { sunsetForecast } from '/js/sunset.js?v=2';
+import { flagSrc, getCountryName } from '/js/vessel-icons.js?v=2';
+
+const KEY = 'CKY69E5ib1MMQDfWMRvg';
+const QN = { lat: 13.77, lng: 109.22 };
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $ = (s, r = document) => r.querySelector(s);
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const TYPES = ['Cargo', 'Tanker', 'Passenger', 'Fishing', 'Other'];
+const SHIP_COL = { Cargo: '#fff3dc', Tanker: '#ff6b4a', Passenger: '#54e0a0', Fishing: '#ffc233', Other: '#b9c8cf' };
+const TYPE_MATCH = ['match', ['get', 't'], 'Cargo', SHIP_COL.Cargo, 'Tanker', SHIP_COL.Tanker, 'Passenger', SHIP_COL.Passenger, 'Fishing', SHIP_COL.Fishing, SHIP_COL.Other];
+
+const state = { vessels: new Map(), sky: 'live', filter: 'All', selected: null, exploring: false, mapReady: false, interacted: false, weather: null, pulse: [] };
+let map = null;
+
+/* ---------- Sky: light follows the real sun over Quy Nhon ---------- */
+const PAL = {
+  day:    { skyTop: '#2b7fd0', skyHor: '#cfe9f6', fog: '#dff1f8', sea: '#1c86b3', seaDeep: '#0f5f8c', land: '#eef0e4', green: '#cde2bd', urban: '#e9e7dc', building: '#dcd9cc', road: '#ffffff', label: '#1c3a4a', halo: '#ffffff', hillShadow: '#55766a', hillLight: '#ffffff' },
+  sunset: { skyTop: '#2a3f78', skyHor: '#f79b57', fog: '#f4b384', sea: '#24506f', seaDeep: '#16324d', land: '#2b2a40', green: '#272c3f', urban: '#333049', building: '#3d3852', road: '#4d4763', label: '#f3d9c4', halo: '#1c1b2c', hillShadow: '#14131f', hillLight: '#c9785a' },
+  night:  { skyTop: '#030810', skyHor: '#10263a', fog: '#0c1c2b', sea: '#071620', seaDeep: '#040d14', land: '#132731', green: '#10232c', urban: '#172e39', building: '#1c3540', road: '#2a4a58', label: '#9db5bd', halo: '#0b1a21', hillShadow: '#050c11', hillLight: '#2b4a58' },
+};
+const hex2rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const rgb2hex = (c) => '#' + c.map((v) => Math.round(clamp(v, 0, 255)).toString(16).padStart(2, '0')).join('');
+function blend(w) {
+  const out = {};
+  for (const k of Object.keys(PAL.day)) {
+    const d = hex2rgb(PAL.day[k]), s = hex2rgb(PAL.sunset[k]), n = hex2rgb(PAL.night[k]);
+    out[k] = rgb2hex([0, 1, 2].map((i) => d[i] * w.d + s[i] * w.s + n[i] * w.n));
+  }
+  return out;
+}
+function sunElevation(date) {
+  const rad = Math.PI / 180;
+  const y = date.getUTCFullYear();
+  const day = (Date.UTC(y, date.getUTCMonth(), date.getUTCDate()) - Date.UTC(y, 0, 0)) / 864e5;
+  const hr = date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600;
+  const g = (2 * Math.PI / 365) * (day - 1 + (hr - 12) / 24);
+  const eqt = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+  const decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+  const tst = hr * 60 + eqt + 4 * QN.lng;
+  const ha = (tst / 4 - 180) * rad;
+  const cosZ = Math.sin(QN.lat * rad) * Math.sin(decl) + Math.cos(QN.lat * rad) * Math.cos(decl) * Math.cos(ha);
+  return 90 - Math.acos(clamp(cosZ, -1, 1)) / rad;
+}
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+function skyWeights() {
+  if (state.sky === 'day') return { d: 1, s: 0, n: 0 };
+  if (state.sky === 'sunset') return { d: 0, s: 1, n: 0 };
+  if (state.sky === 'night') return { d: 0, s: 0, n: 1 };
+  const e = sunElevation(new Date());
+  const d = smooth(-1, 9, e);
+  const n = 1 - smooth(-11, -3, e);
+  return { d, n, s: clamp(1 - d - n, 0, 1) };
+}
+let lastSkyKey = '';
+let P = PAL.day;
+function applySky(force) {
+  const w = skyWeights();
+  const key = [w.d, w.s, w.n].map((v) => v.toFixed(2)).join('|');
+  if (key === lastSkyKey && !force) return;
+  lastSkyKey = key;
+  P = blend(w);
+  const root = document.documentElement;
+  const deep = hex2rgb(P.seaDeep);
+  root.style.setProperty('--sky-top', P.skyTop);
+  root.style.setProperty('--sky-hor', P.skyHor);
+  root.style.setProperty('--sea', P.sea);
+  root.style.setProperty('--sea-deep', P.seaDeep);
+  root.style.setProperty('--scrim-a', `rgba(${deep.join(',')},.95)`);
+  root.style.setProperty('--scrim-b', `rgba(${deep.join(',')},.5)`);
+  root.style.setProperty('--glow', (w.s * 0.9).toFixed(2));
+  root.dataset.ui = w.d >= 0.5 ? 'light' : 'dark';
+  if (state.mapReady) paintMap(w);
+}
+
+/* ---------- Map ---------- */
+let hiddenOnce = false;
+function paintMap(w) {
+  const set = (id, prop, v) => { try { map.setPaintProperty(id, prop, v); } catch { /* property not on this layer */ } };
+  const hide = (id) => { try { map.setLayoutProperty(id, 'visibility', 'none'); } catch { /* ignore */ } };
+  for (const l of map.getStyle().layers) {
+    if (l.id.startsWith('qn-')) continue;
+    const src = l['source-layer'] || '';
+    if (l.type === 'background') set(l.id, 'background-color', P.land);
+    else if (l.type === 'fill') {
+      if (!hiddenOnce) set(l.id, 'fill-pattern', undefined);
+      if (src === 'water') { set(l.id, 'fill-color', P.sea); set(l.id, 'fill-opacity', 1); }
+      else if (src === 'building') { set(l.id, 'fill-color', P.building); set(l.id, 'fill-outline-color', P.building); }
+      else if (src === 'globallandcover' || src === 'landcover') set(l.id, 'fill-color', P.green);
+      else if (src === 'transportation' || src === 'aeroway') set(l.id, 'fill-color', P.road);
+      else set(l.id, 'fill-color', P.urban);
+    } else if (l.type === 'line') {
+      if (src === 'waterway') set(l.id, 'line-color', P.sea);
+      else if (src === 'transportation') {
+        if (/outline|casing|hatching|ferry|railway|footway|path|tunnel/i.test(l.id)) { if (!hiddenOnce) hide(l.id); }
+        else set(l.id, 'line-color', P.road);
+      } else if (!hiddenOnce) hide(l.id);
+    } else if (l.type === 'symbol') {
+      if (src === 'place') { set(l.id, 'text-color', P.label); set(l.id, 'text-halo-color', P.halo); set(l.id, 'text-halo-width', 1.4); }
+      else if (!hiddenOnce) hide(l.id);
+    } else if (l.type === 'fill-extrusion' && !hiddenOnce) hide(l.id);
+  }
+  hiddenOnce = true;
+  if (map.getLayer('qn-hills')) {
+    set('qn-hills', 'hillshade-shadow-color', P.hillShadow);
+    set('qn-hills', 'hillshade-highlight-color', P.hillLight);
+    set('qn-hills', 'hillshade-accent-color', P.hillShadow);
+  }
+  if (typeof map.setSky === 'function') {
+    try { map.setSky({ 'sky-color': P.skyTop, 'horizon-color': P.skyHor, 'fog-color': P.fog, 'sky-horizon-blend': 0.75, 'horizon-fog-blend': 0.7, 'fog-ground-blend': 0.25 }); } catch { /* older build */ }
+  }
+  const dark = w.d < 0.5;
+  set('qn-halo', 'circle-opacity', dark ? 0.55 : 0.22);
+  set('qn-names', 'text-color', dark ? '#ffffff' : '#ffffff');
+  set('qn-names', 'text-halo-color', P.seaDeep);
+}
+
+function shipImage(fill) {
+  const s = 2, w = 20, h = 48;
+  const c = document.createElement('canvas'); c.width = w * s; c.height = h * s;
+  const x = c.getContext('2d'); x.scale(s, s);
+  x.beginPath(); x.moveTo(10, 1.5); x.lineTo(17.5, 12); x.lineTo(17.5, 41); x.lineTo(15, 46.5); x.lineTo(5, 46.5); x.lineTo(2.5, 41); x.lineTo(2.5, 12); x.closePath();
+  x.fillStyle = fill; x.fill(); x.lineWidth = 1.6; x.strokeStyle = '#0a1a24'; x.stroke();
+  x.fillStyle = 'rgba(10,26,36,.8)'; x.fillRect(6, 34, 8, 6);
+  return x.getImageData(0, 0, c.width, c.height);
+}
+
+const narrow = () => innerWidth < 760;
+function homeView() {
+  const h = $('#bay').clientHeight || innerHeight;
+  return narrow()
+    ? { center: [109.266, 13.749], zoom: 11.9, pitch: 62, bearing: -96, padding: { top: 0, left: 0, right: 0, bottom: Math.round(h * 0.34) } }
+    : { center: [109.268, 13.748], zoom: 12.75, pitch: 66, bearing: -96, padding: { top: 0, left: 0, right: 0, bottom: Math.round(h * 0.26) } };
+}
+
+function initMap() {
+  if (!window.maplibregl) return;
+  try {
+    map = new maplibregl.Map({
+      container: 'map',
+      style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${KEY}`,
+      center: [109.34, 13.74], zoom: 10.4, pitch: 30, bearing: -70,
+      maxPitch: 80, attributionControl: false, antialias: true,
+      pixelRatio: Math.min(devicePixelRatio || 1, 2),
+    });
+  } catch (e) { console.warn('Map unavailable', e); return; }
+  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
+  setInteractive(false);
+  map.on('error', () => {});
+  map.on('load', () => {
+    try {
+      map.addSource('qn-dem', { type: 'raster-dem', url: `https://api.maptiler.com/tiles/terrain-rgb-v2/tiles.json?key=${KEY}`, tileSize: 256 });
+      map.addSource('qn-dem2', { type: 'raster-dem', url: `https://api.maptiler.com/tiles/terrain-rgb-v2/tiles.json?key=${KEY}`, tileSize: 256 });
+      const firstRoad = map.getStyle().layers.find((l) => l.type === 'line' && l['source-layer'] === 'transportation');
+      map.addLayer({ id: 'qn-hills', type: 'hillshade', source: 'qn-dem2', paint: { 'hillshade-exaggeration': 0.55, 'hillshade-illumination-direction': 300 } }, firstRoad ? firstRoad.id : undefined);
+      map.setTerrain({ source: 'qn-dem', exaggeration: 1.7 });
+    } catch (e) { console.warn('Terrain unavailable', e); }
+
+    for (const t of TYPES) map.addImage('qn-ship-' + t, shipImage(SHIP_COL[t]), { pixelRatio: 2 });
+    const empty = { type: 'FeatureCollection', features: [] };
+    map.addSource('qn-ships', { type: 'geojson', data: empty });
+    map.addSource('qn-wakes', { type: 'geojson', data: empty, lineMetrics: true });
+    map.addSource('qn-sel', { type: 'geojson', data: empty });
+    map.addSource('qn-track', { type: 'geojson', data: empty });
+    const zs = (m) => ['interpolate', ['linear'], ['zoom'], 10, m * 0.45, 12.5, m, 15, m * 2.2];
+    const lenSize = ['interpolate', ['linear'], ['coalesce', ['get', 'len'], 30], 0, 0.55, 50, 0.75, 120, 1.05, 200, 1.5, 320, 1.85];
+    map.addLayer({ id: 'qn-track', type: 'line', source: 'qn-track', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 2.5, 'line-dasharray': [1, 2], 'line-opacity': 0.9 } });
+    map.addLayer({ id: 'qn-wakes', type: 'line', source: 'qn-wakes', layout: { 'line-cap': 'round' }, paint: { 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.5, 13, 3.5, 15, 6], 'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, 'rgba(255,255,255,0)', 1, 'rgba(255,255,255,0.9)'] } });
+    map.addLayer({ id: 'qn-gear', type: 'circle', source: 'qn-ships', filter: ['==', ['get', 'gear'], 1], paint: { 'circle-radius': 2.2, 'circle-color': '#ffffff', 'circle-opacity': 0.5, 'circle-pitch-alignment': 'map' } });
+    map.addLayer({ id: 'qn-halo', type: 'circle', source: 'qn-ships', filter: ['==', ['get', 'gear'], 0], paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 7, 12.5, 16, 15, 34], 'circle-color': TYPE_MATCH, 'circle-blur': 1, 'circle-opacity': 0.25, 'circle-pitch-alignment': 'map' } });
+    map.addLayer({ id: 'qn-pulse', type: 'circle', source: 'qn-ships', filter: ['all', ['==', ['get', 'gear'], 0], ['>', ['get', 'sp'], 0.5]], paint: { 'circle-radius': 10, 'circle-color': 'rgba(255,255,255,0)', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.5, 'circle-stroke-opacity': 0.6, 'circle-pitch-alignment': 'map', 'circle-radius-transition': { duration: 0 }, 'circle-stroke-opacity-transition': { duration: 0 } } });
+    map.addLayer({ id: 'qn-sel', type: 'circle', source: 'qn-sel', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 14, 13, 26, 15, 44], 'circle-color': 'rgba(255,255,255,.12)', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3, 'circle-pitch-alignment': 'map' } });
+    map.addLayer({ id: 'qn-ships', type: 'symbol', source: 'qn-ships', filter: ['==', ['get', 'gear'], 0], layout: { 'icon-image': ['concat', 'qn-ship-', ['get', 't']], 'icon-size': ['interpolate', ['linear'], ['zoom'], 10, ['*', 0.45, lenSize], 12.5, lenSize, 15, ['*', 2.2, lenSize]], 'icon-rotate': ['get', 'hd'], 'icon-rotation-alignment': 'map', 'icon-pitch-alignment': 'map', 'icon-allow-overlap': true, 'icon-ignore-placement': true, 'symbol-sort-key': ['get', 'len'] } });
+    const font = (map.getStyle().layers.find((l) => l.type === 'symbol' && l.layout && Array.isArray(l.layout['text-font'])) || { layout: {} }).layout['text-font'];
+    if (font) map.addLayer({ id: 'qn-names', type: 'symbol', source: 'qn-ships', filter: ['all', ['==', ['get', 'gear'], 0], ['>=', ['coalesce', ['get', 'len'], 0], 95]], layout: { 'text-field': ['get', 'name'], 'text-font': font, 'text-size': ['interpolate', ['linear'], ['zoom'], 11, 10, 14, 14], 'text-offset': [0, 1.6], 'text-anchor': 'top', 'text-letter-spacing': 0.06, 'text-optional': true, 'text-padding': 6 }, paint: { 'text-color': '#ffffff', 'text-halo-color': P.seaDeep, 'text-halo-width': 1.6 } });
+
+    state.mapReady = true;
+    applySky(true);
+    renderShips();
+    $('#bay').classList.add('map-ready');
+    const home = homeView();
+    if (reduced) map.jumpTo(home);
+    else { map.easeTo({ ...home, duration: 5200, easing: (t) => 1 - Math.pow(1 - t, 3) }); map.once('moveend', () => { driftStart = performance.now(); startLoop(); }); }
+    if (reduced) startLoop();
+    map.on('click', (e) => { if (state.exploring) pick([e.point.x, e.point.y]); });
+    map.on('mousemove', (e) => { if (state.exploring) map.getCanvas().style.cursor = hit([e.point.x, e.point.y]) ? 'pointer' : ''; });
+  });
+}
+function setInteractive(on) {
+  for (const h of ['dragPan', 'scrollZoom', 'touchZoomRotate', 'doubleClickZoom', 'dragRotate', 'keyboard', 'boxZoom', 'touchPitch']) {
+    try { map[h][on ? 'enable' : 'disable'](); } catch { /* handler missing */ }
+  }
+}
+function hit(pt) {
+  if (!state.mapReady) return null;
+  const fs = map.queryRenderedFeatures([[pt[0] - 16, pt[1] - 16], [pt[0] + 16, pt[1] + 16]], { layers: ['qn-ships'] });
+  return fs.length ? fs[0].properties.mmsi : null;
+}
+function pick(pt) {
+  const mmsi = hit(pt);
+  if (mmsi) select(String(mmsi), false); else closeCard();
+}
+
+/* idle camera drift and pulse rings; paused when the hero is off screen */
+let raf = 0, heroVisible = true, driftStart = 0;
+function startLoop() { if (!raf && !reduced) raf = requestAnimationFrame(frame); }
+function frame(ts) {
+  raf = 0;
+  if (!state.mapReady || document.hidden || !heroVisible) return;
+  const t = (ts % 2600) / 2600;
+  try {
+    map.setPaintProperty('qn-pulse', 'circle-radius', 8 + 30 * t);
+    map.setPaintProperty('qn-pulse', 'circle-stroke-opacity', 0.75 * (1 - t));
+    if (!state.interacted && !state.exploring && driftStart && !map.isEasing()) {
+      map.setBearing(homeView().bearing + 5 * Math.sin((ts - driftStart) / 9000));
+    }
+  } catch { /* style not ready */ }
+  raf = requestAnimationFrame(frame);
+}
+new IntersectionObserver((es) => { heroVisible = es[0].isIntersecting; if (heroVisible) startLoop(); }, { threshold: 0.05 }).observe($('#bay'));
+document.addEventListener('visibilitychange', () => { if (!document.hidden) startLoop(); });
+
+/* ---------- Ships ---------- */
+const cleanName = (n) => String(n || '').replace(/\s+/g, ' ').trim();
+const bucket = (v) => (['Cargo', 'Tanker', 'Passenger', 'Fishing'].includes(v.vessel_type_label) ? v.vessel_type_label : 'Other');
+const validDeg = (x) => Number.isFinite(x) && x >= 0 && x < 360;
+const headingOf = (v) => (validDeg(v.heading) ? v.heading : validDeg(v.course) ? v.course : 0);
+const isShip = (v) => !v.is_gear && Number.isFinite(v.lat) && Number.isFinite(v.lng);
+function offset(lat, lng, bearing, metres) {
+  const b = bearing * Math.PI / 180;
+  return [lng + (metres * Math.sin(b)) / (111320 * Math.cos(lat * Math.PI / 180)), lat + (metres * Math.cos(b)) / 111320];
+}
+let renderQueued = false;
+function queueRender() { if (renderQueued) return; renderQueued = true; setTimeout(() => { renderQueued = false; renderShips(); renderFleet(); }, 600); }
+function renderShips() {
+  if (!state.mapReady) return;
+  const feats = [], wakes = [];
+  for (const v of state.vessels.values()) {
+    if (!Number.isFinite(v.lat) || !Number.isFinite(v.lng)) continue;
+    const t = bucket(v);
+    if (state.filter !== 'All' && !v.is_gear && t !== state.filter) continue;
+    feats.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [v.lng, v.lat] }, properties: { mmsi: v.mmsi, name: cleanName(v.name) || String(v.mmsi), t, len: v.length || 0, sp: v.speed || 0, hd: headingOf(v), gear: v.is_gear ? 1 : 0 } });
+    if (!v.is_gear && v.speed > 0.5 && validDeg(v.course)) {
+      const tail = offset(v.lat, v.lng, v.course + 180, clamp(v.speed * 75, 160, 1200));
+      wakes.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: [tail, [v.lng, v.lat]] }, properties: {} });
+    }
+  }
+  map.getSource('qn-ships').setData({ type: 'FeatureCollection', features: feats });
+  map.getSource('qn-wakes').setData({ type: 'FeatureCollection', features: wakes });
+  const s = state.selected && state.vessels.get(state.selected);
+  map.getSource('qn-sel').setData({ type: 'FeatureCollection', features: s ? [{ type: 'Feature', geometry: { type: 'Point', coordinates: [s.lng, s.lat] }, properties: {} }] : [] });
+}
+function flagImg(code) {
+  const src = flagSrc(code, '40x30');
+  if (!src) return null;
+  const i = el('img'); i.src = src; i.alt = ''; i.loading = 'lazy'; i.width = 24; i.height = 18;
+  return i;
+}
+function renderFleet() {
+  const ships = [...state.vessels.values()].filter((v) => isShip(v) && v.length > 0).sort((a, b) => b.length - a.length).slice(0, 10);
+  const rows = $('#rows');
+  if (!ships.length) return;
+  const max = ships[0].length;
+  rows.textContent = '';
+  ships.forEach((v, i) => {
+    const b = el('button', 'ship-row'); b.type = 'button';
+    const name = el('span', 'sr-name');
+    const f = flagImg(v.flag_country); if (f) name.append(f);
+    const txt = el('span'); txt.append(el('b', '', cleanName(v.name) || v.mmsi), el('small', '', [v.vessel_type_label || 'Vessel', getCountryName(v.flag_country)].filter(Boolean).join(' · ')));
+    name.append(txt);
+    const bar = el('span', 'sr-bar'); const fill = el('i', 't-' + bucket(v)); fill.style.setProperty('--w', Math.max(6, (v.length / max) * 100) + '%'); fill.style.setProperty('--i', i); bar.append(fill);
+    b.append(name, bar, el('span', 'sr-len', v.length + ' m'));
+    b.addEventListener('click', () => { scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' }); select(String(v.mmsi), true); });
+    rows.append(b);
+  });
+}
+
+/* ---------- Ship card ---------- */
+function agoText(iso) {
+  const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (m < 1) return 'just now';
+  if (m < 60) return m + ' min ago';
+  const h = Math.round(m / 60);
+  return h < 24 ? h + ' hr ago' : Math.round(h / 24) + ' days ago';
+}
+function select(mmsi, fly) {
+  const v = state.vessels.get(mmsi);
+  if (!v) return;
+  state.selected = mmsi; state.interacted = true;
+  renderShips();
+  if (state.mapReady) { try { map.getSource('qn-track').setData({ type: 'FeatureCollection', features: [] }); } catch { /* ignore */ } }
+  if (fly && state.mapReady) map.easeTo({ center: [v.lng, v.lat], zoom: Math.max(map.getZoom(), 13.4), duration: reduced ? 0 : 1600 });
+  const card = $('#card'); card.textContent = '';
+  const head = el('div', 'card-head');
+  const f = flagImg(v.flag_country); if (f) { f.width = 40; f.height = 30; head.append(f); }
+  const tt = el('div'); tt.append(el('h2', '', cleanName(v.name) || 'MMSI ' + v.mmsi), el('p', '', [v.vessel_type_label || 'Vessel', getCountryName(v.flag_country)].filter(Boolean).join(' · ')));
+  const close = el('button', 'card-close', 'Close'); close.type = 'button'; close.addEventListener('click', closeCard);
+  head.append(tt, close);
+  const dl = el('dl');
+  const moving = v.speed > 0.5;
+  const facts = [
+    ['Speed', (v.speed != null ? Number(v.speed).toFixed(1) : '0.0') + ' kn'],
+    ['Status', moving ? 'Under way' : 'Stopped'],
+    ['Destination', cleanName(v.destination) || 'Not given'],
+    ['Size', v.length ? v.length + ' × ' + (v.width || '?') + ' m' : 'Not given'],
+    ['Draught', v.draught ? v.draught + ' m' : 'Not given'],
+    ['Last heard', v.updated_at ? agoText(v.updated_at) : 'Unknown'],
+  ];
+  for (const [k, val] of facts) { const d = el('div'); d.append(el('dt', '', k), el('dd', '', val)); dl.append(d); }
+  const actions = el('div', 'card-actions');
+  const track = el('button', 'btn btn-accent', 'Show 6-hour track'); track.type = 'button';
+  track.addEventListener('click', async () => {
+    track.disabled = true; track.textContent = 'Loading track';
+    try {
+      const pts = await (await fetch('/api/vessels/' + encodeURIComponent(mmsi) + '/track')).json();
+      const coords = pts.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng)).map((p) => [p.lng, p.lat]);
+      if (coords.length > 1 && state.mapReady) {
+        map.getSource('qn-track').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: coords }, properties: {} });
+        track.textContent = 'Track shown';
+      } else track.textContent = 'No track yet';
+    } catch { track.textContent = 'Track unavailable'; }
+  });
+  const centre = el('button', 'btn btn-line', 'Centre on map'); centre.type = 'button';
+  centre.addEventListener('click', () => { scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' }); const cur = state.vessels.get(mmsi); if (cur && state.mapReady) map.easeTo({ center: [cur.lng, cur.lat], zoom: Math.max(map.getZoom(), 13.8), duration: reduced ? 0 : 1400 }); });
+  actions.append(track, centre);
+  card.append(head, dl, actions);
+  card.classList.add('open');
+}
+function closeCard() {
+  $('#card').classList.remove('open');
+  if (state.selected) { state.selected = null; renderShips(); if (state.mapReady) { try { map.getSource('qn-track').setData({ type: 'FeatureCollection', features: [] }); } catch { /* ignore */ } } }
+}
+
+/* ---------- Explore mode: full map control behind a labelled button ---------- */
+function enterExplore(focusSearch) {
+  if (!state.mapReady) { toast('The map is still loading. Try again in a moment.'); return; }
+  state.exploring = true; state.interacted = true;
+  scrollTo({ top: 0, behavior: 'auto' });
+  document.body.classList.add('exploring');
+  setInteractive(true);
+  map.resize();
+  map.easeTo({ pitch: 48, zoom: map.getZoom() + 0.35, padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: reduced ? 0 : 1200 });
+  if (focusSearch) setTimeout(() => $('#q').focus(), 350); else $('#exitBtn').focus();
+}
+function exitExplore() {
+  state.exploring = false;
+  document.body.classList.remove('exploring');
+  setInteractive(false);
+  $('#results').textContent = ''; $('#q').value = '';
+  if (state.filter !== 'All') { state.filter = 'All'; renderChips(); renderShips(); }
+  map.resize();
+  map.easeTo({ ...homeView(), duration: reduced ? 0 : 1600 });
+  $('#exploreBtn').focus();
+}
+function renderChips() {
+  const box = $('#chips'); box.textContent = '';
+  for (const t of ['All', ...TYPES]) {
+    const b = el('button', 'chip' + (state.filter === t ? ' on' : '')); b.type = 'button';
+    if (t !== 'All') { const u = el('u'); u.style.background = SHIP_COL[t]; b.append(u); }
+    b.append(document.createTextNode(t === 'All' ? 'All ships' : t));
+    b.setAttribute('aria-pressed', state.filter === t ? 'true' : 'false');
+    b.addEventListener('click', () => { state.filter = t; renderChips(); renderShips(); });
+    box.append(b);
+  }
+}
+$('#exploreBtn').addEventListener('click', () => enterExplore(false));
+$('#findBtn').addEventListener('click', () => enterExplore(true));
+$('#exitBtn').addEventListener('click', exitExplore);
+document.addEventListener('keydown', (e) => { if (e.key !== 'Escape') return; if ($('#card').classList.contains('open')) closeCard(); else if (state.exploring) exitExplore(); });
+$('#q').addEventListener('input', (e) => {
+  const q = e.target.value.trim().toLowerCase(); const box = $('#results'); box.textContent = '';
+  if (q.length < 2) return;
+  const found = [...state.vessels.values()].filter((v) => isShip(v) && (cleanName(v.name).toLowerCase().includes(q) || String(v.mmsi).includes(q))).slice(0, 7);
+  if (!found.length) { const n = el('button', '', 'No ship by that name is in range'); n.type = 'button'; n.disabled = true; box.append(n); return; }
+  for (const v of found) {
+    const b = el('button'); b.type = 'button';
+    b.append(el('span', '', cleanName(v.name) || v.mmsi), el('small', '', v.vessel_type_label || ''));
+    b.addEventListener('click', () => { box.textContent = ''; select(String(v.mmsi), true); });
+    box.append(b);
+  }
+});
+/* taps on the hero reach the ships without the map ever trapping a scroll */
+const hero = $('#bay');
+const heroPoint = (e) => { const r = $('#map').getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+hero.addEventListener('click', (e) => { if (state.exploring || e.target.closest('button,a,input,.viewas,.ticker,.maplibregl-ctrl')) return; pick(heroPoint(e)); });
+let moveQueued = false;
+hero.addEventListener('mousemove', (e) => { if (state.exploring || moveQueued) return; moveQueued = true; requestAnimationFrame(() => { moveQueued = false; hero.style.cursor = hit(heroPoint(e)) ? 'pointer' : ''; }); });
+
+/* ---------- Data ---------- */
+const getJSON = async (u) => { const r = await fetch(u); if (!r.ok) throw new Error(u + ' ' + r.status); return r.json(); };
+const qnTime = (d, opts) => new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', ...opts }).format(d);
+const compass = (deg) => ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(deg / 45) % 8];
+const compassWord = (deg) => ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'][Math.round(deg / 45) % 8];
+function countUp(node, to) {
+  if (reduced || !Number.isFinite(to)) { node.textContent = to; return; }
+  const from = parseInt(node.textContent, 10) || 0, t0 = performance.now(), dur = 1100;
+  const step = (now) => { const p = clamp((now - t0) / dur, 0, 1); node.textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+let stats = null;
+function heroSub() {
+  const bits = [];
+  if (stats) bits.push(stats.moving + ' moving', stats.anchored + ' at anchor');
+  const w = state.weather;
+  if (w && w.weather && w.weather.current) {
+    const c = w.weather.current;
+    bits.push(Math.round(c.temperature_2m) + '°', 'wind ' + Math.round(c.wind_speed_10m) + ' km/h ' + compass(c.wind_direction_10m));
+    if (w.marine && w.marine.current && w.marine.current.wave_height != null) bits.push('waves ' + w.marine.current.wave_height + ' m');
+  }
+  $('#heroSub').textContent = bits.join(' · ') || ' ';
+}
+function liveLine() { const d = new Date(); $('#liveLine').textContent = 'Live ' + qnTime(d, { hour: '2-digit', minute: '2-digit' }) + ' · ' + qnTime(d, { weekday: 'long', day: 'numeric', month: 'long' }); }
+async function loadStats() { try { stats = await getJSON('/api/port-stats'); countUp($('#count'), stats.total); heroSub(); } catch (e) { console.warn(e); } }
+async function loadVessels() { try { const list = await getJSON('/api/vessels'); for (const v of list) state.vessels.set(String(v.mmsi), v); renderShips(); renderFleet(); } catch (e) { console.warn(e); } }
+function connect() {
+  let ws;
+  try { ws = new WebSocket((location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host); } catch { return; }
+  ws.addEventListener('message', (ev) => {
+    let msg; try { msg = JSON.parse(ev.data); } catch { return; }
+    if (msg.type === 'snapshot' && Array.isArray(msg.vessels)) { for (const v of msg.vessels) state.vessels.set(String(v.mmsi), { ...state.vessels.get(String(v.mmsi)), ...v }); queueRender(); }
+    if (msg.type === 'update' && msg.vessel) { const k = String(msg.vessel.mmsi); state.vessels.set(k, { ...state.vessels.get(k), ...msg.vessel }); queueRender(); }
+    if (msg.type === 'arrival' && msg.vessel) { state.pulse.unshift({ ...msg.vessel, event: 'arrival', timestamp: new Date().toISOString(), fresh: true }); renderPulse(); }
+    if (msg.type === 'departure') loadPulse();
+  });
+  ws.addEventListener('close', () => setTimeout(connect, 4000));
+}
+
+/* weather tiles */
+function wavePath(amp, phase) {
+  let d = '';
+  for (let x = 0; x <= 800; x += 10) d += (x ? 'L' : 'M') + x + ' ' + (52 + amp * Math.sin((x / 200) * 2 * Math.PI + phase)).toFixed(1);
+  return d;
+}
+async function loadWeather() {
+  try {
+    const w = await getJSON('/api/weather'); state.weather = w;
+    const c = w.weather.current;
+    $('#tempVal').textContent = Math.round(c.temperature_2m);
+    $('#tempNote').textContent = 'Feels like ' + Math.round(c.apparent_temperature) + '°';
+    $('#tempMark').style.left = clamp(((c.temperature_2m - 10) / 30) * 100, 0, 100) + '%';
+    $('#windVal').textContent = Math.round(c.wind_speed_10m);
+    $('#windNote').textContent = 'From the ' + compassWord(c.wind_direction_10m);
+    $('#windArrow').style.transform = 'rotate(' + (c.wind_direction_10m + 180) + 'deg)';
+    document.documentElement.style.setProperty('--wind-dur', clamp(32 / Math.max(c.wind_speed_10m, 1), 0.7, 5).toFixed(2) + 's');
+    $('#humVal').textContent = Math.round(c.relative_humidity_2m);
+    $('#humRing').style.strokeDashoffset = (238.76 * (1 - clamp(c.relative_humidity_2m, 0, 100) / 100)).toFixed(1);
+    $('#humNote').textContent = c.relative_humidity_2m >= 80 ? 'Humid' : c.relative_humidity_2m >= 60 ? 'Comfortable' : 'Dry';
+    const m = w.marine && w.marine.current;
+    if (m && m.wave_height != null) {
+      $('#waveVal').textContent = m.wave_height;
+      $('#waveNote').textContent = 'From the ' + compassWord(m.wave_direction) + ', every ' + Math.round(m.wave_period) + ' s';
+      const amp = clamp(m.wave_height * 13, 4, 34);
+      $('#waveFront').setAttribute('d', wavePath(amp, 0));
+      $('#waveBack').setAttribute('d', wavePath(amp * 0.7, 1.6));
+      document.documentElement.style.setProperty('--wave-dur', clamp(m.wave_period, 3, 14) + 's');
+      if (!reduced) document.querySelectorAll('.waves').forEach((n) => n.classList.add('run'));
+    }
+    heroSub(); renderSunset();
+  } catch (e) { console.warn(e); }
+}
+
+/* sunset band */
+const SUN = {
+  ordinary:    { sky: ['#51688a', '#a3a5b4', '#d8b69b'], sea: '#2f455a', word: 'Ordinary', desc: 'Overcast or too clear for dramatic colors tonight.' },
+  nice:        { sky: ['#3f5f9a', '#d49a86', '#f6c18a'], sea: '#2c4468', word: 'Nice', desc: 'Some color expected, worth a look from the waterfront.' },
+  vivid:       { sky: ['#2f4a90', '#e0727a', '#ffb066'], sea: '#33325f', word: 'Vivid', desc: 'Good cloud cover and haze should produce warm, colorful tones.' },
+  spectacular: { sky: ['#23317a', '#d2417a', '#ff8f45'], sea: '#2c2456', word: 'Spectacular', desc: 'Ideal conditions for a dramatic sky with intense oranges and purples.' },
+};
+const FACTOR = { clouds: 'Cloud cover', overcast: 'Overcast', haze: 'Atmospheric haze', clear: 'Clear skies', humidity: 'Humidity' };
+const MARK = { good: '+ ', neutral: '~ ', poor: '− ' };
+let sunTimes = null;
+function renderSunset() {
+  const w = state.weather && state.weather.weather;
+  if (!w || !w.daily) return;
+  const f = sunsetForecast(w);
+  const iso = (s) => new Date(s + ':00+07:00');
+  sunTimes = { rise: iso(w.daily.sunrise[0]), set: iso(w.daily.sunset[0]), setNext: w.daily.sunset[1] ? iso(w.daily.sunset[1]) : null };
+  const lvl = SUN[(f && f.level) || 'ordinary'];
+  $('#sunSky').style.background = `linear-gradient(${lvl.sky[0]} 0%, ${lvl.sky[1]} 62%, ${lvl.sky[2]} 100%)`;
+  $('#sunSea').style.backgroundColor = lvl.sea;
+  $('#sunTime').textContent = (f && f.time) || w.daily.sunset[0].split('T')[1];
+  $('#sunKicker').textContent = f && f.when === 'tomorrow' ? "Tomorrow's sunset" : "Tonight's sunset";
+  $('#sunRating').textContent = lvl.word;
+  $('#sunDesc').textContent = lvl.desc;
+  const idx = ['ordinary', 'nice', 'vivid', 'spectacular'].indexOf((f && f.level) || 'ordinary');
+  [...$('#meter').children].forEach((n, i) => n.classList.toggle('on', i <= idx));
+  [...$('#meterLabels').children].forEach((n, i) => n.classList.toggle('on', i === idx));
+  const box = $('#factors'); box.textContent = '';
+  for (const fac of (f && f.factors) || []) box.append(el('span', '', (MARK[fac.status] || '') + (FACTOR[fac.key] || fac.key)));
+  drawSun();
+}
+function drawSun() {
+  const svg = $('#sunScene'); const W = svg.clientWidth || 1200, H = svg.clientHeight || 420;
+  if (!sunTimes) return;
+  const now = Date.now(), hy = H - 2;
+  const frac = clamp((now - sunTimes.rise) / (sunTimes.set - sunTimes.rise), 0, 1);
+  const up = now >= sunTimes.rise && now <= sunTimes.set;
+  const x0 = W * 0.07, x2 = W * 0.93, top = H * 0.14, cy = hy - 2 * (hy - top);
+  const bx = (1 - frac) * (1 - frac) * x0 + 2 * (1 - frac) * frac * (W / 2) + frac * frac * x2;
+  const by = (1 - frac) * (1 - frac) * hy + 2 * (1 - frac) * frac * cy + frac * frac * hy;
+  const hills = [0, .06, .14, .22, .3, .39, .47, .56, .64, .73, .81, .9, 1].map((p, i) => `${(p * W).toFixed(0)},${(hy - (i % 2 ? 26 : 12) - (i % 3) * 9).toFixed(0)}`).join(' ');
+  const fmt = (d) => qnTime(d, { hour: '2-digit', minute: '2-digit' });
+  const tag = (x, y, s, anchor) => { const wd = s.length * 7.6 + 18; const left = anchor === 'start' ? x : anchor === 'end' ? x - wd : x - wd / 2; return `<rect x="${left}" y="${y - 17}" width="${wd}" height="25" fill="#0b1d24"/><text x="${left + wd / 2}" y="${y}" text-anchor="middle">${s}</text>`; };
+  const target = now > sunTimes.set && sunTimes.setNext ? sunTimes.setNext : sunTimes.set;
+  const mins = Math.max(0, Math.round((target - now) / 60000));
+  $('#sunCount').textContent = mins >= 60 ? `In ${Math.floor(mins / 60)} h ${mins % 60} min` : mins > 0 ? `In ${mins} min` : 'Happening now';
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = `
+    <defs><radialGradient id="sg"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".22" stop-color="#ffe2b0" stop-opacity=".75"/><stop offset="1" stop-color="#ffb060" stop-opacity="0"/></radialGradient></defs>
+    <path d="M ${x0} ${hy} Q ${W / 2} ${cy} ${x2} ${hy}" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="2" stroke-dasharray="1 11" stroke-linecap="round"/>
+    ${up ? `<circle cx="${bx}" cy="${by}" r="${Math.min(W, H) * 0.3}" fill="url(#sg)"/><circle cx="${bx}" cy="${by}" r="${clamp(W * 0.014, 12, 22)}" fill="#fff6dc"/>` : ''}
+    <polygon points="0,${hy + 2} ${hills} ${W},${hy + 2}" fill="rgba(20,32,52,.5)"/>
+    <g class="shimmer">${up ? [0, 1, 2, 3, 4].map((i) => `<line x1="${bx - 46 + i * 9}" x2="${bx + 46 - i * 9}" y1="${hy - 3}" y2="${hy - 3}" stroke-width="2" opacity=".3"/>`).join('') : ''}</g>
+    <g fill="#fff" font-family="Be Vietnam Pro, sans-serif" font-size="13" font-weight="600">
+      ${tag(14, hy - 54, 'Sunrise ' + fmt(sunTimes.rise), 'start')}
+      ${tag(W - 14, hy - 54, 'Sunset ' + fmt(sunTimes.set), 'end')}
+      ${up ? tag(clamp(bx, 40, W - 40), by - clamp(W * 0.014, 12, 22) - 16, 'Now', 'middle') : ''}
+    </g>`;
+}
+new ResizeObserver(() => drawSun()).observe($('#sunSky'));
+
+/* arrivals */
+function pulseRow(p) {
+  const li = el('li', p.fresh ? 'new' : '');
+  const f = flagImg(p.flag_country); li.append(f || el('span'));
+  const t = el('span'); t.append(el('b', '', cleanName(p.name) || p.mmsi), el('small', '', p.vessel_type_label || 'Vessel'));
+  const tm = el('time', '', agoText(p.timestamp)); tm.dateTime = p.timestamp;
+  li.append(t, tm);
+  return li;
+}
+function renderPulse() {
+  const arrivals = state.pulse.filter((p) => p.event === 'arrival').slice(0, 6);
+  const ul = $('#pulse'); ul.textContent = '';
+  for (const p of arrivals) ul.append(pulseRow(p));
+  const tk = $('#ticker'); tk.textContent = '';
+  const items = state.pulse.slice(0, 10);
+  if (!items.length) return;
+  for (let k = 0; k < 2; k++) for (const p of items) {
+    const s = el('span'); s.append(el('b', '', p.event === 'departure' ? 'DEPARTED' : 'ARRIVED'), document.createTextNode(cleanName(p.name) || p.mmsi), el('i', '', [p.vessel_type_label, agoText(p.timestamp)].filter(Boolean).join(' · ')));
+    if (k) s.setAttribute('aria-hidden', 'true');
+    tk.append(s);
+  }
+  tk.style.setProperty('--dur', Math.max(30, items.length * 7) + 's');
+  tk.classList.toggle('run', !reduced);
+  state.pulse.forEach((p) => { p.fresh = false; });
+}
+async function loadPulse() { try { state.pulse = await getJSON('/api/port-pulse'); renderPulse(); } catch (e) { console.warn(e); } }
+async function loadStorm() {
+  try {
+    const s = await getJSON('/api/storms');
+    const none = !s.threat || s.threat.level === 'none';
+    $('#stormHead').textContent = none ? 'No storms threatening Quy Nhon' : 'A storm is being tracked near Quy Nhon';
+    $('#stormSub').textContent = none ? 'Checked automatically against tropical cyclone data for the Western Pacific.' : 'Open the tracker for its position, forecast path and distance.';
+  } catch { $('#stormHead').textContent = 'Storm tracker'; }
+}
+async function loadArchive() { try { const a = await getJSON('/api/archive-stats'); if (a && a.totalUnique) $('#trendsLink').textContent = a.totalUnique.toLocaleString('en') + ' ships tracked so far'; } catch { /* keep default label */ } }
+
+/* ---------- Page chrome ---------- */
+let toastTimer = 0;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2800); }
+document.querySelectorAll('.viewas button').forEach((b) => b.addEventListener('click', () => {
+  state.sky = b.dataset.sky;
+  document.querySelectorAll('.viewas button').forEach((x) => x.classList.toggle('on', x === b));
+  applySky(true);
+}));
+$('#menuBtn').addEventListener('click', () => { const open = $('#top').classList.toggle('open'); $('#menuBtn').setAttribute('aria-expanded', open ? 'true' : 'false'); });
+$('#nav').addEventListener('click', (e) => { if (e.target.closest('a')) { $('#top').classList.remove('open'); $('#menuBtn').setAttribute('aria-expanded', 'false'); } });
+document.querySelector('.langs').addEventListener('click', () => toast('This preview is in English only.'));
+addEventListener('scroll', () => { $('#top').classList.toggle('solid', scrollY > ($('#bay').clientHeight || 600) - 90); }, { passive: true });
+const io = new IntersectionObserver((es) => { for (const e of es) if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+document.querySelectorAll('.rv').forEach((n) => io.observe(n));
+let resizeTimer = 0;
+addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (state.mapReady && !state.exploring && !state.interacted) map.jumpTo(homeView()); }, 250); });
+
+applySky(true);
+liveLine();
+renderChips();
+loadStats(); loadVessels(); loadWeather(); loadPulse(); loadStorm(); loadArchive();
+connect();
+initMap();
+setInterval(() => { liveLine(); applySky(false); drawSun(); }, 30000);
+setInterval(() => { loadStats(); loadPulse(); }, 60000);
+setInterval(loadWeather, 15 * 60000);
+</script>
+</body>
+</html>
