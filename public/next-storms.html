@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en" data-ui="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Storm tracker · Quy Nhon Life design preview</title>
+<link rel="icon" href="/img/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Be+Vietnam+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<link rel="stylesheet" href="/next/core.css?v=1">
+<style>
+.hero{--lvl:var(--clear)}
+.hero[data-level="monitor"]{--lvl:var(--monitor)}
+.hero[data-level="watch"]{--lvl:var(--watch)}
+.hero[data-level="warning"]{--lvl:var(--warning)}
+.hero[data-level="unknown"]{--lvl:#d5dde0}
+.level{display:inline-flex;align-items:center;gap:10px;margin:0 0 clamp(10px,1.8vh,18px);padding:9px 14px;background:var(--lvl);color:#0b1d24;font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.level i{width:10px;height:10px;border-radius:50%;background:#0b1d24;display:block}
+.hero[data-level="warning"] .level i,.hero[data-level="watch"] .level i{animation:blink 1.4s steps(2,end) infinite}
+@keyframes blink{50%{opacity:.15}}
+h1{margin:0;font-family:var(--display);font-weight:800;font-size:clamp(40px,min(7.4vw,11vh),108px);line-height:.95;letter-spacing:-.035em;text-shadow:0 2px 24px rgba(0,0,0,.3)}
+.sub{margin:clamp(12px,1.8vh,20px) 0 0;max-width:640px;font-size:clamp(16px,1.6vw,20px);font-weight:500;text-shadow:0 1px 12px rgba(0,0,0,.35)}
+.nums{margin-top:clamp(16px,2.6vh,28px);display:flex;flex-wrap:wrap;gap:clamp(14px,2.4vw,40px);pointer-events:none}
+.nums div{display:flex;flex-direction:column;gap:2px}
+.nums b{font-family:var(--display);font-weight:800;font-size:clamp(30px,4.4vw,60px);line-height:.95;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.nums span{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;opacity:.92}
+.demo-flag{position:absolute;top:140px;right:clamp(16px,4vw,40px);padding:12px 16px;background:#ffe14a;color:#111;font-weight:800;font-size:14px;letter-spacing:.06em;text-transform:uppercase;border:3px solid #111;display:none;max-width:min(360px,calc(100vw - 32px))}
+body.demo .demo-flag{display:block}
+@media (max-width:860px){.demo-flag{top:136px;left:16px;right:auto}}
+.hero-foot .credit{opacity:.9}
+/* markers */
+.qn-pin{display:flex;align-items:center;gap:8px;font:700 13px var(--body);color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.7);white-space:nowrap}
+.qn-pin i{width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid #0b1d24;display:block;box-shadow:0 0 0 5px rgba(255,255,255,.35)}
+.cyclone{width:84px;height:84px;display:grid;place-items:center;pointer-events:none}
+.cyclone svg{width:100%;height:100%;animation:spin 7s linear infinite;filter:drop-shadow(0 2px 10px rgba(0,0,0,.45))}
+@keyframes spin{to{transform:rotate(-360deg)}}
+.cy-name{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:2px;padding:5px 9px;background:#0b1d24;color:#fff;font:700 13px var(--body);white-space:nowrap}
+.link-label{padding:4px 8px;background:#fff;color:#0b1d24;font:700 13px var(--body);white-space:nowrap}
+/* rain bars */
+.bars{display:flex;align-items:flex-end;gap:6px;width:100%;height:96px}
+.bars div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;height:100%;font-size:11px;color:var(--muted)}
+.bars i{display:block;width:100%;min-height:3px;background:var(--accent);transition:height 1.2s var(--ease)}
+.scale{position:relative;width:100%;height:10px;background:linear-gradient(90deg,#4aa3ff,#7fd6c2 35%,#ffd166 62%,#ff6b4a)}
+.scale i{position:absolute;top:-9px;width:4px;height:28px;background:var(--ink);left:0;transition:left 1.4s var(--ease)}
+/* levels */
+.levels{margin-top:clamp(28px,4vw,56px);display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(10px,1.4vw,18px)}
+@media (max-width:980px){.levels{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.levels{grid-template-columns:1fr}}
+.lv{padding:24px;background:var(--panel);border:1px solid var(--line);display:flex;flex-direction:column;gap:12px;transition:transform .3s var(--ease)}
+.lv .tag{display:inline-block;padding:8px 14px;color:#0b1d24}
+.lv h3{margin:0;font-family:var(--display);font-weight:800;font-size:24px;line-height:1.05;letter-spacing:-.01em}
+.lv p{margin:0;color:var(--muted);font-size:15px}
+.lv p b{color:var(--ink);font-weight:600}
+.lv.on{border:3px solid var(--ink);transform:translateY(-6px)}
+.lv .now{display:none;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.lv.on .now{display:block}
+.notice{margin-top:clamp(28px,4vw,48px);padding:clamp(22px,3vw,36px);background:var(--accent);color:var(--accent-ink);font-size:clamp(17px,1.6vw,21px);font-weight:500;max-width:900px}
+.notice a{font-weight:700}
+.fine{margin-top:18px;color:var(--muted);font-size:14px;max-width:760px}
+@media (prefers-reduced-motion:reduce){.level i,.cyclone svg{animation:none}}
+</style>
+</head>
+<body>
+<a class="skip" href="#local">Skip to local conditions</a>
+
+<header class="top" id="top">
+  <a class="brand" href="/next.html" aria-label="Quy Nhon Life preview home"><span class="brand-crop"><img src="/img/qnl-logo.png" alt=""></span></a>
+  <button class="menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="nav">Menu</button>
+  <nav class="nav" id="nav" aria-label="Main">
+    <a href="/next.html">Live map</a>
+    <a href="/next-storms.html" class="on">Storm tracker</a>
+    <a href="/trends">Port in numbers</a>
+    <a href="/next-spot.html">What's that boat?</a>
+    <div class="langs" title="This preview is in English only"><b>EN</b><span>VI</span><span>KO</span><span>ZH</span><span>JA</span></div>
+  </nav>
+</header>
+
+<main>
+<div class="hero-wrap">
+<section class="hero" id="hero" data-level="unknown" aria-label="Storm status for Quy Nhon">
+  <div id="map"></div>
+  <div class="scrim-top" aria-hidden="true"></div>
+  <div class="scrim" aria-hidden="true"></div>
+
+  <div class="hero-copy">
+    <p class="level" id="level"><i aria-hidden="true"></i><span id="levelText">Checking</span></p>
+    <h1 id="title">Checking for storms</h1>
+    <p class="sub" id="desc">&nbsp;</p>
+    <div class="nums" id="nums" hidden></div>
+    <div class="actions">
+      <button class="btn btn-primary" id="exploreBtn" type="button">Explore the map</button>
+      <a class="btn btn-ghost" href="#levels">What the levels mean</a>
+    </div>
+  </div>
+
+  <div class="preview-switch" role="group" aria-label="Preview the page with a made-up storm">
+    <span>Preview</span>
+    <button type="button" data-demo="" class="on">Live</button>
+    <button type="button" data-demo="monitor">Tracking</button>
+    <button type="button" data-demo="watch">Watch</button>
+    <button type="button" data-demo="warning">Warning</button>
+  </div>
+  <div class="demo-flag" role="note">Demo data. This is a made-up storm for previewing the page, not a real warning.</div>
+
+  <div class="hero-foot">
+    <span class="credit" id="updated">&nbsp;</span>
+    <span class="credit" id="radarLabel">&nbsp;</span>
+    <button type="button" id="radarBtn" hidden>Pause rain radar</button>
+  </div>
+
+  <div class="explore-ui">
+    <div class="ex-top">
+      <button class="btn btn-primary" id="exitBtn" type="button">Back to the page</button>
+      <button class="btn btn-ghost" id="focusBtn" type="button">Focus Quy Nhon</button>
+      <button class="btn btn-ghost" id="wholeBtn" type="button">Whole region</button>
+    </div>
+  </div>
+</section>
+</div>
+
+<section class="sec" id="local">
+  <div class="wrap">
+    <p class="kicker rv">Now in Quy Nhon</p>
+    <h2 class="big rv" style="--i:1">Local conditions</h2>
+    <div class="tiles">
+      <div class="tile rv" style="--i:0">
+        <div class="tile-label">Wind</div>
+        <div class="tile-viz">
+          <svg class="compass" viewBox="0 0 96 96" aria-hidden="true">
+            <circle cx="48" cy="48" r="44" fill="none" stroke="currentColor" stroke-opacity=".3" stroke-width="2"></circle>
+            <path d="M48 4v8M48 84v8M4 48h8M84 48h8" stroke="currentColor" stroke-opacity=".5" stroke-width="2"></path>
+            <text x="48" y="25" text-anchor="middle" font-size="12" font-weight="700" fill="currentColor">N</text>
+            <g class="arrow" id="windArrow">
+              <g><path class="streak" d="M36 40v16" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><path class="streak" d="M60 44v14" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><path class="streak" d="M48 52v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></g>
+              <path d="M48 20 L57 40 L48 35 L39 40 Z" fill="currentColor"></path>
+            </g>
+          </svg>
+        </div>
+        <div class="tile-val"><span id="windVal">--</span><small>km/h</small></div>
+        <div class="tile-note" id="windNote"></div>
+      </div>
+      <div class="tile rv" style="--i:1">
+        <div class="tile-label">Rain</div>
+        <div class="tile-viz"><div class="bars" id="rainBars" aria-hidden="true"></div></div>
+        <div class="tile-val"><span id="rainVal">--</span><small>mm</small></div>
+        <div class="tile-note" id="rainNote"></div>
+      </div>
+      <div class="tile rv" style="--i:2">
+        <div class="tile-label">Waves</div>
+        <div class="tile-viz">
+          <svg class="waves back" viewBox="0 0 800 96" preserveAspectRatio="none" aria-hidden="true"><path id="waveBack"></path></svg>
+          <svg class="waves" viewBox="0 0 800 96" preserveAspectRatio="none" aria-hidden="true"><path id="waveFront"></path></svg>
+        </div>
+        <div class="tile-val"><span id="waveVal">--</span><small>m</small></div>
+        <div class="tile-note" id="waveNote"></div>
+      </div>
+      <div class="tile rv" style="--i:3">
+        <div class="tile-label">Temperature</div>
+        <div class="tile-viz"><div class="scale"><i id="tempMark"></i></div></div>
+        <div class="tile-val"><span id="tempVal">--</span><small>°C</small></div>
+        <div class="tile-note" id="tempNote"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="levels" style="padding-top:0">
+  <div class="wrap">
+    <p class="kicker rv">How to read this page</p>
+    <h2 class="big rv" style="--i:1">What the levels mean</h2>
+    <div class="levels">
+      <div class="lv rv" data-lv="none" style="--i:0"><h3><span class="tag" style="background:var(--clear)">All clear</span></h3><p><b>Nothing heading this way.</b> No tropical cyclone is forecast to approach Quy Nhon.</p><span class="now">This is the level now</span></div>
+      <div class="lv rv" data-lv="monitor" style="--i:1"><h3><span class="tag" style="background:var(--monitor)">Tracking</span></h3><p><b>A storm in the region.</b> It is active in the Western Pacific or South China Sea but is not forecast to come near.</p><span class="now">This is the level now</span></div>
+      <div class="lv rv" data-lv="watch" style="--i:2"><h3><span class="tag" style="background:var(--watch)">Watch</span></h3><p><b>It could affect Quy Nhon.</b> The closest forecast pass is under 500 km within five days, or the storm carries a moderate alert and is forecast to reach Vietnam.</p><span class="now">This is the level now</span></div>
+      <div class="lv rv" data-lv="warning" style="--i:3"><h3><span class="tag" style="background:var(--warning)">Warning</span></h3><p><b>Forecast to pass close.</b> The closest forecast pass is under 200 km within three days, or the storm carries a severe alert and is forecast to reach Vietnam or pass within 400 km.</p><span class="now">This is the level now</span></div>
+    </div>
+    <p class="notice rv">For information only. In an emergency, follow official warnings from Vietnam's National Center for Hydro-Meteorological Forecasting (<a href="https://nchmf.gov.vn" rel="noopener">nchmf.gov.vn</a>) and your local authorities.</p>
+    <p class="fine rv">Quy Nhon Life tracks tropical cyclones in the Western Pacific and South China Sea, the storms that reach central Vietnam. The map shows where a storm came from, its forecast path and likely wind zone, and how close it is expected to pass to Quy Nhon. Storm data: GDACS (UN/EU). Rain radar: RainViewer. Local weather: Open-Meteo.</p>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div><b style="color:var(--ink)">Quy Nhon Life</b> · Tracking the waters of central Vietnam · Design preview, not the live storm tracker</div>
+  <div><a href="/storms">Current storm tracker</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></div>
+</footer>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script type="module">
+import { KEY, QN, reduced, $, el, clamp, skyNow, paintBase, initChrome, getJSON, qnTime, compass, compassWord, wavePath } from '/next/core.js?v=1';
+
+const HEX = { none: '#54e0a0', monitor: '#57c7ff', watch: '#f6b73c', warning: '#ff6b4a', unknown: '#d5dde0' };
+const TAG = { none: 'All clear', monitor: 'Tracking', watch: 'Watch', warning: 'Warning', unknown: 'No answer' };
+const ALERT = { Green: 'Minor', Orange: 'Moderate', Red: 'Severe' };
+const STALE_MS = 3 * 3600 * 1000; // the server checks every 30 minutes; older than this is not trusted
+const state = { demo: '', snap: null, level: 'unknown', mapReady: false, exploring: false, sky: null };
+const radar = { host: '', frames: [], idx: 0, timer: 0, playing: !reduced };
+let map = null, qnMarker = null, stormMarker = null, linkMarker = null;
+const hero = $('#hero');
+const narrow = () => innerWidth < 760;
+const EMPTY = { type: 'FeatureCollection', features: [] };
+
+/* ---------- Status (text first: it must read correctly with no map and no motion) ---------- */
+const etaText = (h) => (h == null ? 'No data' : h < 48 ? h + ' h' : Math.round(h / 24) + ' days');
+function renderStatus() {
+  const s = state.snap;
+  const stale = !s || !s.updatedAt || Date.now() - new Date(s.updatedAt).getTime() > STALE_MS;
+  const storm = s && s.active && s.storm ? s.storm : null;
+  const level = stale ? 'unknown' : storm ? ((s.threat && s.threat.level) || 'monitor') : 'none';
+  state.level = level;
+  hero.dataset.level = level;
+  $('#levelText').textContent = TAG[level];
+  const name = storm ? storm.name : '';
+  const text = {
+    none: ['No storms threatening Quy Nhon', 'There are no tropical cyclones heading toward Quy Nhon right now. This page checks automatically.'],
+    monitor: [name + ' in the region', name + ' is active in the wider region but is not currently forecast to approach Quy Nhon.'],
+    watch: ['Watch: ' + name, name + ' could affect Quy Nhon. Stay informed and be ready.'],
+    warning: ['Warning: ' + name + ' approaching', name + ' is forecast to pass close to Quy Nhon. Follow official guidance and prepare now.'],
+    unknown: ["Can't check for storms right now", 'The storm feed did not answer, or its last answer is too old to trust. Check Vietnam’s national forecast centre for current warnings.'],
+  }[level];
+  $('#title').textContent = text[0];
+  $('#desc').textContent = text[1];
+  const nums = $('#nums'); nums.textContent = '';
+  if (storm && level !== 'unknown') {
+    const th = s.threat || {};
+    const dir = th.currentBearing != null ? ' ' + compass(th.currentBearing) : th.bearing != null ? ' ' + compass(th.bearing) : '';
+    const rows = [
+      [th.currentDistanceKm != null ? th.currentDistanceKm + ' km' + dir : 'No data', 'Distance now'],
+      [th.distanceKm != null ? th.distanceKm + ' km' : 'No data', 'Closest approach'],
+      [etaText(th.etaHours), 'Time to closest'],
+      [storm.windKmh != null ? storm.windKmh + ' km/h' : 'No data', 'Max wind'],
+      [[storm.category, ALERT[storm.alertlevel]].filter(Boolean).join(' · ') || 'No data', 'Category'],
+    ];
+    for (const [v, k] of rows) { const d = el('div'); d.append(el('b', '', v), el('span', '', k)); nums.append(d); }
+    nums.hidden = false;
+  } else nums.hidden = true;
+  document.querySelectorAll('.lv').forEach((n) => n.classList.toggle('on', n.dataset.lv === level));
+  $('#updated').textContent = s && s.updatedAt ? 'Storm data: GDACS · checked ' + qnTime(new Date(s.updatedAt), { hour: '2-digit', minute: '2-digit' }) + (state.demo ? ' · DEMO' : '') : 'Storm data: GDACS';
+  $('#wholeBtn').textContent = storm ? 'Whole storm' : 'Whole region';
+  document.title = (state.demo ? '[Demo] ' : '') + text[0] + ' · Quy Nhon Life';
+}
+async function loadStorms() {
+  try { state.snap = await getJSON('/api/storms' + (state.demo ? '?demo=' + state.demo : '')); }
+  catch (e) { console.warn(e); state.snap = null; }
+  renderStatus(); renderMap(true);
+}
+
+/* ---------- Map ---------- */
+function padding() {
+  const h = hero.clientHeight, w = hero.clientWidth;
+  if (state.exploring) return { top: 90, left: 40, right: 60, bottom: 60 };
+  return narrow() ? { top: 140, left: 24, right: 24, bottom: Math.round(h * 0.56) } : { top: 110, left: Math.round(w * 0.46), right: 70, bottom: 90 };
+}
+function frame(animate) {
+  if (!state.mapReady) return;
+  const storm = state.snap && state.snap.active && state.snap.storm && state.level !== 'unknown' ? state.snap.storm : null;
+  let b = [[103, 6], [127, 23]];
+  if (storm) {
+    const bb = storm.bbox || [storm.current.lng, storm.current.lat, storm.current.lng, storm.current.lat];
+    b = [[Math.min(bb[0], QN.lng, storm.current.lng) - 0.8, Math.min(bb[1], QN.lat, storm.current.lat) - 0.8], [Math.max(bb[2], QN.lng, storm.current.lng) + 0.8, Math.max(bb[3], QN.lat, storm.current.lat) + 0.8]];
+  }
+  map.fitBounds(b, { padding: padding(), duration: animate && !reduced ? 1600 : 0, maxZoom: 7.5 });
+}
+function cycloneEl(name, hex) {
+  const w = el('div', 'cyclone');
+  w.innerHTML = '<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke-linecap="round"><path d="M50 50 C50 30 70 22 84 30 C74 26 60 32 58 46" stroke-width="9"/><path d="M50 50 C50 70 30 78 16 70 C26 74 40 68 42 54" stroke-width="9"/><path d="M50 50 C70 50 78 70 70 84 C74 74 68 60 54 58" stroke-width="9"/><path d="M50 50 C30 50 22 30 30 16 C26 26 32 40 46 42" stroke-width="9"/></g><circle cx="50" cy="50" r="11" fill="#fff" stroke="#0b1d24" stroke-width="4"/></svg>';
+  w.querySelectorAll('path').forEach((p) => p.setAttribute('stroke', hex));
+  w.append(el('div', 'cy-name', name));
+  return w;
+}
+function renderMap(animate) {
+  if (!state.mapReady) return;
+  const s = state.snap, storm = s && s.active && s.storm && state.level !== 'unknown' ? s.storm : null;
+  const set = (id, data) => { const src = map.getSource(id); if (src) src.setData(data || EMPTY); };
+  set('qn-cone', storm && storm.cone);
+  set('qn-past', storm && storm.pastTrack);
+  set('qn-forecast', storm && storm.forecastTrack);
+  set('qn-points', storm && storm.points);
+  set('qn-link', storm ? { type: 'Feature', geometry: { type: 'LineString', coordinates: [[QN.lng, QN.lat], [storm.current.lng, storm.current.lat]] }, properties: {} } : EMPTY);
+  try { map.setPaintProperty('qn-forecast', 'line-color', HEX[state.level] || '#ffffff'); } catch { /* layer not ready */ }
+  if (stormMarker) { stormMarker.remove(); stormMarker = null; }
+  if (linkMarker) { linkMarker.remove(); linkMarker = null; }
+  if (storm) {
+    stormMarker = new maplibregl.Marker({ element: cycloneEl(storm.name || 'Storm', HEX[state.level]) }).setLngLat([storm.current.lng, storm.current.lat]).addTo(map);
+    const km = s.threat && s.threat.currentDistanceKm;
+    if (km != null) linkMarker = new maplibregl.Marker({ element: el('div', 'link-label', km + ' km') }).setLngLat([(QN.lng + storm.current.lng) / 2, (QN.lat + storm.current.lat) / 2]).addTo(map);
+  }
+  frame(animate);
+}
+function setInteractive(on) {
+  for (const h of ['dragPan', 'scrollZoom', 'touchZoomRotate', 'doubleClickZoom', 'dragRotate', 'keyboard', 'boxZoom', 'touchPitch']) {
+    try { map[h][on ? 'enable' : 'disable'](); } catch { /* handler missing */ }
+  }
+}
+function paint(force) {
+  const next = skyNow('live'), changed = !state.sky || next.key !== state.sky.key;
+  state.sky = next;
+  if (state.mapReady && (changed || force)) paintBase(map, next.P, { borders: true });
+}
+function initMap() {
+  if (!window.maplibregl) return;
+  try {
+    map = new maplibregl.Map({ container: 'map', style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${KEY}`, center: [114, 14], zoom: narrow() ? 3.2 : 4.2, attributionControl: false, pixelRatio: Math.min(devicePixelRatio || 1, 2) });
+  } catch (e) { console.warn('Map unavailable', e); return; }
+  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+  setInteractive(false);
+  map.on('error', () => {});
+  map.on('load', () => {
+    for (const id of ['qn-cone', 'qn-past', 'qn-forecast', 'qn-points', 'qn-link']) map.addSource(id, { type: 'geojson', data: EMPTY });
+    map.addLayer({ id: 'qn-cone-fill', type: 'fill', source: 'qn-cone', paint: { 'fill-color': ['match', ['get', 'sev'], 'red', HEX.warning, 'orange', HEX.watch, HEX.none], 'fill-opacity': 0.22 } });
+    map.addLayer({ id: 'qn-cone-line', type: 'line', source: 'qn-cone', paint: { 'line-color': ['match', ['get', 'sev'], 'red', HEX.warning, 'orange', HEX.watch, HEX.none], 'line-width': 1.5, 'line-opacity': 0.8 } });
+    map.addLayer({ id: 'qn-link', type: 'line', source: 'qn-link', paint: { 'line-color': '#ffffff', 'line-width': 1.5, 'line-dasharray': [1, 3], 'line-opacity': 0.9 } });
+    map.addLayer({ id: 'qn-past', type: 'line', source: 'qn-past', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 3.5, 'line-opacity': 0.9 } });
+    map.addLayer({ id: 'qn-forecast', type: 'line', source: 'qn-forecast', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 3.5, 'line-dasharray': [1.6, 1.6] } });
+    map.addLayer({ id: 'qn-points', type: 'circle', source: 'qn-points', paint: { 'circle-radius': 4, 'circle-color': '#ffffff', 'circle-stroke-color': '#0b1d24', 'circle-stroke-width': 1.5 } });
+    const pin = el('div', 'qn-pin'); pin.append(el('i'), el('span', '', 'Quy Nhon'));
+    qnMarker = new maplibregl.Marker({ element: pin, anchor: 'left', offset: [-7, 0] }).setLngLat([QN.lng, QN.lat]).addTo(map);
+    if (narrow()) { const a = $('#map .maplibregl-ctrl-attrib'); if (a) { a.classList.remove('maplibregl-compact-show'); a.removeAttribute('open'); } }
+    state.mapReady = true;
+    paint(true);
+    hero.classList.add('map-ready');
+    renderMap(false);
+    loadRadar();
+  });
+}
+
+/* ---------- Rain radar (RainViewer) ---------- */
+const frameUrl = (f) => `${radar.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`;
+function radarLabel() {
+  const f = radar.frames[radar.idx];
+  $('#radarLabel').textContent = f ? 'Rain radar: RainViewer · ' + qnTime(new Date(f.time * 1000), { hour: '2-digit', minute: '2-digit' }) : '';
+}
+function showFrame(i) {
+  radar.idx = i;
+  const src = map.getSource('qn-radar');
+  if (src && src.setTiles) src.setTiles([frameUrl(radar.frames[i])]);
+  radarLabel();
+}
+function playRadar(on) {
+  radar.playing = on;
+  clearInterval(radar.timer);
+  if (on) radar.timer = setInterval(() => { if (!document.hidden) showFrame((radar.idx + 1) % radar.frames.length); }, 900);
+  $('#radarBtn').textContent = on ? 'Pause rain radar' : 'Play rain radar';
+}
+async function loadRadar() {
+  try {
+    const data = await getJSON('https://api.rainviewer.com/public/weather-maps.json');
+    radar.host = data.host;
+    const past = (data.radar && data.radar.past) || [];
+    radar.frames = [...past, ...((data.radar && data.radar.nowcast) || [])];
+    if (!radar.frames.length) return;
+    radar.idx = past.length ? past.length - 1 : 0;
+    map.addSource('qn-radar', { type: 'raster', tiles: [frameUrl(radar.frames[radar.idx])], tileSize: 256, maxzoom: 7 });
+    map.addLayer({ id: 'qn-radar', type: 'raster', source: 'qn-radar', paint: { 'raster-opacity': 0.6, 'raster-fade-duration': 0 } }, 'qn-cone-fill');
+    radarLabel();
+    $('#radarBtn').hidden = false;
+    playRadar(radar.playing);
+  } catch (e) { console.warn('Rain radar unavailable', e); }
+}
+$('#radarBtn').addEventListener('click', () => playRadar(!radar.playing));
+
+/* ---------- Explore mode ---------- */
+function enterExplore() {
+  if (!state.mapReady) return;
+  state.exploring = true;
+  scrollTo({ top: 0, behavior: 'auto' });
+  document.body.classList.add('exploring');
+  setInteractive(true);
+  map.resize(); frame(true);
+  $('#exitBtn').focus();
+}
+function exitExplore() {
+  state.exploring = false;
+  document.body.classList.remove('exploring');
+  setInteractive(false);
+  map.resize(); frame(true);
+  $('#exploreBtn').focus();
+}
+$('#exploreBtn').addEventListener('click', enterExplore);
+$('#exitBtn').addEventListener('click', exitExplore);
+$('#focusBtn').addEventListener('click', () => map.flyTo({ center: [QN.lng, QN.lat], zoom: 7.5, padding: padding(), duration: reduced ? 0 : 1200 }));
+$('#wholeBtn').addEventListener('click', () => frame(true));
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && state.exploring) exitExplore(); });
+
+/* preview switch: a made-up storm, always labelled as one */
+document.querySelectorAll('.preview-switch button').forEach((b) => b.addEventListener('click', () => {
+  state.demo = b.dataset.demo;
+  document.body.classList.toggle('demo', !!state.demo);
+  document.querySelectorAll('.preview-switch button').forEach((x) => x.classList.toggle('on', x === b));
+  loadStorms();
+}));
+const wanted = new URLSearchParams(location.search).get('storm');
+if (['monitor', 'watch', 'warning'].includes(wanted)) { state.demo = wanted; document.body.classList.add('demo'); document.querySelectorAll('.preview-switch button').forEach((x) => x.classList.toggle('on', x.dataset.demo === wanted)); }
+
+/* ---------- Local conditions ---------- */
+async function loadWeather() {
+  try {
+    const w = await getJSON('/api/weather');
+    const c = w.weather.current;
+    $('#windVal').textContent = Math.round(c.wind_speed_10m);
+    $('#windNote').textContent = 'From the ' + compassWord(c.wind_direction_10m);
+    $('#windArrow').style.transform = 'rotate(' + (c.wind_direction_10m + 180) + 'deg)';
+    document.documentElement.style.setProperty('--wind-dur', clamp(32 / Math.max(c.wind_speed_10m, 1), 0.7, 5).toFixed(2) + 's');
+    $('#rainVal').textContent = c.precipitation != null ? c.precipitation : '0';
+    const h = w.weather.hourly, at = h && h.time ? h.time.findIndex((t) => t.slice(0, 13) === c.time.slice(0, 13)) : -1;
+    const bars = $('#rainBars'); bars.textContent = '';
+    if (at >= 0 && h.precipitation_probability) {
+      for (let i = at; i < Math.min(at + 6, h.time.length); i++) {
+        const p = clamp(h.precipitation_probability[i] || 0, 0, 100), d = el('div'), bar = el('i');
+        bar.style.height = Math.max(3, p * 0.7) + '%';
+        d.append(bar, el('span', '', h.time[i].slice(11, 13) + 'h')); bars.append(d);
+      }
+      $('#rainNote').textContent = 'Chance of rain this hour: ' + Math.round(h.precipitation_probability[at] || 0) + '%';
+    }
+    $('#tempVal').textContent = Math.round(c.temperature_2m);
+    $('#tempNote').textContent = 'Feels like ' + Math.round(c.apparent_temperature) + '°';
+    $('#tempMark').style.left = clamp(((c.temperature_2m - 10) / 30) * 100, 0, 100) + '%';
+    const m = w.marine && w.marine.current;
+    if (m && m.wave_height != null) {
+      $('#waveVal').textContent = m.wave_height;
+      $('#waveNote').textContent = 'From the ' + compassWord(m.wave_direction) + ', every ' + Math.round(m.wave_period) + ' s';
+      const amp = clamp(m.wave_height * 13, 4, 34);
+      $('#waveFront').setAttribute('d', wavePath(amp, 0)); $('#waveBack').setAttribute('d', wavePath(amp * 0.7, 1.6));
+      document.documentElement.style.setProperty('--wave-dur', clamp(m.wave_period, 3, 14) + 's');
+      if (!reduced) document.querySelectorAll('.waves').forEach((n) => n.classList.add('run'));
+    }
+  } catch (e) { console.warn(e); }
+}
+
+paint();
+initChrome(() => (hero.clientHeight || 600) - 90);
+loadStorms(); loadWeather();
+initMap();
+setInterval(() => paint(false), 60000);
+setInterval(loadStorms, 5 * 60000);
+setInterval(loadWeather, 15 * 60000);
+let resizeTimer = 0;
+addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (state.mapReady && !state.exploring) frame(false); }, 250); });
+</script>
+</body>
+</html>
