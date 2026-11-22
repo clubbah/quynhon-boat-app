@@ -718,8 +718,9 @@ function shipCanvas(type, night, mini) {
   return (artCache[key] = cv);
 }
 /* a small picture of a ship, bow to the right, for the filter chips and the ship card */
-function thumb(type, len, night) {
-  const src = shipCanvas(type, !!night, false), dpr = Math.min(devicePixelRatio || 1, 2), hgt = (len * ART.W) / ART.H;
+function thumb(type, len, night, mini) {
+  const S = mini ? MINI : ART;
+  const src = shipCanvas(type, !!night, !!mini), dpr = Math.min(devicePixelRatio || 1, 2), hgt = (len * S.W) / S.H;
   const cv = el('canvas'); cv.width = Math.round(len * dpr); cv.height = Math.round(hgt * dpr);
   cv.style.width = len + 'px'; cv.style.height = hgt.toFixed(1) + 'px'; cv.setAttribute('aria-hidden', 'true');
   const c = cv.getContext('2d'); c.scale(dpr, dpr); c.translate(len, 0); c.rotate(Math.PI / 2); c.drawImage(src, 0, 0, hgt, len);
@@ -1263,6 +1264,21 @@ const io = new IntersectionObserver((es) => { for (const e of es) if (e.isInters
 document.querySelectorAll('.rv').forEach((n) => io.observe(n));
 let resizeTimer = 0;
 addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (state.mapReady && !state.exploring && !state.interacted) map.jumpTo(homeView()); }, 250); });
+
+/* /next.html#ships shows every ship drawing on one sheet, large and at map size */
+if (location.hash === '#ships') {
+  const sheet = el('div');
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:300;overflow:auto;padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px;align-content:start;background:#0b1d24';
+  for (const night of [false, true]) for (const t of TYPES) {
+    const cell = el('div');
+    cell.style.cssText = `padding:18px;background:${night ? '#071620' : '#1c86b3'};color:#fff;font:600 14px var(--body);display:flex;flex-direction:column;gap:14px`;
+    const row = el('div'); row.style.cssText = 'display:flex;gap:18px;align-items:center';
+    row.append(thumb(t, 14, night, true), thumb(t, 20, night, true), thumb(t, 30, night, false), thumb(t, 56, night, false));
+    cell.append(el('div', '', t + (night ? ' at night' : ' by day')), thumb(t, 290, night, false), row);
+    sheet.append(cell);
+  }
+  document.body.append(sheet);
+}
 
 applySky(true);
 liveLine();
