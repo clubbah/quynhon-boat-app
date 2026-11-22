@@ -14,3 +14,7 @@ docs/improvement-plan.md
 
 # Packaged antenna bundles (built locally, copied to the antenna laptop)
 scripts/*.zip
+
+# Research notes and reports are local working files, not for the public repo
+docs/research_notes/
+docs/reports/
