@@ -51,8 +51,10 @@ body.exploring .top{transform:translateY(-110%)}
 .langs{display:flex;gap:12px;font-size:13px;font-weight:600;padding-left:clamp(12px,2vw,28px);border-left:1px solid currentColor}
 .langs span{opacity:.8}
 .menu-btn{display:none;height:44px;padding:0 16px;background:transparent;border:1.5px solid currentColor;font-weight:600;font-size:14px}
+.top:not(.solid) .menu-btn{background:#fff;color:#0b1d24;border-color:#fff}
 @media (max-width:860px){
   .menu-btn{display:block}
+  .ex-bottom{right:52px}
   .nav{position:absolute;top:68px;left:0;right:0;flex-direction:column;align-items:stretch;gap:0;background:var(--bg);color:var(--ink);border-bottom:1px solid var(--line);padding:8px 16px 16px;display:none}
   .top.open .nav{display:flex}
   .nav a{min-height:52px;border-bottom:1px solid var(--line);font-size:17px}
@@ -128,7 +130,7 @@ body.exploring .ex-top > *,body.exploring .ex-bottom > *{pointer-events:auto}
 /* Ship card */
 .card{position:fixed;z-index:95;left:0;right:0;bottom:0;background:var(--panel);color:var(--ink);border-top:4px solid var(--accent);box-shadow:0 -18px 60px rgba(0,0,0,.4);padding:20px 20px calc(20px + env(safe-area-inset-bottom));transform:translateY(110%);transition:transform .45s var(--ease);max-height:78vh;overflow:auto}
 .card.open{transform:none}
-@media (min-width:861px){.card{left:auto;right:24px;bottom:auto;top:92px;width:400px;border-top-width:4px;box-shadow:0 24px 70px rgba(0,0,0,.45);transform:translateX(120%)}}
+@media (min-width:861px){.card{left:auto;right:24px;bottom:auto;top:144px;width:400px;border-top-width:4px;box-shadow:0 24px 70px rgba(0,0,0,.45);transform:translateX(120%)}}
 .card-head{display:flex;align-items:flex-start;gap:14px}
 .card-head img{width:40px;height:30px;margin-top:6px;border:1px solid var(--line)}
 .card h2{margin:0;font-family:var(--display);font-weight:800;font-size:30px;line-height:1.02;letter-spacing:-.02em;overflow-wrap:anywhere}
@@ -182,7 +184,8 @@ h2.big{margin:0;font-family:var(--display);font-weight:800;font-size:clamp(38px,
 
 /* Sunset */
 .sunset{color:#fff;overflow:hidden}
-.sunset-sky{position:relative;height:clamp(260px,40vw,470px);transition:background 1.2s}
+.sunset-sky{position:relative;height:clamp(260px,40vw,470px);background:linear-gradient(#51688a,#a3a5b4 62%,#d8b69b);transition:background 1.2s}
+.sunset-sea{background-color:#2f455a}
 .sunset-sky svg{position:absolute;inset:0;width:100%;height:100%;display:block}
 .sunset-sea{padding:clamp(28px,4vw,56px) clamp(16px,4vw,56px) clamp(56px,8vw,104px);transition:background-color 1.2s;position:relative}
 .sunset-sea::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:rgba(255,255,255,.28)}
@@ -258,7 +261,7 @@ figure{margin:0}
 .tool-storm{background:var(--panel);border:1px solid var(--line);color:var(--ink)}
 .tool .kicker{color:inherit}
 
-.about p{max-width:680px;color:var(--muted);font-size:17px}
+.about p:not(.kicker){max-width:680px;color:var(--muted);font-size:17px}
 .about h2{margin:0 0 20px;font-family:var(--display);font-weight:800;font-size:clamp(28px,3.4vw,44px);letter-spacing:-.02em;line-height:1.05;max-width:760px}
 footer{padding:36px clamp(16px,4vw,56px) 48px;border-top:1px solid var(--line);color:var(--muted);font-size:14px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
 footer a{text-decoration:none}footer a:hover{text-decoration:underline}
@@ -483,7 +486,7 @@ let map = null;
 const PAL = {
   day:    { skyTop: '#2b7fd0', skyHor: '#cfe9f6', fog: '#dff1f8', sea: '#1c86b3', seaDeep: '#0f5f8c', land: '#eef0e4', green: '#cde2bd', urban: '#e9e7dc', building: '#dcd9cc', road: '#ffffff', label: '#1c3a4a', halo: '#ffffff', hillShadow: '#55766a', hillLight: '#ffffff' },
   sunset: { skyTop: '#2a3f78', skyHor: '#f79b57', fog: '#f4b384', sea: '#24506f', seaDeep: '#16324d', land: '#2b2a40', green: '#272c3f', urban: '#333049', building: '#3d3852', road: '#4d4763', label: '#f3d9c4', halo: '#1c1b2c', hillShadow: '#14131f', hillLight: '#c9785a' },
-  night:  { skyTop: '#030810', skyHor: '#10263a', fog: '#0c1c2b', sea: '#071620', seaDeep: '#040d14', land: '#132731', green: '#10232c', urban: '#172e39', building: '#1c3540', road: '#2a4a58', label: '#9db5bd', halo: '#0b1a21', hillShadow: '#050c11', hillLight: '#2b4a58' },
+  night:  { skyTop: '#030810', skyHor: '#10263a', fog: '#0c1c2b', sea: '#071620', seaDeep: '#040d14', land: '#132731', green: '#10232c', urban: '#172e39', building: '#1c3540', road: '#7a6232', label: '#bccdd3', halo: '#0b1a21', hillShadow: '#050c11', hillLight: '#2b4a58' },
 };
 const hex2rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 const rgb2hex = (c) => '#' + c.map((v) => Math.round(clamp(v, 0, 255)).toString(16).padStart(2, '0')).join('');
@@ -576,7 +579,8 @@ function paintMap(w) {
     try { map.setSky({ 'sky-color': P.skyTop, 'horizon-color': P.skyHor, 'fog-color': P.fog, 'sky-horizon-blend': 0.75, 'horizon-fog-blend': 0.7, 'fog-ground-blend': 0.25 }); } catch { /* older build */ }
   }
   const dark = w.d < 0.5;
-  set('qn-halo', 'circle-opacity', dark ? 0.55 : 0.22);
+  set('qn-halo', 'circle-opacity', dark ? 0.6 : 0.22);
+  for (const l of map.getStyle().layers) if (l.type === 'line' && l['source-layer'] === 'transportation' && !l.id.startsWith('qn-')) set(l.id, 'line-opacity', w.n > 0.5 ? 0.55 : 0.9);
   set('qn-names', 'text-color', dark ? '#ffffff' : '#ffffff');
   set('qn-names', 'text-halo-color', P.seaDeep);
 }
@@ -594,9 +598,10 @@ function shipImage(fill) {
 const narrow = () => innerWidth < 760;
 function homeView() {
   const h = $('#bay').clientHeight || innerHeight;
+  const w = $('#bay').clientWidth || innerWidth;
   return narrow()
-    ? { center: [109.266, 13.749], zoom: 11.9, pitch: 62, bearing: -96, padding: { top: 0, left: 0, right: 0, bottom: Math.round(h * 0.34) } }
-    : { center: [109.268, 13.748], zoom: 12.75, pitch: 66, bearing: -96, padding: { top: 0, left: 0, right: 0, bottom: Math.round(h * 0.26) } };
+    ? { center: [109.266, 13.749], zoom: 11.8, pitch: 62, bearing: -96, padding: { top: 0, left: 0, right: 0, bottom: Math.round(h * 0.4) } }
+    : { center: [109.268, 13.748], zoom: 12.65, pitch: 66, bearing: -96, padding: { top: 0, left: Math.round(w * 0.26), right: 0, bottom: Math.round(h * 0.14) } };
 }
 
 function initMap() {
@@ -638,9 +643,11 @@ function initMap() {
     map.addLayer({ id: 'qn-pulse', type: 'circle', source: 'qn-ships', filter: ['all', ['==', ['get', 'gear'], 0], ['>', ['get', 'sp'], 0.5]], paint: { 'circle-radius': 10, 'circle-color': 'rgba(255,255,255,0)', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.5, 'circle-stroke-opacity': 0.6, 'circle-pitch-alignment': 'map', 'circle-radius-transition': { duration: 0 }, 'circle-stroke-opacity-transition': { duration: 0 } } });
     map.addLayer({ id: 'qn-sel', type: 'circle', source: 'qn-sel', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 14, 13, 26, 15, 44], 'circle-color': 'rgba(255,255,255,.12)', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3, 'circle-pitch-alignment': 'map' } });
     map.addLayer({ id: 'qn-ships', type: 'symbol', source: 'qn-ships', filter: ['==', ['get', 'gear'], 0], layout: { 'icon-image': ['concat', 'qn-ship-', ['get', 't']], 'icon-size': ['interpolate', ['linear'], ['zoom'], 10, ['*', 0.45, lenSize], 12.5, lenSize, 15, ['*', 2.2, lenSize]], 'icon-rotate': ['get', 'hd'], 'icon-rotation-alignment': 'map', 'icon-pitch-alignment': 'map', 'icon-allow-overlap': true, 'icon-ignore-placement': true, 'symbol-sort-key': ['get', 'len'] } });
-    const font = (map.getStyle().layers.find((l) => l.type === 'symbol' && l.layout && Array.isArray(l.layout['text-font'])) || { layout: {} }).layout['text-font'];
+    const fontLayers = map.getStyle().layers.filter((l) => l.type === 'symbol' && l.layout && Array.isArray(l.layout['text-font']));
+    const font = ((fontLayers.find((l) => l['source-layer'] === 'place' && !/italic/i.test(l.layout['text-font'].join(' '))) || fontLayers.find((l) => !/italic/i.test(l.layout['text-font'].join(' '))) || fontLayers[0] || { layout: {} }).layout['text-font']);
     if (font) map.addLayer({ id: 'qn-names', type: 'symbol', source: 'qn-ships', filter: ['all', ['==', ['get', 'gear'], 0], ['>=', ['coalesce', ['get', 'len'], 0], 95]], layout: { 'text-field': ['get', 'name'], 'text-font': font, 'text-size': ['interpolate', ['linear'], ['zoom'], 11, 10, 14, 14], 'text-offset': [0, 1.6], 'text-anchor': 'top', 'text-letter-spacing': 0.06, 'text-optional': true, 'text-padding': 6 }, paint: { 'text-color': '#ffffff', 'text-halo-color': P.seaDeep, 'text-halo-width': 1.6 } });
 
+    if (narrow()) { const a = $('#map .maplibregl-ctrl-attrib'); if (a) { a.classList.remove('maplibregl-compact-show'); a.removeAttribute('open'); } }
     state.mapReady = true;
     applySky(true);
     renderShips();
@@ -803,6 +810,7 @@ function enterExplore(focusSearch) {
   if (!state.mapReady) { toast('The map is still loading. Try again in a moment.'); return; }
   state.exploring = true; state.interacted = true;
   scrollTo({ top: 0, behavior: 'auto' });
+  $('.hero-copy').style.transform = ''; $('.hero-copy').style.opacity = '';
   document.body.classList.add('exploring');
   setInteractive(true);
   map.resize();
@@ -965,7 +973,10 @@ function drawSun() {
   const x0 = W * 0.07, x2 = W * 0.93, top = H * 0.14, cy = hy - 2 * (hy - top);
   const bx = (1 - frac) * (1 - frac) * x0 + 2 * (1 - frac) * frac * (W / 2) + frac * frac * x2;
   const by = (1 - frac) * (1 - frac) * hy + 2 * (1 - frac) * frac * cy + frac * frac * hy;
-  const hills = [0, .06, .14, .22, .3, .39, .47, .56, .64, .73, .81, .9, 1].map((p, i) => `${(p * W).toFixed(0)},${(hy - (i % 2 ? 26 : 12) - (i % 3) * 9).toFixed(0)}`).join(' ');
+  const hp = [0, .08, .2, .31, .44, .55, .68, .8, .91, 1].map((p, i) => [p * W, hy - [10, 26, 14, 34, 18, 30, 12, 38, 20, 14][i] * clamp(H / 420, 0.6, 1.2)]);
+  let hills = `M0 ${hy + 2} L${hp[0][0]} ${hp[0][1]}`;
+  for (let i = 1; i < hp.length - 1; i++) hills += ` Q${hp[i][0].toFixed(0)} ${hp[i][1].toFixed(0)} ${((hp[i][0] + hp[i + 1][0]) / 2).toFixed(0)} ${((hp[i][1] + hp[i + 1][1]) / 2).toFixed(0)}`;
+  hills += ` L${W} ${hp[hp.length - 1][1]} L${W} ${hy + 2} Z`;
   const fmt = (d) => qnTime(d, { hour: '2-digit', minute: '2-digit' });
   const tag = (x, y, s, anchor) => { const wd = s.length * 7.6 + 18; const left = anchor === 'start' ? x : anchor === 'end' ? x - wd : x - wd / 2; return `<rect x="${left}" y="${y - 17}" width="${wd}" height="25" fill="#0b1d24"/><text x="${left + wd / 2}" y="${y}" text-anchor="middle">${s}</text>`; };
   const target = now > sunTimes.set && sunTimes.setNext ? sunTimes.setNext : sunTimes.set;
@@ -976,7 +987,7 @@ function drawSun() {
     <defs><radialGradient id="sg"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".22" stop-color="#ffe2b0" stop-opacity=".75"/><stop offset="1" stop-color="#ffb060" stop-opacity="0"/></radialGradient></defs>
     <path d="M ${x0} ${hy} Q ${W / 2} ${cy} ${x2} ${hy}" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="2" stroke-dasharray="1 11" stroke-linecap="round"/>
     ${up ? `<circle cx="${bx}" cy="${by}" r="${Math.min(W, H) * 0.3}" fill="url(#sg)"/><circle cx="${bx}" cy="${by}" r="${clamp(W * 0.014, 12, 22)}" fill="#fff6dc"/>` : ''}
-    <polygon points="0,${hy + 2} ${hills} ${W},${hy + 2}" fill="rgba(20,32,52,.5)"/>
+    <path d="${hills}" fill="rgba(20,32,52,.5)"/>
     <g class="shimmer">${up ? [0, 1, 2, 3, 4].map((i) => `<line x1="${bx - 46 + i * 9}" x2="${bx + 46 - i * 9}" y1="${hy - 3}" y2="${hy - 3}" stroke-width="2" opacity=".3"/>`).join('') : ''}</g>
     <g fill="#fff" font-family="Be Vietnam Pro, sans-serif" font-size="13" font-weight="600">
       ${tag(14, hy - 54, 'Sunrise ' + fmt(sunTimes.rise), 'start')}
@@ -1033,7 +1044,16 @@ document.querySelectorAll('.viewas button').forEach((b) => b.addEventListener('c
 $('#menuBtn').addEventListener('click', () => { const open = $('#top').classList.toggle('open'); $('#menuBtn').setAttribute('aria-expanded', open ? 'true' : 'false'); });
 $('#nav').addEventListener('click', (e) => { if (e.target.closest('a')) { $('#top').classList.remove('open'); $('#menuBtn').setAttribute('aria-expanded', 'false'); } });
 document.querySelector('.langs').addEventListener('click', () => toast('This preview is in English only.'));
-addEventListener('scroll', () => { $('#top').classList.toggle('solid', scrollY > ($('#bay').clientHeight || 600) - 90); }, { passive: true });
+let scrollQueued = false;
+addEventListener('scroll', () => {
+  if (scrollQueued) return; scrollQueued = true;
+  requestAnimationFrame(() => {
+    scrollQueued = false;
+    const h = $('#bay').clientHeight || 600;
+    $('#top').classList.toggle('solid', scrollY > h - 90);
+    if (!reduced && !state.exploring && scrollY < h) { const c = $('.hero-copy'); c.style.transform = `translateY(${(scrollY * 0.22).toFixed(1)}px)`; c.style.opacity = clamp(1 - scrollY / (h * 0.75), 0, 1).toFixed(2); }
+  });
+}, { passive: true });
 const io = new IntersectionObserver((es) => { for (const e of es) if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
 document.querySelectorAll('.rv').forEach((n) => io.observe(n));
 let resizeTimer = 0;
