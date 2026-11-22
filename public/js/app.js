@@ -565,6 +565,9 @@ async function fetchStorms() {
   try {
     const url = STORM_DEMO_LEVEL ? `/api/storms?demo=${STORM_DEMO_LEVEL}` : '/api/storms';
     const res = await fetch(url);
+    // 503 means the server could not check. That is not "no storms": keep the
+    // banner as it is rather than hide it.
+    if (!res.ok) throw new Error(`storm data unavailable (HTTP ${res.status})`);
     lastStormData = await res.json();
     renderStormBanner(lastStormData);
   } catch (err) {

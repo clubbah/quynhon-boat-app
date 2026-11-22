@@ -53,6 +53,20 @@ export function isFishingGear(v) {
   return noType || nonShipMmsi || MARKER_NAME.test(String(v.name).trim());
 }
 
+/**
+ * Whether a vessel may be named as a "largest ship" anywhere on the site.
+ *
+ * Small boats with mis-set transponders report impossible sizes. On the
+ * production archive (Nov 2026) a "fishing" boat claimed 343 x 57 m and a
+ * pilot boat 330 x 16 m, and both sat in the "Largest vessels ever tracked"
+ * list. None of those boats has an IMO number, and every real ship that size
+ * does, so a size claim is only believed with one. They still count as ships
+ * everywhere else.
+ */
+export function canBeLargest(v) {
+  return !!(v && v.name && hasValidImo(v.imo) && v.length >= 1 && v.length <= 450);
+}
+
 /** Adds is_gear to a vessel row for API and WebSocket payloads. */
 export function withClass(v) {
   if (!v) return v;

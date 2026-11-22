@@ -298,6 +298,13 @@ describe('stormReading', () => {
     expect(stormReading({ active: false }, NOW)).toBeNull();                                  // no timestamp
   });
 
+  it('does not count a snapshot the tracker is repeating because it could not refresh', () => {
+    const repeated = { ...stormClear('2026-11-22T05:40:00Z'), refreshFailedAt: '2026-11-22T05:58:00.000Z' };
+    expect(stormReading(repeated, NOW)).toBeNull();
+    const storm = { ...stormActive('2026-11-22T05:40:00Z'), refreshFailedAt: '2026-11-22T05:58:00.000Z' };
+    expect(stormReading(storm, NOW)).toBeNull();
+  });
+
   it('reads "none" only from a fresh all-clear', () => {
     expect(stormReading(stormClear('2026-11-22T05:40:00Z'), NOW)).toEqual({ level: 'none', name: null, km: null, wind: null });
   });

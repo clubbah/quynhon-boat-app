@@ -38,7 +38,7 @@
  */
 
 import { scoreSunset, sunsetForecast } from '../public/js/sunset.js';
-import { hasValidImo } from './vessel-class.js';
+import { canBeLargest } from './vessel-class.js';
 
 const QN_OFFSET_MS = 7 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -120,7 +120,7 @@ export function shipsForDay(db, day, gear = new Set()) {
   let largest = null;
   for (const mmsi of ships) {
     const a = archive.get(mmsi);
-    if (!a || !a.name || !hasValidImo(a.imo) || !(a.length >= 1 && a.length <= 450)) continue;
+    if (!canBeLargest(a)) continue;
     if (!largest || a.length > largest.length
       || (a.length === largest.length && String(a.name) < String(largest.name))) largest = a;
   }
@@ -141,6 +141,8 @@ export function shipsForDay(db, day, gear = new Set()) {
 
 // ── Weather ──
 
+// Open-Meteo's free API is for non-commercial use with attribution. See the
+// note at the top of backfill.js before adding ads or paid features.
 const FORECAST_API = 'https://api.open-meteo.com/v1/forecast';
 const MARINE_API = 'https://marine-api.open-meteo.com/v1/marine';
 const PLACE = 'latitude=13.76&longitude=109.23&timezone=Asia%2FHo_Chi_Minh';
@@ -224,6 +226,9 @@ export function parseDayWeather(day, { forecast, marine } = {}) {
  */
 export function stormReading(snapshot, nowMs) {
   if (!snapshot || snapshot.demo) return null;
+  // The tracker could not refresh and is repeating its last good snapshot.
+  // That reading was counted when it was fresh. It is not a new check.
+  if (snapshot.refreshFailedAt) return null;
   const at = Date.parse(snapshot.updatedAt);
   if (!Number.isFinite(at) || nowMs - at > STORM_FRESH_MS) return null;
   if (!snapshot.active || !snapshot.storm) return { level: 'none', name: null, km: null, wind: null };
