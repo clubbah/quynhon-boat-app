@@ -67,6 +67,8 @@ body.exploring .hero .maplibregl-ctrl-bottom-right{bottom:0}
 .scrim-side{position:absolute;inset:0;background:linear-gradient(to right,var(--scrim-a) 0%,var(--scrim-b) 34%,rgba(0,0,0,0) 60%);pointer-events:none;transition:opacity .4s;display:none}
 @media (min-width:861px){.scrim-side{display:block}}
 body.exploring .scrim-side{opacity:0}
+/* phone: map credit moves up under the menu so it never sits on the buttons */
+@media (max-width:860px){.hero .maplibregl-ctrl-bottom-right{bottom:auto;top:132px}body.exploring .hero .maplibregl-ctrl-bottom-right{top:auto;bottom:0}}
 .hero-copy{position:absolute;left:clamp(16px,4vw,56px);right:clamp(16px,4vw,56px);bottom:calc(52px + clamp(16px,3vh,36px));pointer-events:none;transition:opacity .4s,transform .5s var(--ease)}
 .hero-copy > *{max-width:860px}
 body.exploring .hero-copy,body.exploring .scrim,body.exploring .hero-foot,body.exploring .preview-switch{opacity:0;pointer-events:none}
