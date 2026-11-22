@@ -83,7 +83,8 @@ body.exploring .hero .maplibregl-ctrl-bottom-right{bottom:0}
 .live{margin:0 0 clamp(8px,1.6vh,18px);display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;text-shadow:0 1px 10px rgba(0,0,0,.6)}
 .dot{width:10px;height:10px;border-radius:50%;background:#5cf0a0;box-shadow:0 0 0 0 rgba(92,240,160,.7);animation:ping 2s infinite}
 @keyframes ping{70%{box-shadow:0 0 0 12px rgba(92,240,160,0)}100%{box-shadow:0 0 0 0 rgba(92,240,160,0)}}
-h1{margin:0;font-family:var(--display);font-weight:800;display:flex;flex-direction:column;gap:clamp(6px,1vh,14px);text-shadow:0 2px 24px rgba(0,0,0,.25)}
+h1{margin:0;font-family:var(--display);font-weight:800;display:flex;flex-direction:column;align-items:flex-start;gap:clamp(6px,1vh,14px);text-shadow:0 2px 24px rgba(0,0,0,.25)}
+.live,.sub,.actions{width:fit-content}
 .count{font-size:clamp(120px,min(30vw,33vh),330px);line-height:.78;letter-spacing:-.05em;margin-left:-.04em;font-variant-numeric:tabular-nums}
 .count-label{font-size:clamp(28px,min(5.2vw,6.4vh),64px);line-height:1;letter-spacing:-.025em;font-weight:700}
 .sub{margin:clamp(10px,1.6vh,18px) 0 0;font-size:clamp(15px,1.5vw,19px);font-weight:500;text-shadow:0 1px 12px rgba(0,0,0,.3)}
@@ -670,7 +671,7 @@ function initMap() {
     map.addLayer({ id: 'qn-ships', type: 'symbol', source: 'qn-ships', filter: ['==', ['get', 'gear'], 0], layout: { 'icon-image': 'qn-hull', 'icon-size': shipPx(1 / HULL_PX), 'icon-rotate': ['get', 'hd'], 'icon-rotation-alignment': 'map', 'icon-pitch-alignment': 'map', 'icon-allow-overlap': true, 'icon-ignore-placement': true, 'symbol-sort-key': ['get', 'len'] }, paint: { 'icon-color': TYPE_MATCH, 'icon-halo-color': '#0a1a24', 'icon-halo-width': 1.2 } });
     const fontLayers = map.getStyle().layers.filter((l) => l.type === 'symbol' && l.layout && Array.isArray(l.layout['text-font']));
     const font = ((fontLayers.find((l) => l['source-layer'] === 'place' && !/italic/i.test(l.layout['text-font'].join(' '))) || fontLayers.find((l) => !/italic/i.test(l.layout['text-font'].join(' '))) || fontLayers[0] || { layout: {} }).layout['text-font']);
-    if (font) map.addLayer({ id: 'qn-names', type: 'symbol', source: 'qn-ships', filter: ['all', ['==', ['get', 'gear'], 0], ['>=', ['coalesce', ['get', 'len'], 0], 95]], layout: { 'text-field': ['get', 'name'], 'text-font': font, 'text-size': ['interpolate', ['linear'], ['zoom'], 11, 10, 14, 13], 'text-offset': [0, 1.1], 'text-anchor': 'top', 'text-letter-spacing': 0.06, 'text-optional': true, 'text-padding': 6 }, paint: { 'text-color': '#ffffff', 'text-halo-color': P.seaDeep, 'text-halo-width': 1.6 } });
+    if (font) map.addLayer({ id: 'qn-names', type: 'symbol', source: 'qn-ships', filter: NAME_FILTER, layout: { 'text-field': ['get', 'name'], 'text-font': font, 'text-size': ['interpolate', ['linear'], ['zoom'], 11, 10, 14, 13], 'text-offset': [0, 1.1], 'text-anchor': 'top', 'text-letter-spacing': 0.06, 'text-optional': true, 'text-padding': 6 }, paint: { 'text-color': '#ffffff', 'text-halo-color': P.seaDeep, 'text-halo-width': 1.6 } });
 
     if (narrow()) { const a = $('#map .maplibregl-ctrl-attrib'); if (a) { a.classList.remove('maplibregl-compact-show'); a.removeAttribute('open'); } }
     state.mapReady = true;
@@ -681,6 +682,7 @@ function initMap() {
     if (reduced) map.jumpTo(home);
     else { map.easeTo({ ...home, duration: 5200, easing: (t) => 1 - Math.pow(1 - t, 3) }); map.once('moveend', () => { driftStart = performance.now(); startLoop(); }); }
     if (reduced) startLoop();
+    map.on('moveend', () => maskNames(false));
     map.on('click', (e) => { if (state.exploring) pick([e.point.x, e.point.y]); });
     map.on('mousemove', (e) => { if (state.exploring) map.getCanvas().style.cursor = hit([e.point.x, e.point.y]) ? 'pointer' : ''; });
   });
@@ -704,6 +706,31 @@ function hit(pt) {
 function pick(pt) {
   const mmsi = hit(pt);
   if (mmsi) select(String(mmsi), false); else closeCard();
+}
+
+/* ship names that would sit behind the headline are hidden, so the two never tangle */
+const NAME_FILTER = ['all', ['==', ['get', 'gear'], 0], ['>=', ['coalesce', ['get', 'len'], 0], 95]];
+let maskAt = 0, maskKey = '';
+function maskNames(force) {
+  if (!state.mapReady || !map.getLayer('qn-names')) return;
+  const now = performance.now();
+  if (!force && now - maskAt < 1200) return;
+  maskAt = now;
+  const hide = [];
+  if (!state.exploring) {
+    const m = $('#map').getBoundingClientRect();
+    const boxes = ['.live', '.count', '.count-label', '.sub', '.actions'].map((s) => $(s).getBoundingClientRect());
+    for (const v of state.vessels.values()) {
+      if (v.is_gear || !(v.length >= 95) || !Number.isFinite(v.lat) || !Number.isFinite(v.lng)) continue;
+      const p = map.project([v.lng, v.lat]);
+      const x = p.x + m.left, y = p.y + m.top;
+      if (boxes.some((r) => x > r.left - 70 && x < r.right + 70 && y > r.top - 34 && y < r.bottom + 12)) hide.push(String(v.mmsi));
+    }
+  }
+  const key = hide.sort().join(',');
+  if (key === maskKey) return;
+  maskKey = key;
+  map.setFilter('qn-names', hide.length ? [...NAME_FILTER, ['!', ['in', ['to-string', ['get', 'mmsi']], ['literal', hide]]]] : NAME_FILTER);
 }
 
 /* idle camera drift and pulse rings; paused when the hero is off screen */
@@ -754,6 +781,7 @@ function renderShips() {
   map.getSource('qn-wakes').setData({ type: 'FeatureCollection', features: wakes });
   const s = state.selected && state.vessels.get(state.selected);
   map.getSource('qn-sel').setData({ type: 'FeatureCollection', features: s ? [{ type: 'Feature', geometry: { type: 'Point', coordinates: [s.lng, s.lat] }, properties: {} }] : [] });
+  maskNames(true);
 }
 function flagImg(code) {
   const src = flagSrc(code, '40x30');
@@ -845,6 +873,7 @@ function enterExplore(focusSearch) {
   document.body.classList.add('exploring');
   setInteractive(true);
   map.resize();
+  maskNames(true);
   map.easeTo({ pitch: 48, zoom: map.getZoom() + 0.35, padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: reduced ? 0 : 1200 });
   if (focusSearch) setTimeout(() => $('#q').focus(), 350); else $('#exitBtn').focus();
 }
