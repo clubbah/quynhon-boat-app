@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="en" data-ui="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>What's that boat? · Quy Nhon Life design preview</title>
+<link rel="icon" href="/img/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Be+Vietnam+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/next/core.css?v=2">
+<style>
+html[data-ui="light"]{--sil:#0b2530}
+html[data-ui="dark"]{--sil:#d6e2e6}
+.vf{position:relative;height:100vh;height:100svh;min-height:640px;overflow:hidden;color:#fff;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab;background:linear-gradient(var(--sky-top) 0%,var(--sky-hor) 41.8%,var(--sea) 42%,var(--sea-deep) 100%);transition:background 1.2s}
+.vf.dragging{cursor:grabbing}
+.vf:focus-visible{outline-offset:-4px}
+.vf .scrim-top{height:140px}
+.tape{position:absolute;top:76px;left:0;right:0;height:48px;overflow:hidden;background:rgba(6,14,20,.6)}
+.tape-strip{position:absolute;top:0;left:0;height:100%;will-change:transform}
+.tape-strip i{position:absolute;bottom:0;width:1px;height:9px;background:#fff;opacity:.7}
+.tape-strip i.m{height:16px;opacity:1;width:2px}
+.tape-strip b{position:absolute;top:7px;transform:translateX(-50%);font:600 12px var(--body);letter-spacing:.06em}
+.tape-strip b.c{font-weight:800;font-size:14px;top:5px}
+.aim{position:absolute;left:50%;top:124px;width:2px;margin-left:-1px;background:rgba(255,255,255,.7);pointer-events:none}
+.aim-read{position:absolute;left:50%;top:132px;transform:translateX(-50%);padding:6px 10px;background:#fff;color:#0b1d24;font:800 15px var(--display);letter-spacing:.02em;white-space:nowrap;pointer-events:none}
+.ships{position:absolute;inset:0;pointer-events:none}
+.sv{position:absolute;left:0;top:0;will-change:transform;color:var(--sil);pointer-events:auto;cursor:pointer}
+.sv svg{display:block;height:auto}
+.sv .tag{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:8px;padding:4px 8px;background:rgba(6,14,20,.82);color:#fff;font:600 12px var(--body);white-space:nowrap;display:none}
+.sv.show .tag{display:block}
+.sv.lock .tag{display:block;background:#fff;color:#0b1d24;font:800 15px var(--display);padding:6px 10px}
+.sv.lock::before{content:"";position:absolute;inset:-8px -10px -6px;border:2px solid #fff;border-top:0}
+.status{position:absolute;left:clamp(16px,4vw,56px);right:clamp(16px,4vw,56px);top:184px;margin:0;font-size:15px;font-weight:600;text-shadow:0 1px 10px rgba(0,0,0,.6);pointer-events:none;max-width:560px}
+.radar{position:absolute;right:clamp(12px,3vw,40px);width:118px;height:118px;pointer-events:none}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--panel);color:var(--ink);border-top:1px solid var(--line);padding:16px clamp(16px,4vw,56px) calc(16px + env(safe-area-inset-bottom));cursor:default;transition:background-color .8s,color .8s}
+.sheet-in{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.2fr) auto;gap:clamp(14px,2.4vw,36px);align-items:center}
+.who{display:flex;align-items:center;gap:16px;min-width:0}
+.who h2{margin:0;font-family:var(--display);font-weight:800;font-size:clamp(24px,3.2vw,40px);line-height:1;letter-spacing:-.02em;overflow-wrap:anywhere}
+.who p{margin:6px 0 0;color:var(--muted);font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.who img{border:1px solid var(--line)}
+.who canvas{flex:none}
+.sheet .facts{grid-template-columns:repeat(3,1fr)}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.ctl .btn{min-height:50px;padding:0 16px;font-size:16px}
+.tune{grid-column:1/-1;display:none;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.vf.live .tune{display:flex}
+.tune button{min-height:44px;padding:0 14px;background:transparent;border:1.5px solid var(--line);font-weight:600;font-size:14px}
+@media (max-width:900px){
+  .sheet-in{grid-template-columns:1fr;gap:12px}
+  .ctl{justify-content:stretch}.ctl .btn{flex:1 1 0}
+  .sheet .facts dd{font-size:17px}
+  .who canvas{display:none}
+}
+.debug{position:absolute;left:8px;top:230px;z-index:5;padding:8px 10px;background:rgba(0,0,0,.78);color:#9cf5c4;font:11px/1.45 ui-monospace,Menlo,monospace;white-space:pre;pointer-events:none;display:none;max-width:calc(100vw - 16px);overflow:hidden}
+.debug.on{display:block}
+/* list */
+.rows{margin-top:clamp(24px,3.4vw,44px);display:flex;flex-direction:column;border-top:3px solid var(--ink)}
+.rowb{width:100%;background:transparent;border:0;border-bottom:1px solid var(--line);padding:12px;display:grid;grid-template-columns:minmax(0,1fr) 90px 110px;gap:14px;align-items:center;text-align:left;min-height:62px;transition:background-color .2s}
+.rowb:hover{background:var(--chip)}
+.rowb .n{display:flex;align-items:center;gap:10px;min-width:0;font-weight:600}
+.rowb .n img{flex:none;border:1px solid var(--line)}
+.rowb .n span{min-width:0;display:flex;flex-direction:column}
+.rowb .n b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rowb .n small{font-weight:400;font-size:13px;color:var(--muted)}
+.rowb .d{font-family:var(--display);font-weight:700;font-size:18px;text-align:right;font-variant-numeric:tabular-nums}
+.rowb .w{color:var(--muted);font-size:14px;text-align:right}
+@media (max-width:560px){.rowb{grid-template-columns:minmax(0,1fr) 78px}.rowb .w{display:none}}
+.steps{margin-top:clamp(24px,3.4vw,44px);display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(10px,1.4vw,18px);counter-reset:s}
+@media (max-width:860px){.steps{grid-template-columns:1fr}}
+.steps li{list-style:none;padding:24px;background:var(--panel);border:1px solid var(--line);counter-increment:s}
+.steps li::before{content:counter(s);display:block;font-family:var(--display);font-weight:800;font-size:56px;line-height:.9;color:var(--accent);margin-bottom:14px}
+.steps b{display:block;font-family:var(--display);font-weight:800;font-size:22px;line-height:1.1;margin-bottom:6px}
+.steps span{color:var(--muted);font-size:15px}
+.fine{margin-top:22px;color:var(--muted);font-size:14px;max-width:760px}
+</style>
+</head>
+<body>
+<a class="skip" href="#list">Skip to the list of ships</a>
+
+<header class="top" id="top">
+  <a class="brand" href="/next.html" aria-label="Quy Nhon Life preview home"><span class="brand-crop"><img src="/img/qnl-logo.png" alt=""></span></a>
+  <button class="menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="nav">Menu</button>
+  <nav class="nav" id="nav" aria-label="Main">
+    <a href="/next.html">Live map</a>
+    <a href="/next-storms.html">Storm tracker</a>
+    <a href="/trends">Port in numbers</a>
+    <a href="/next-spot.html" class="on">What's that boat?</a>
+    <div class="langs" title="This preview is in English only"><b>EN</b><span>VI</span><span>KO</span><span>ZH</span><span>JA</span></div>
+  </nav>
+</header>
+
+<main>
+<section class="vf" id="vf" tabindex="0" aria-label="The view out to sea. Drag sideways or use the arrow keys to look around.">
+  <div class="scrim-top" aria-hidden="true"></div>
+  <div class="tape" aria-hidden="true"><div class="tape-strip" id="tape"></div></div>
+  <div class="aim" id="aim" aria-hidden="true"></div>
+  <div class="aim-read" id="aimRead" aria-live="off">---</div>
+  <p class="status" id="status" role="status"></p>
+  <div class="ships" id="ships"></div>
+  <svg class="radar" id="radar" viewBox="0 0 120 120" aria-hidden="true"></svg>
+  <pre class="debug" id="debug"></pre>
+  <div class="sheet" id="sheet">
+    <div class="sheet-in">
+      <div class="who" id="who"></div>
+      <dl class="facts" id="facts"></dl>
+      <div class="ctl">
+        <button class="btn btn-line" id="prevBtn" type="button">Previous</button>
+        <button class="btn btn-line" id="nextBtn" type="button">Next ship</button>
+        <button class="btn btn-accent" id="liveBtn" type="button">Use my phone's compass</button>
+      </div>
+      <div class="tune">
+        <span id="tuneText">Ships not lining up with what you see? Drag the view sideways until they do.</span>
+        <button type="button" id="tuneReset">Reset alignment</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="list">
+  <div class="wrap">
+    <p class="kicker rv">In range right now</p>
+    <h2 class="big rv" style="--i:1" id="listHead">Ships you could see</h2>
+    <p class="lede rv" style="--i:2" id="listLede">Nearest first. Pick one to turn the view toward it.</p>
+    <div class="rows rv" id="rows" style="--i:2"></div>
+  </div>
+</section>
+
+<section class="sec" style="padding-top:0">
+  <div class="wrap">
+    <p class="kicker rv">On your phone</p>
+    <h2 class="big rv" style="--i:1">How to use it at the water</h2>
+    <ol class="steps" style="padding:0;margin-bottom:0">
+      <li class="rv" style="--i:0"><b>Start the compass</b><span>Press "Use my phone's compass" and allow location and motion. Your position is used on your phone to work out directions and is not sent to us.</span></li>
+      <li class="rv" style="--i:1"><b>Hold it up like a camera</b><span>Point the phone at the ship. The ship nearest the centre line is named, and the ones beside it are shown too, so you can see what else is close.</span></li>
+      <li class="rv" style="--i:2"><b>Line it up once</b><span>Phone compasses drift. If a ship you recognise sits off to one side, drag the view until it is centred. The correction is remembered on this phone.</span></li>
+    </ol>
+    <p class="fine rv">Tip: wave the phone slowly in a figure of eight before you start. It settles the compass. Ships are placed from their radio position reports, which can be a minute or two old.</p>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div><b style="color:var(--ink)">Quy Nhon Life</b> · Tracking the waters of central Vietnam · Design preview, not the live boat identifier</div>
+  <div><a href="/spot">Current boat identifier</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></div>
+</footer>
+<div class="toast" id="toast" role="status"></div>
+
+<script type="module">
+import { QN, reduced, $, el, clamp, skyNow, initChrome, toast, getJSON, compass, compassWord, agoText, cleanName, bucket, validDeg, isShip, flagImg, haversineKm, bearingDeg, angleDelta, shipThumb, getCountryName } from '/next/core.js?v=1';
+
+/* The look-around view starts from a public spot on the city beach. */
+const VIEWPOINT = { lat: 13.7605, lng: 109.2265, h: 6, name: 'Quy Nhon beach' };
+const MAX_KM = 40, RETICLE = 14, HORIZON = 0.42;
+const SMOOTHING = 0.15;
+// Magnetic declination at Quy Nhon (~2026): about -0.6 degrees (true = magnetic - 0.6).
+const DECLINATION = -0.6;
+const DEBUG = new URLSearchParams(location.search).has('debug');
+const vf = $('#vf'), layer = $('#ships');
+const st = { mode: 'look', heading: 62, obs: { ...VIEWPOINT }, vessels: [], ships: [], view: [], lock: null, lockId: null, pinned: null, offset: 0, fov: 60, hasHeading: false, touched: false };
+try { st.offset = clamp(Number(localStorage.getItem('qnSpotOffset')) || 0, -60, 60); } catch { /* storage blocked */ }
+const headingOf = (v) => (validDeg(v.heading) ? v.heading : validDeg(v.course) ? v.course : 0);
+const kmText = (d) => (d < 1 ? Math.round(d * 1000) + ' m' : d.toFixed(1) + ' km');
+
+/* ---------- Ships relative to the viewer ---------- */
+function compute() {
+  const o = st.obs;
+  st.range = Math.min(MAX_KM, 3.57 * (Math.sqrt(Math.max(o.h, 2)) + Math.sqrt(20))); // how far a ship stays above the horizon
+  st.ships = st.vessels.filter(isShip)
+    .map((v) => ({ v, id: String(v.mmsi), d: haversineKm(o.lat, o.lng, v.lat, v.lng), b: bearingDeg(o.lat, o.lng, v.lat, v.lng) }))
+    .filter((s) => s.d <= st.range && s.d > 0.03)
+    .sort((a, b) => a.d - b.d);
+}
+/* The ship you are most likely looking at: best alignment first, then nearer, then bigger. */
+function pick() {
+  st.view = st.ships.map((s) => ({ ...s, off: angleDelta(s.b, st.heading) })).filter((s) => Math.abs(s.off) <= st.fov / 2 + 4);
+  let lock = null;
+  if (st.pinned) lock = st.view.find((s) => s.id === st.pinned && Math.abs(s.off) <= (st.mode === 'live' ? st.fov / 2 : RETICLE + 6)) || null;
+  if (!lock) {
+    st.pinned = null;
+    let best = Infinity;
+    for (const s of st.view) {
+      if (Math.abs(s.off) > RETICLE) continue;
+      const score = Math.abs(s.off) + s.d * 0.35 - Math.min(5, (s.v.length || 20) / 50);
+      if (score < best) { best = score; lock = s; }
+    }
+  }
+  const id = lock ? lock.id : null, changed = id !== st.lockId;
+  st.lock = lock; st.lockId = id;
+  return changed;
+}
+
+/* ---------- Drawing ---------- */
+const SIDE = { // side-on silhouettes, bow to the right, waterline at y = 30
+  Cargo: '<path d="M2 22H98L92 30H6Z"/><path d="M6 6h12v16H6zM9 2h4v4H9zM22 13h14v9H22zM38 10h14v12H38zM54 12h14v10H54zM70 14h14v8H70z"/>',
+  Tanker: '<path d="M2 23H96L90 30H5Z"/><path d="M6 8h12v15H6zM9 3h4v5H9zM22 21h64v2H22zM53 13h2v8h-2zM34 17h2v4h-2zM72 17h2v4h-2z"/>',
+  Passenger: '<path d="M3 22H97L90 30H8Z"/><path d="M12 13h70v9H12zM20 7h50v6H20zM40 1h8v6h-8z"/>',
+  Fishing: '<path d="M10 22Q50 26 90 19L84 30H16Z"/><path d="M26 12h18v10H26zM55 3h2v19h-2zM56 5L80 15h-2L56 8z"/>',
+  Other: '<path d="M8 22H92L86 30H12Z"/><path d="M30 10h24v12H30zM58 13h6v9h-6zM40 3h2v7h-2z"/>',
+};
+const nodes = new Map();
+function nodeFor(s) {
+  let n = nodes.get(s.id);
+  if (n) return n;
+  const box = el('div', 'sv');
+  box.innerHTML = '<svg viewBox="0 0 100 32" fill="currentColor" aria-hidden="true">' + SIDE[bucket(s.v)] + '</svg>';
+  const tag = el('span', 'tag'); box.append(tag);
+  box.addEventListener('click', () => { if (dragMoved) return; chooseShip(s.id); });
+  layer.append(box);
+  n = { box, svg: box.firstChild, tag };
+  nodes.set(s.id, n);
+  return n;
+}
+let tapePpd = 0;
+function buildTape() {
+  const W = vf.clientWidth; st.fov = clamp(W / 13, 56, 96); tapePpd = W / st.fov;
+  const strip = $('#tape'); strip.textContent = ''; strip.style.width = 1080 * tapePpd + 'px';
+  const names = { 0: 'N', 45: 'NE', 90: 'E', 135: 'SE', 180: 'S', 225: 'SW', 270: 'W', 315: 'NW' };
+  for (let d = 0; d <= 1080; d += 5) {
+    const deg = d % 360, x = d * tapePpd, major = d % 15 === 0;
+    const t = el('i', major ? 'm' : ''); t.style.left = x + 'px'; strip.append(t);
+    if (names[deg] != null) { const b = el('b', 'c', names[deg]); b.style.left = x + 'px'; strip.append(b); }
+    else if (d % 15 === 0) { const b = el('b', '', String(deg)); b.style.left = x + 'px'; strip.append(b); }
+  }
+}
+let queued = false;
+const draw = () => { if (!queued) { queued = true; requestAnimationFrame(render); } };
+function render() {
+  queued = false;
+  const W = vf.clientWidth, H = vf.clientHeight, ppd = W / st.fov, hy = H * HORIZON;
+  $('#tape').style.transform = `translateX(${(W / 2 - (st.heading + 360) * tapePpd).toFixed(1)}px)`;
+  $('#aimRead').textContent = String(Math.round(st.heading) % 360).padStart(3, '0') + '° ' + compass(st.heading);
+  $('#aim').style.height = Math.max(0, hy + 60 - 124) + 'px';
+  const changed = pick();
+  const seen = new Set(), placed = [];
+  const order = [...st.view].sort((a, b) => Math.abs(a.off) - Math.abs(b.off));
+  for (const s of order) {
+    seen.add(s.id);
+    const n = nodeFor(s);
+    const rel = ((headingOf(s.v) - s.b) * Math.PI) / 180, side = Math.max(0.32, Math.abs(Math.sin(rel)));
+    const px = clamp((((s.v.length || 25) * side) / (s.d * 1000) / ((st.fov * Math.PI) / 180)) * W * 3.2, 26, 150);
+    const x = W / 2 + s.off * ppd, y = hy + clamp(46 * (1 - s.d / 14), 0, 46);
+    n.box.style.transform = `translate(${(x - px / 2).toFixed(1)}px,${(y - px * 0.3).toFixed(1)}px)`;
+    n.svg.style.width = px.toFixed(1) + 'px';
+    n.svg.style.transform = Math.sin(rel) < 0 ? 'scaleX(-1)' : '';
+    n.box.style.opacity = clamp(1.08 - s.d / 30, 0.5, 1).toFixed(2);
+    n.box.style.zIndex = String(Math.round(2000 - s.d * 20));
+    const isLock = s.id === st.lockId;
+    n.box.classList.toggle('lock', isLock);
+    n.tag.textContent = isLock ? (cleanName(s.v.name) || 'MMSI ' + s.id) + ' · ' + kmText(s.d) : cleanName(s.v.name) || s.id;
+    const room = isLock || (placed.length < 6 && placed.every((p) => Math.abs(p - x) > 118));
+    n.box.classList.toggle('show', room && !isLock);
+    if (room) placed.push(x);
+  }
+  for (const [id, n] of nodes) if (!seen.has(id)) { n.box.remove(); nodes.delete(id); }
+  if (changed) { renderSheet(); if (st.mode === 'live' && st.lock && navigator.vibrate) navigator.vibrate(60); }
+  drawRadar();
+  if (DEBUG) debug();
+}
+function renderSheet() {
+  const who = $('#who'), facts = $('#facts'); who.textContent = ''; facts.textContent = '';
+  const s = st.lock;
+  if (!s) {
+    const t = el('div'); t.append(el('h2', '', 'No ship on the centre line'), el('p', '', st.view.length ? 'Turn a little until one lines up, or step through the ships with Next ship.' : 'There is no ship in this direction. Look another way.'));
+    who.append(t);
+    for (const [k, v] of [['Ships in view', String(st.view.length)], ['In range', String(st.ships.length)], ['Looking', compassWord(st.heading)]]) { const d = el('div'); d.append(el('dt', '', k), el('dd', '', v)); facts.append(d); }
+    return;
+  }
+  const v = s.v;
+  who.append(shipThumb(bucket(v), 128));
+  const t = el('div'); t.style.minWidth = '0';
+  const p = el('p'); const f = flagImg(v.flag_country); if (f) p.append(f);
+  p.append(document.createTextNode([v.vessel_type_label || 'Vessel', getCountryName(v.flag_country)].filter(Boolean).join(' · ')));
+  t.append(el('h2', '', cleanName(v.name) || 'MMSI ' + s.id), p);
+  who.append(t);
+  const rows = [
+    ['Distance', kmText(s.d)],
+    ['Direction', Math.round(s.b) + '° ' + compass(s.b)],
+    ['Speed', (v.speed != null ? Number(v.speed).toFixed(1) : '0.0') + ' kn'],
+    ['Size', v.length ? v.length + ' × ' + (v.width || '?') + ' m' : 'Not given'],
+    ['Going to', cleanName(v.destination) || 'Not given'],
+    ['Last heard', v.updated_at ? agoText(v.updated_at) : 'Unknown'],
+  ];
+  for (const [k, val] of rows) { const d = el('div'); d.append(el('dt', '', k), el('dd', '', val)); facts.append(d); }
+}
+function drawRadar() {
+  const R = 54, c = 60, km = 12, half = (st.fov / 2) * Math.PI / 180;
+  let h = `<circle cx="${c}" cy="${c}" r="${R}" fill="rgba(6,14,20,.62)" stroke="#fff" stroke-opacity=".6"/><circle cx="${c}" cy="${c}" r="${R / 2}" fill="none" stroke="#fff" stroke-opacity=".3"/>`;
+  h += `<path d="M${c} ${c}L${c - R * Math.sin(half)} ${c - R * Math.cos(half)}A${R} ${R} 0 0 1 ${c + R * Math.sin(half)} ${c - R * Math.cos(half)}Z" fill="#fff" fill-opacity=".2"/>`;
+  for (const s of st.ships) {
+    const a = (angleDelta(s.b, st.heading) * Math.PI) / 180, r = Math.min(1, s.d / km) * R;
+    const lock = s.id === st.lockId;
+    h += `<circle cx="${(c + r * Math.sin(a)).toFixed(1)}" cy="${(c - r * Math.cos(a)).toFixed(1)}" r="${lock ? 4 : 2.2}" fill="${lock ? '#ffcf6b' : '#fff'}"${lock ? ' stroke="#0b1d24" stroke-width="1.2"' : ''}/>`;
+  }
+  h += `<circle cx="${c}" cy="${c}" r="3" fill="#5cf0a0"/>`;
+  $('#radar').innerHTML = h;
+}
+function renderList() {
+  const rows = $('#rows'); rows.textContent = '';
+  $('#listHead').textContent = st.ships.length + (st.ships.length === 1 ? ' ship you could see' : ' ships you could see');
+  $('#listLede').textContent = 'From ' + st.obs.name + ', out to ' + Math.round(st.range) + ' km. Nearest first. Pick one to turn the view toward it.';
+  for (const s of st.ships) {
+    const b = el('button', 'rowb'); b.type = 'button';
+    const n = el('span', 'n'); const f = flagImg(s.v.flag_country); if (f) n.append(f);
+    const t = el('span'); t.append(el('b', '', cleanName(s.v.name) || s.id), el('small', '', [s.v.vessel_type_label || 'Vessel', s.v.length ? s.v.length + ' m' : ''].filter(Boolean).join(' · ')));
+    n.append(t);
+    b.append(n, el('span', 'd', kmText(s.d)), el('span', 'w', 'to the ' + compassWord(s.b)));
+    b.addEventListener('click', () => { scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' }); chooseShip(s.id); });
+    rows.append(b);
+  }
+}
+function status(msg) { $('#status').textContent = msg; }
+function placeRadar() { $('#radar').style.bottom = $('#sheet').offsetHeight + 14 + 'px'; }
+
+/* ---------- Looking around ---------- */
+let tween = 0;
+function turnTo(target) {
+  cancelAnimationFrame(tween);
+  if (reduced) { st.heading = (target + 360) % 360; draw(); return; }
+  const from = st.heading, diff = angleDelta(target, from), t0 = performance.now(), dur = clamp(Math.abs(diff) * 9, 250, 900);
+  const step = (now) => { const p = clamp((now - t0) / dur, 0, 1), e = 1 - Math.pow(1 - p, 3); st.heading = (from + diff * e + 360) % 360; draw(); if (p < 1) tween = requestAnimationFrame(step); };
+  tween = requestAnimationFrame(step);
+}
+function chooseShip(id) {
+  const s = st.ships.find((x) => x.id === id); if (!s) return;
+  st.pinned = id; st.touched = true;
+  if (st.mode === 'look' || !st.hasHeading) turnTo(s.b); else draw();
+}
+function stepShip(dir) {
+  const sorted = [...st.ships].map((s) => ({ ...s, off: angleDelta(s.b, st.heading) })).sort((a, b) => a.off - b.off);
+  if (!sorted.length) return;
+  const here = st.lock ? st.lock.off : 0;
+  const pool = st.mode === 'live' && st.hasHeading ? sorted.filter((s) => Math.abs(s.off) <= st.fov / 2) : sorted;
+  if (!pool.length) return;
+  let next = dir > 0 ? pool.find((s) => s.off > here + 0.01 && s.id !== st.lockId) : [...pool].reverse().find((s) => s.off < here - 0.01 && s.id !== st.lockId);
+  if (!next) next = dir > 0 ? pool[0] : pool[pool.length - 1];
+  chooseShip(next.id);
+}
+$('#nextBtn').addEventListener('click', () => stepShip(1));
+$('#prevBtn').addEventListener('click', () => stepShip(-1));
+/* Dragging sideways turns the view. With the compass running it trims the alignment instead. */
+let dragStart = null, dragMoved = false;
+vf.addEventListener('pointerdown', (e) => {
+  if (e.target.closest('.sheet,button,a')) return;
+  dragStart = { x: e.clientX, y: e.clientY, heading: st.heading, offset: st.offset, horizontal: false }; dragMoved = false;
+});
+addEventListener('pointermove', (e) => {
+  if (!dragStart) return;
+  const dx = e.clientX - dragStart.x, dy = e.clientY - dragStart.y;
+  if (!dragStart.horizontal) { if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(dy)) return; dragStart.horizontal = true; vf.classList.add('dragging'); cancelAnimationFrame(tween); st.touched = true; }
+  dragMoved = true;
+  const deg = dx / (vf.clientWidth / st.fov);
+  if (st.mode === 'live' && st.hasHeading) { st.offset = clamp(dragStart.offset - deg, -60, 60); applyHeading(); tuneText(); }
+  else { st.heading = (dragStart.heading - deg + 720) % 360; st.pinned = null; draw(); }
+});
+const endDrag = () => {
+  if (!dragStart) return;
+  if (dragStart.horizontal && st.mode === 'live') { try { localStorage.setItem('qnSpotOffset', String(Math.round(st.offset * 10) / 10)); } catch { /* storage blocked */ } }
+  dragStart = null; vf.classList.remove('dragging'); setTimeout(() => { dragMoved = false; }, 0);
+};
+addEventListener('pointerup', endDrag); addEventListener('pointercancel', endDrag);
+vf.addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  if (st.mode === 'live' && st.hasHeading) return;
+  e.preventDefault(); st.touched = true; st.pinned = null; st.heading = (st.heading + (e.key === 'ArrowRight' ? 5 : -5) + 360) % 360; draw();
+});
+function tuneText() {
+  const o = Math.round(st.offset);
+  $('#tuneText').textContent = o === 0 ? 'Ships not lining up with what you see? Drag the view sideways until they do.' : 'Alignment trimmed by ' + Math.abs(o) + '° to the ' + (o > 0 ? 'right' : 'left') + '. Drag sideways to adjust.';
+}
+$('#tuneReset').addEventListener('click', () => { st.offset = 0; try { localStorage.removeItem('qnSpotOffset'); } catch { /* storage blocked */ } applyHeading(); tuneText(); });
+
+/* ---------- Compass handling ----------
+   Carried over unchanged from the current /spot page, where each part was a fix
+   for a real phone:
+    1. `deviceorientationabsolute` and `deviceorientation` must not share a handler.
+       On Android Chrome both fire interleaved and the relative one has an
+       arbitrary zero, so a shared handler settles between a real heading and a
+       bogus one. Sources are taken in strict priority instead.
+    2. `360 - alpha` is only the heading while the phone lies flat. Held upright
+       like a camera, raw alpha is off by tens of degrees, so the heading is
+       computed from the full rotation: where the back camera points. */
+let compassHeading = null, smoothedHeading = null, rawHeading = null, headingSource = null;
+let gotAbsolute = false, iosAccuracy = null, warnTimer = null, orientationSensor = null, sensorActive = false, tiltMag = null;
+let gpsAccuracy = null, geoWatchId = null, active = false;
+function lerpAngle(from, to, t) {
+  let diff = ((to - from + 540) % 360) - 180;
+  return ((from + diff * t) + 360) % 360;
+}
+function combineHeading(backE, backN, topE, topN) {
+  const backMag = Math.hypot(backE, backN);
+  const topMag = Math.hypot(topE, topN);
+  tiltMag = backMag;
+  const w = Math.min(backMag / 0.35, 1); // >= ~20 degrees of tilt -> pure camera direction
+  let e = 0, n = 0;
+  if (backMag > 1e-6) { e += (backE / backMag) * w; n += (backN / backMag) * w; }
+  if (topMag > 1e-6) { e += (topE / topMag) * (1 - w); n += (topN / topMag) * (1 - w); }
+  if (Math.abs(e) < 1e-9 && Math.abs(n) < 1e-9) return null;
+  return ((Math.atan2(e, n) * 180 / Math.PI) + 360) % 360;
+}
+// Earth frame: X=east, Y=north, Z=up. Device rotation R = Rz(a)*Rx(b)*Ry(g)
+// (W3C deviceorientation order). Project the back camera (-Z_device) and
+// top edge (+Y_device) onto the horizontal plane.
+function headingFromEuler(alpha, beta, gamma) {
+  const d = Math.PI / 180;
+  const a = alpha * d, b = beta * d, g = gamma * d;
+  const ca = Math.cos(a), sa = Math.sin(a);
+  const cb = Math.cos(b), sb = Math.sin(b);
+  const cg = Math.cos(g), sg = Math.sin(g);
+  const backE = -(ca * sg + sa * sb * cg);
+  const backN = -(sa * sg - ca * sb * cg);
+  const topE = -sa * cb;
+  const topN = ca * cb;
+  return combineHeading(backE, backN, topE, topN);
+}
+// Same projection from a unit quaternion [x,y,z,w] (device -> earth ENU).
+function headingFromQuaternion(q) {
+  const [x, y, z, w] = q;
+  const zx = 2 * (x * z + w * y), zy = 2 * (y * z - w * x);
+  const yx = 2 * (x * y - w * z), yy = 1 - 2 * (x * x + z * z);
+  return combineHeading(-zx, -zy, yx, yy);
+}
+// Chrome Android: prefer the fused quaternion sensor when available.
+function startSensor() {
+  if (!('AbsoluteOrientationSensor' in window)) return false;
+  try {
+    const sensor = new AbsoluteOrientationSensor({ frequency: 20 });
+    sensor.addEventListener('reading', () => {
+      if (!sensor.quaternion) return;
+      sensorActive = true;
+      gotAbsolute = true;
+      acceptHeading(headingFromQuaternion(sensor.quaternion), 'sensor');
+    });
+    sensor.addEventListener('error', () => {
+      try { sensor.stop(); } catch (e) { /* already stopped */ }
+      if (orientationSensor === sensor) { orientationSensor = null; sensorActive = false; }
+    });
+    sensor.start();
+    orientationSensor = sensor;
+    return true;
+  } catch (e) {
+    orientationSensor = null;
+    return false;
+  }
+}
+function acceptHeading(heading, source) {
+  if (heading == null || !Number.isFinite(heading)) return;
+  heading = ((heading + DECLINATION) + 360) % 360;
+  rawHeading = heading;
+  headingSource = source;
+  smoothedHeading = smoothedHeading == null ? heading : lerpAngle(smoothedHeading, heading, SMOOTHING);
+  compassHeading = smoothedHeading;
+  if (!st.hasHeading) { st.hasHeading = true; status('Using your compass. Point the phone at a ship.'); }
+  applyHeading();
+}
+function applyHeading() {
+  if (compassHeading == null) return;
+  st.heading = (compassHeading + st.offset + 360) % 360;
+  draw();
+}
+// Android Chrome: fused absolute orientation (magnetometer + gyro)
+function onOrientationAbsolute(e) {
+  if (sensorActive) return;
+  if (e.alpha == null) return;
+  gotAbsolute = true;
+  acceptHeading(headingFromEuler(e.alpha, e.beta || 0, e.gamma || 0), 'absolute');
+}
+// iOS Safari (webkitCompassHeading) + Firefox Android (absolute flag) +
+// last-resort relative fallback for devices with neither.
+function onOrientationGeneric(e) {
+  if (sensorActive) return;
+  if (e.webkitCompassHeading != null) {
+    gotAbsolute = true;
+    iosAccuracy = e.webkitCompassAccuracy != null ? e.webkitCompassAccuracy : null;
+    acceptHeading(e.webkitCompassHeading, 'ios'); // already tilt-compensated by CoreMotion
+    if (iosAccuracy != null && (iosAccuracy < 0 || iosAccuracy > 30)) compassWarn();
+    return;
+  }
+  if (e.absolute && e.alpha != null) {
+    gotAbsolute = true;
+    acceptHeading(headingFromEuler(e.alpha, e.beta || 0, e.gamma || 0), 'absolute');
+    return;
+  }
+  if (!gotAbsolute && e.alpha != null) acceptHeading(headingFromEuler(e.alpha, e.beta || 0, e.gamma || 0), 'relative');
+}
+function compassWarn() { status('Your compass reading is shaky here. Wave the phone in a figure of eight, or drag the view sideways to line the ships up.'); }
+function debug() {
+  const f = (v, n = 1) => (v == null ? '--' : Number(v).toFixed(n));
+  const lines = [
+    'mode: ' + st.mode + '  src: ' + (headingSource || '--') + (headingSource === 'relative' ? '  (!) no absolute compass' : ''),
+    'heading: raw ' + f(rawHeading) + '  smoothed ' + f(smoothedHeading) + '  trim ' + f(st.offset) + '  shown ' + f(st.heading),
+    tiltMag != null ? 'tilt: ' + f(tiltMag, 2) + (tiltMag >= 0.35 ? '  (camera mode)' : '  (near-flat: top-edge blend)') : null,
+    iosAccuracy != null ? 'ios accuracy: +/-' + f(iosAccuracy) + (iosAccuracy < 0 ? ' (uncalibrated)' : '') : null,
+    'viewer: ' + f(st.obs.lat, 5) + ', ' + f(st.obs.lng, 5) + '  +/-' + f(gpsAccuracy, 0) + 'm  height ' + f(st.obs.h, 0) + 'm',
+    'ships: ' + st.ships.length + ' in range (' + f(st.range, 0) + ' km), ' + st.view.length + ' in view, fov ' + f(st.fov, 0),
+  ].filter(Boolean);
+  [...st.view].sort((a, b) => Math.abs(a.off) - Math.abs(b.off)).slice(0, 4).forEach((c) => lines.push((c.id === st.lockId ? '* ' : '  ') + (cleanName(c.v.name) || c.id) + '  ' + f(c.d) + 'km  brg ' + f(c.b, 0) + '  off ' + f(c.off, 0)));
+  const d = $('#debug'); d.classList.add('on'); d.textContent = lines.join('\n');
+}
+
+/* ---------- Start / stop the live compass ---------- */
+async function startLive() {
+  if (st.mode === 'live' || active) { stopLive('Looking out from ' + VIEWPOINT.name + '. Drag sideways to look around.'); return; }
+  const btn = $('#liveBtn'); btn.disabled = true;
+  status('Asking for permission…');
+  // iOS compass permission (must come straight from the button press)
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    try {
+      const response = await DeviceOrientationEvent.requestPermission();
+      if (response !== 'granted') { status('Motion access was not allowed, so the compass cannot run. You can still drag to look around.'); btn.disabled = false; return; }
+    } catch (e) { status('Motion access was not allowed, so the compass cannot run. You can still drag to look around.'); btn.disabled = false; return; }
+  }
+  if (!navigator.geolocation) { status('This device cannot share a location. You can still drag to look around.'); btn.disabled = false; return; }
+  status('Finding your location…');
+  geoWatchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      const lat = pos.coords.latitude, lng = pos.coords.longitude;
+      const away = haversineKm(lat, lng, QN.lat, QN.lng);
+      if (away > 60) { stopLive('You are about ' + Math.round(away) + ' km from Quy Nhon Bay, too far to see its ships. This is the view from ' + VIEWPOINT.name + ' instead.'); return; }
+      gpsAccuracy = pos.coords.accuracy ?? null;
+      const alt = pos.coords.altitude, altOk = alt != null && pos.coords.altitudeAccuracy != null && pos.coords.altitudeAccuracy < 30;
+      st.obs = { lat, lng, h: altOk ? clamp(alt, 2, 200) : 10, name: 'where you are' };
+      if (!active) {
+        // Compass priority: quaternion sensor (Chrome Android) > absolute stream >
+        // generic stream (iOS webkitCompassHeading / Firefox absolute / relative).
+        startSensor();
+        addEventListener('deviceorientationabsolute', onOrientationAbsolute, true);
+        addEventListener('deviceorientation', onOrientationGeneric, true);
+        warnTimer = setTimeout(() => {
+          if (!active) return;
+          if (!st.hasHeading) status('This device is not giving a compass reading. Drag sideways to look around from where you are.');
+          else if (!gotAbsolute) compassWarn();
+        }, 3500);
+        active = true; st.mode = 'live'; st.pinned = null;
+        vf.classList.add('live'); btn.disabled = false; btn.textContent = 'Stop the compass';
+        status('Located. Waiting for the compass…');
+        tuneText(); placeRadar();
+      }
+      compute(); renderList(); st.lockId = undefined; draw();
+    },
+    () => { stopLive('Your location was not available, so this is the view from ' + VIEWPOINT.name + '. Drag sideways to look around.'); },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 2000 },
+  );
+}
+function stopLive(message) {
+  active = false;
+  if (orientationSensor) { try { orientationSensor.stop(); } catch (e) { /* already stopped */ } orientationSensor = null; }
+  sensorActive = false;
+  removeEventListener('deviceorientationabsolute', onOrientationAbsolute, true);
+  removeEventListener('deviceorientation', onOrientationGeneric, true);
+  if (warnTimer) { clearTimeout(warnTimer); warnTimer = null; }
+  if (geoWatchId != null) { navigator.geolocation.clearWatch(geoWatchId); geoWatchId = null; }
+  compassHeading = smoothedHeading = rawHeading = null; headingSource = null; gotAbsolute = false; iosAccuracy = null; tiltMag = null; gpsAccuracy = null;
+  st.mode = 'look'; st.hasHeading = false; st.pinned = null; st.obs = { ...VIEWPOINT };
+  vf.classList.remove('live');
+  const btn = $('#liveBtn'); btn.disabled = false; btn.textContent = "Use my phone's compass";
+  status(message);
+  compute(); renderList(); placeRadar(); st.lockId = undefined; draw();
+}
+$('#liveBtn').addEventListener('click', startLive);
+
+/* ---------- Data and start-up ---------- */
+async function loadVessels() {
+  try {
+    const list = await getJSON('/api/vessels');
+    if (!Array.isArray(list)) return;
+    st.vessels = list; compute(); renderList(); st.lockId = undefined; draw();
+  } catch (e) { console.warn(e); if (!st.vessels.length) status('The ship feed did not answer. Try again in a moment.'); }
+}
+function sky() { skyNow('live'); }
+sky();
+initChrome(() => (vf.clientHeight || 600) - 90);
+buildTape(); renderSheet(); placeRadar();
+status('Looking out from ' + VIEWPOINT.name + '. Drag sideways to look around.');
+draw();
+loadVessels().then(() => {
+  // a slow first turn toward the anchorage shows that the view moves
+  if (!st.touched && st.mode === 'look' && st.ships.length) { const far = st.ships.reduce((a, b) => ((b.v.length || 0) > (a.v.length || 0) ? b : a)); turnTo(far.b); st.pinned = far.id; }
+});
+new ResizeObserver(() => { buildTape(); placeRadar(); draw(); }).observe(vf);
+new ResizeObserver(placeRadar).observe($('#sheet'));
+setInterval(loadVessels, 30000);
+setInterval(sky, 60000);
+</script>
+</body>
+</html>
