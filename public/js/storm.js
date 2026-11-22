@@ -269,6 +269,9 @@ async function fetchStorms() {
   try {
     const url = STORM_DEMO_LEVEL ? `/api/storms?demo=${STORM_DEMO_LEVEL}` : '/api/storms';
     const res = await fetch(url);
+    // 503 means the server could not check. That is not "no storms": leave
+    // the page as it is rather than render the error body as an all clear.
+    if (!res.ok) throw new Error(`storm data unavailable (HTTP ${res.status})`);
     const data = await res.json();
     render(data);
   } catch (err) {
