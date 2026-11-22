@@ -130,6 +130,24 @@ export function createDb(path = './vessels.db') {
 
       completed_at TEXT
     );
+
+    -- Past weather and sea for Quy Nhon from Open-Meteo's historical archive
+    -- (ERA5 reanalysis), one row per day back to 2016. Reference data for the
+    -- month-by-month table, filled by scripts/backfill-history.js. This is
+    -- not the site's own record: that is daily_log.
+    CREATE TABLE IF NOT EXISTS weather_archive (
+      day TEXT PRIMARY KEY,
+      temp_min_c REAL,
+      temp_max_c REAL,
+      rain_mm REAL,
+      wind_max_kmh REAL,
+      gust_max_kmh REAL,
+      wave_max_m REAL,
+      sunrise TEXT,
+      sunset TEXT,
+      source TEXT,
+      fetched_at TEXT
+    );
   `);
 
   return db;

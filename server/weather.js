@@ -5,6 +5,9 @@
  * not, so they call peekWeather(), which returns whatever is cached right now.
  * startWeatherRefresh() fills the cache at boot and keeps it warm, so renders
  * have data without any visitor having to call /api/weather first.
+ *
+ * Open-Meteo's free API is for non-commercial use with attribution. See the
+ * note at the top of backfill.js before adding ads or paid features.
  */
 
 const WEATHER_URL = 'https://api.open-meteo.com/v1/forecast?latitude=13.76&longitude=109.23&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,apparent_temperature,precipitation&hourly=cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,visibility,precipitation_probability&daily=sunrise,sunset&timezone=Asia/Ho_Chi_Minh&forecast_days=2&models=gfs_seamless';

@@ -141,6 +141,8 @@ export function shipsForDay(db, day, gear = new Set()) {
 
 // ── Weather ──
 
+// Open-Meteo's free API is for non-commercial use with attribution. See the
+// note at the top of backfill.js before adding ads or paid features.
 const FORECAST_API = 'https://api.open-meteo.com/v1/forecast';
 const MARINE_API = 'https://marine-api.open-meteo.com/v1/marine';
 const PLACE = 'latitude=13.76&longitude=109.23&timezone=Asia%2FHo_Chi_Minh';
