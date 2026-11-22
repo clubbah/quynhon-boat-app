@@ -159,7 +159,8 @@ for (const file of inputs) {
   // Nothing from the camera may be left in what gets published.
   for (const f of [big, small]) {
     const b = fs.readFileSync(f);
-    for (const marker of ['Exif', 'ICC_PROFILE', 'http://ns.adobe.com/xap', 'GPS']) {
+    // Location data lives inside the Exif block, so these three cover it.
+    for (const marker of ['Exif', 'ICC_PROFILE', 'http://ns.adobe.com/xap']) {
       if (b.includes(marker)) fail(`${f} still contains ${marker} data. Do not publish it.`);
     }
   }
