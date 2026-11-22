@@ -18,3 +18,6 @@ scripts/*.zip
 # Research notes and reports are local working files, not for the public repo
 docs/research_notes/
 docs/reports/
+
+# Original photos (may carry location data). Only watermarked copies go in public/.
+assets/photos/
