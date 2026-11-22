@@ -323,6 +323,8 @@ function initMap() {
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
   setInteractive(false);
   map.on('error', () => {});
+  // recolour as soon as the style arrives, so the map never shows its default colours while loading
+  map.once('style.load', () => { try { paintBase(map, state.sky.P, { borders: true }); } catch { /* painted again on load */ } });
   map.on('load', () => {
     for (const id of ['qn-cone', 'qn-past', 'qn-forecast', 'qn-points', 'qn-link']) map.addSource(id, { type: 'geojson', data: EMPTY });
     map.addLayer({ id: 'qn-cone-fill', type: 'fill', source: 'qn-cone', paint: { 'fill-color': ['match', ['get', 'sev'], 'red', HEX.warning, 'orange', HEX.watch, HEX.none], 'fill-opacity': 0.22 } });
