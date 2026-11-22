@@ -99,9 +99,11 @@ export function storeArchive(db, rows, { now = Date.now() } = {}) {
     VALUES (@day, @temp_min_c, @temp_max_c, @rain_mm, @wind_max_kmh, @gust_max_kmh, @wave_max_m, @sunrise, @sunset, @source, @at)`);
   const at = new Date(now).toISOString();
   let added = 0;
+  // Writes only, and the write lock is taken up front, so this waits its turn
+  // behind the live server instead of failing part-way.
   db.transaction(() => {
     for (const r of rows) added += ins.run({ ...r, source: ARCHIVE_SOURCE, at }).changes;
-  })();
+  }).immediate();
   return added;
 }
 
@@ -167,31 +169,50 @@ export function backfillShips(db, { gear = new Set(), now = Date.now(), catchUpD
   const todo = new Set(owed);
   if (first) for (let day = first; day <= last; day = addDays(day, 1)) todo.add(day);
 
-  const run = () => {
-    for (const day of [...todo].sort()) {
-      const row = getRow.get(day);
-      const needShips = !row?.ships_at;
-      const needWeather = !row?.weather_at;
-      if (!needShips && !needWeather) continue;
-      // Counts can only come from days the position data covers in full.
-      if (needShips && (!first || day < first)) continue;
-      const ships = needShips ? shipsForDay(db, day, gear) : null;
-      const w = needWeather ? getArchive.get(day) : null;
-      if (!ships && !w) continue;
-      days.push({ day, ships, weather: !!w });
-      if (!apply) continue;
-      db.prepare('INSERT OR IGNORE INTO daily_log (day) VALUES (?)').run(day);
-      if (ships) writeShips.run({ ...ships, at, day });
-      if (w) {
-        writeWeather.run({
-          temp_min_c: w.temp_min_c, temp_max_c: w.temp_max_c, rain_mm: w.rain_mm, wind_max_kmh: w.wind_max_kmh,
-          gust_max_kmh: w.gust_max_kmh, wave_max_m: w.wave_max_m, sunrise: w.sunrise, sunset: w.sunset,
-          source: w.source, at, day,
-        });
+  // Step 1: work everything out with plain reads, outside any transaction.
+  // Counting a day scans that day's positions (about 70 ms each on the
+  // production data), and the live server is writing to this file the whole
+  // time. Doing this inside the write transaction either fails outright (a
+  // transaction that has read cannot start writing once another connection
+  // has committed) or holds the write lock for many seconds.
+  const plan = [];
+  for (const day of [...todo].sort()) {
+    const row = getRow.get(day);
+    const needShips = !row?.ships_at;
+    const needWeather = !row?.weather_at;
+    if (!needShips && !needWeather) continue;
+    // Counts can only come from days the position data covers in full.
+    if (needShips && (!first || day < first)) continue;
+    const ships = needShips ? shipsForDay(db, day, gear) : null;
+    const w = needWeather ? getArchive.get(day) : null;
+    if (!ships && !w) continue;
+    plan.push({ day, ships, w });
+    days.push({ day, ships, weather: !!w });
+  }
+
+  // Step 2: write it all in one short transaction that takes the write lock
+  // up front (BEGIN IMMEDIATE), so it waits its turn instead of failing. The
+  // updates only fill columns that are still empty, so anything the live
+  // writer recorded in the meantime is left alone.
+  let writeMs = 0;
+  if (apply && plan.length) {
+    const ensure = db.prepare('INSERT OR IGNORE INTO daily_log (day) VALUES (?)');
+    const t0 = Date.now();
+    db.transaction(() => {
+      for (const { day, ships, w } of plan) {
+        ensure.run(day);
+        if (ships) writeShips.run({ ...ships, at, day });
+        if (w) {
+          writeWeather.run({
+            temp_min_c: w.temp_min_c, temp_max_c: w.temp_max_c, rain_mm: w.rain_mm, wind_max_kmh: w.wind_max_kmh,
+            gust_max_kmh: w.gust_max_kmh, wave_max_m: w.wave_max_m, sunrise: w.sunrise, sunset: w.sunset,
+            source: w.source, at, day,
+          });
+        }
+        complete.run(at, day);
       }
-      complete.run(at, day);
-    }
-  };
-  if (apply) db.transaction(run)(); else run();
-  return { first, last, days };
+    }).immediate();
+    writeMs = Date.now() - t0;
+  }
+  return { first, last, days, writeMs };
 }

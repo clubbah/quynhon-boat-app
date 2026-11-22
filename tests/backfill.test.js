@@ -1,4 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { createDb } from '../server/db.js';
 import { createDailyLog, getDailyLog } from '../server/daily-log.js';
 import {
@@ -177,6 +180,35 @@ describe('backfillShips', () => {
     db.exec("DELETE FROM position_summaries WHERE timestamp LIKE '2026-11-12%'");
     backfillShips(db, opts({ apply: true }));
     expect(row('2026-11-12')).toMatchObject({ transponders: 0, ships_seen: 0, feed_hours: 0 });
+  });
+
+  it('still writes when the live server commits to the same file while the days are being counted', () => {
+    // Two connections to one file, as on the server. The second one commits a
+    // write in the middle of the counting. A transaction that had already read
+    // would be refused when it tried to write (this is how the first version
+    // of the script died against a busy database).
+    const file = path.join(os.tmpdir(), `qnl-backfill-${process.pid}-${Date.now()}.db`);
+    const ours = createDb(file);
+    const server = createDb(file);
+    try {
+      const ins = ours.prepare('INSERT INTO position_summaries (mmsi, lat, lng, speed, course, timestamp) VALUES (?, 13.7, 109.2, 0, 0, ?)');
+      for (const day of ['10', '11', '12']) ins.run('574000001', `2026-11-${day}T03:00:00`);
+      ins.run('574000001', '2026-11-09T03:00:00');
+      const serverWrite = server.prepare("INSERT INTO position_history (mmsi, lat, lng, speed, course, timestamp) VALUES ('574000009', 13.7, 109.2, 0, 0, ?)");
+      let writes = 0;
+      const gear = new Set();
+      gear.has = () => { serverWrite.run(new Date(NOW + writes++).toISOString()); return false; }; // called while counting
+
+      const { days, writeMs } = backfillShips(ours, { gear, now: NOW, apply: true });
+      expect(writes).toBeGreaterThan(0);
+      expect(days.map((d) => d.day)).toEqual(['2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14']);
+      expect(ours.prepare('SELECT COUNT(*) c FROM daily_log WHERE ships_at IS NOT NULL').get().c).toBe(5);
+      expect(writeMs).toBeLessThan(1000);
+    } finally {
+      ours.close();
+      server.close();
+      for (const suffix of ['', '-wal', '-shm']) fs.rmSync(file + suffix, { force: true });
+    }
   });
 
   it('does not collide with the live writer: together they cover every day once', async () => {

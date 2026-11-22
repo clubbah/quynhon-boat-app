@@ -70,7 +70,11 @@ console.log(`${APPLY ? 'APPLYING' : 'DRY RUN'} on ${DB_FILE}\n`);
 if (APPLY && !args['no-backup']) {
   const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
   const file = path.join(BACKUP_DIR, `vessels-pre-backfill-${stamp}.db`);
-  await db.backup(file);
+  // The server keeps writing while this runs. An online backup starts over
+  // whenever the source changes between two cycles, and by default a cycle
+  // copies only 100 pages, so on a busy database it might never finish. After
+  // the first cycle, copy everything that is left in one go.
+  await db.backup(file, { progress: ({ totalPages }) => totalPages });
   console.log(`Backup written: ${file}\n`);
 }
 
@@ -121,7 +125,7 @@ if (args['skip-ships']) {
   for (const r of db.prepare('SELECT mmsi, name, call_sign, imo, vessel_type FROM vessel_archive').all()) {
     if (isFishingGear(r)) gear.add(r.mmsi);
   }
-  const { first, last, days } = backfillShips(db, { gear, now, apply: APPLY });
+  const { first, last, days, writeMs } = backfillShips(db, { gear, now, apply: APPLY });
   if (!first) {
     console.log('2. Ship counts: no position data in this file.');
   } else {
@@ -135,7 +139,8 @@ if (args['skip-ships']) {
       console.log(`   ${d.day}  ${ships}  ${d.weather ? '+ weather' : '(no archive weather yet)'}`);
     }
     const counted = days.filter((d) => d.ships).length;
-    console.log(`   ${APPLY ? 'Wrote' : 'Would write'} ship counts for ${counted} days and weather for ${days.filter((d) => d.weather).length} days.`);
+    console.log(`   ${APPLY ? 'Wrote' : 'Would write'} ship counts for ${counted} days and weather for ${days.filter((d) => d.weather).length} days.`
+      + (APPLY && days.length ? ` The database was locked for writing for ${writeMs} ms.` : ''));
     if (!APPLY && counted) console.log('   In a dry run the weather is only copied for days already in weather_archive.');
   }
 }
