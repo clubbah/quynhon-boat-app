@@ -25,6 +25,15 @@ html[data-ui="dark"]{--sil:#d6e2e6}
 .tape-strip b.c{font-weight:800;font-size:14px;top:5px}
 .aim{position:absolute;left:50%;top:124px;width:2px;margin-left:-1px;background:rgba(255,255,255,.7);pointer-events:none}
 .aim-read{position:absolute;left:50%;top:132px;transform:translateX(-50%);padding:6px 10px;background:#fff;color:#0b1d24;font:800 15px var(--display);letter-spacing:.02em;white-space:nowrap;pointer-events:none}
+.skyline{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.marks{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.mark{position:absolute;left:0;top:0;transform:translateX(-50%);padding:3px 7px;background:rgba(6,14,20,.72);color:#fff;font:600 12px var(--body);white-space:nowrap;display:none}
+.mark.sun{background:#ffd76a;color:#0b1d24;font-weight:800}
+.mark.sun::after{content:"";position:absolute;left:50%;top:100%;width:0;height:var(--drop,0px);border-left:2px dashed #ffd76a}
+.align-bar{position:absolute;left:clamp(12px,3vw,40px);right:clamp(12px,3vw,40px);top:176px;z-index:6;margin:0;padding:12px 14px;background:#ffe14a;color:#111;font-weight:700;font-size:15px;line-height:1.35;display:none;pointer-events:none;max-width:640px}
+.vf.aligning .align-bar{display:block}
+.vf.aligning .status{display:none}
+.vf.aligning{cursor:ew-resize}
 .ships{position:absolute;inset:0;pointer-events:none}
 .sv{position:absolute;left:0;top:0;will-change:transform;color:var(--sil);pointer-events:auto;cursor:pointer}
 .sv svg{display:block;height:auto}
@@ -47,6 +56,7 @@ html[data-ui="dark"]{--sil:#d6e2e6}
 .tune{grid-column:1/-1;display:none;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
 .vf.is-live .tune{display:flex}
 .tune button{min-height:44px;padding:0 14px;background:transparent;border:1.5px solid var(--line);font-weight:600;font-size:14px}
+.tune #alignBtn{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 @media (max-width:900px){
   .sheet-in{grid-template-columns:1fr;gap:12px}
   .ctl{justify-content:stretch}.ctl .btn{flex:1 1 0}
@@ -109,6 +119,9 @@ html[data-ui="dark"]{--sil:#d6e2e6}
   <div class="aim" id="aim" aria-hidden="true"></div>
   <div class="aim-read" id="aimRead" aria-live="off">---</div>
   <p class="status" id="status" role="status"></p>
+  <canvas class="skyline" id="skyline" aria-hidden="true"></canvas>
+  <div class="marks" id="marks" aria-hidden="true"></div>
+  <p class="align-bar" id="alignBar">Drag sideways until the drawn hills sit over the real hills. Then press Done.</p>
   <div class="ships" id="ships"></div>
   <svg class="radar" id="radar" viewBox="0 0 120 120" aria-hidden="true"></svg>
   <pre class="debug" id="debug"></pre>
@@ -122,8 +135,9 @@ html[data-ui="dark"]{--sil:#d6e2e6}
         <button class="btn btn-accent" id="liveBtn" type="button">Use my phone's compass</button>
       </div>
       <div class="tune">
-        <span id="tuneText">Not lined up? Drag the view sideways.</span>
-        <button type="button" id="tuneReset">Reset alignment</button>
+        <span id="tuneText">Hills on screen not over the real hills?</span>
+        <button type="button" id="alignBtn">Line it up</button>
+        <button type="button" id="tuneReset">Reset</button>
       </div>
     </div>
   </div>
@@ -145,7 +159,7 @@ html[data-ui="dark"]{--sil:#d6e2e6}
     <ol class="steps" style="padding:0;margin-bottom:0">
       <li class="rv" style="--i:0"><b>Start the compass</b><span>Press "Use my phone's compass" and allow location and motion. Your position is used on your phone to work out directions and is not sent to us.</span></li>
       <li class="rv" style="--i:1"><b>Hold it up like a camera</b><span>Point the phone at the ship. The ship nearest the centre line is named, and the ones beside it are shown too, so you can see what else is close.</span></li>
-      <li class="rv" style="--i:2"><b>Line it up once</b><span>Phone compasses drift. If a ship you recognise sits off to one side, drag the view until it is centred. The correction is remembered on this phone.</span></li>
+      <li class="rv" style="--i:2"><b>Line it up once</b><span>Phone compasses can be far out, especially indoors or near steel. The screen draws the real outline of the hills and islands. If they do not sit over the real ones, press "Line it up" and drag until they do. The correction is remembered on this phone.</span></li>
     </ol>
     <p class="fine rv">Tip: wave the phone slowly in a figure of eight before you start. It settles the compass. Ships are placed from their radio position reports, which can be a minute or two old.</p>
   </div>
@@ -159,7 +173,7 @@ html[data-ui="dark"]{--sil:#d6e2e6}
 <div class="toast" id="toast" role="status"></div>
 
 <script type="module">
-import { QN, reduced, $, el, clamp, skyNow, initChrome, toast, getJSON, compass, compassWord, agoText, cleanName, bucket, validDeg, isShip, flagImg, haversineKm, bearingDeg, angleDelta, shipThumb, getCountryName } from '/next/core.js?v=1';
+import { KEY, QN, reduced, $, el, clamp, skyNow, initChrome, toast, getJSON, compass, compassWord, agoText, cleanName, bucket, validDeg, isShip, flagImg, haversineKm, bearingDeg, angleDelta, shipThumb, getCountryName } from '/next/core.js?v=1';
 
 /* The look-around view starts from a public spot on the city beach. */
 const VIEWPOINT = { lat: 13.7605, lng: 109.2265, h: 6, name: 'Quy Nhon beach' };
@@ -169,8 +183,10 @@ const SMOOTHING = 0.15;
 const DECLINATION = -0.6;
 const DEBUG = new URLSearchParams(location.search).has('debug');
 const vf = $('#vf'), layer = $('#ships');
-const st = { mode: 'look', heading: 62, obs: { ...VIEWPOINT }, vessels: [], ships: [], view: [], lock: null, lockId: null, pinned: null, offset: 0, fov: 60, hasHeading: false, touched: false };
-try { st.offset = clamp(Number(localStorage.getItem('qnSpotOffset')) || 0, -60, 60); } catch { /* storage blocked */ }
+const st = { mode: 'look', heading: 62, obs: { ...VIEWPOINT }, vessels: [], ships: [], view: [], lock: null, lockId: null, pinned: null, offset: 0, fov: 60, hasHeading: false, touched: false, aligning: false };
+// The correction is only ever set in the explicit "Line it up" step. An earlier
+// build let any sideways swipe change it, so that old saved value is dropped.
+try { localStorage.removeItem('qnSpotOffset'); st.offset = clamp(Number(localStorage.getItem('qnSpotTrim')) || 0, -180, 180); } catch { /* storage blocked */ }
 const headingOf = (v) => (validDeg(v.heading) ? v.heading : validDeg(v.course) ? v.course : 0);
 const kmText = (d) => (d < 1 ? Math.round(d * 1000) + ' m' : d.toFixed(1) + ' km');
 
@@ -182,6 +198,7 @@ function compute() {
     .map((v) => ({ v, id: String(v.mmsi), d: haversineKm(o.lat, o.lng, v.lat, v.lng), b: bearingDeg(o.lat, o.lng, v.lat, v.lng) }))
     .filter((s) => s.d <= st.range && s.d > 0.03)
     .sort((a, b) => a.d - b.d);
+  buildSkyline();
 }
 /* The ship you are most likely looking at: best alignment first, then nearer, then bigger. */
 function pick() {
@@ -200,6 +217,106 @@ function pick() {
   const id = lock ? lock.id : null, changed = id !== st.lockId;
   st.lock = lock; st.lockId = id;
   return changed;
+}
+
+/* ---------- The real skyline ----------
+   The outline of the hills and islands around the bay, worked out from terrain
+   data for where the viewer stands. It is the reference for lining the compass
+   up: the drawn hills should sit over the real ones. */
+const DEM_Z = 10, R_EARTH = 7.4e6, VEX = 2.4; // terrain zoom, earth radius with normal refraction, vertical stretch
+const demTiles = new Map();
+const skyline = { prof: null, at: null, busy: false, peak: null };
+const tileX = (lng) => ((lng + 180) / 360) * 2 ** DEM_Z;
+const tileY = (lat) => { const r = (lat * Math.PI) / 180; return ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * 2 ** DEM_Z; };
+function demTile(x, y) {
+  const k = x + '/' + y;
+  if (!demTiles.has(k)) demTiles.set(k, (async () => {
+    try {
+      const blob = await (await fetch(`https://api.maptiler.com/tiles/terrain-rgb-v2/${DEM_Z}/${x}/${y}.webp?key=${KEY}`)).blob();
+      const bmp = await createImageBitmap(blob, { premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
+      const cv = document.createElement('canvas'); cv.width = bmp.width; cv.height = bmp.height;
+      const c = cv.getContext('2d', { willReadFrequently: true }); c.drawImage(bmp, 0, 0);
+      return { n: bmp.width, d: c.getImageData(0, 0, bmp.width, bmp.height).data };
+    } catch (e) { console.warn('terrain tile unavailable', e); return null; }
+  })());
+  return demTiles.get(k);
+}
+function elevAt(lat, lng, grid) {
+  const X = tileX(lng), Y = tileY(lat), tx = Math.floor(X), ty = Math.floor(Y), t = grid.get(tx + '/' + ty);
+  if (!t) return 0;
+  const i = Math.min(t.n - 1, Math.floor((X - tx) * t.n)), j = Math.min(t.n - 1, Math.floor((Y - ty) * t.n)), o = (j * t.n + i) * 4;
+  return -10000 + (t.d[o] * 65536 + t.d[o + 1] * 256 + t.d[o + 2]) * 0.1;
+}
+async function buildSkyline() {
+  const o = st.obs;
+  if (skyline.busy) return;
+  if (skyline.at && haversineKm(o.lat, o.lng, skyline.at.lat, skyline.at.lng) < 0.3 && Math.abs(o.h - skyline.at.h) < 15) return;
+  skyline.busy = true;
+  try {
+    const R = 0.3, jobs = [];
+    for (let x = Math.floor(tileX(o.lng - R)); x <= Math.floor(tileX(o.lng + R)); x++) for (let y = Math.floor(tileY(o.lat + R)); y <= Math.floor(tileY(o.lat - R)); y++) jobs.push(demTile(x, y).then((t) => [x + '/' + y, t]));
+    const grid = new Map((await Promise.all(jobs)).filter((e) => e[1]));
+    if (!grid.size) return;
+    const prof = new Float32Array(720).fill(-9), cosLat = Math.cos((o.lat * Math.PI) / 180);
+    const eye = Math.max(o.h, Math.max(0, elevAt(o.lat, o.lng, grid)) + 2);
+    for (let a = 0; a < 720; a++) {
+      const b = ((a / 2) * Math.PI) / 180, sn = Math.sin(b), cs = Math.cos(b);
+      let best = -9;
+      for (let d = 250; d < 32000; d += Math.max(70, d * 0.012)) {
+        const e = elevAt(o.lat + (d * cs) / 111320, o.lng + (d * sn) / (111320 * cosLat), grid);
+        if (e < 1) continue;
+        const ang = (Math.atan2(e - eye - (d * d) / (2 * R_EARTH), d) * 180) / Math.PI;
+        if (ang > best) best = ang;
+      }
+      prof[a] = best;
+    }
+    skyline.prof = prof; skyline.at = { ...o };
+    // the highest point of the Phuong Mai peninsula as seen from here, for its label
+    const mid = bearingDeg(o.lat, o.lng, 13.775, 109.285); let pk = null;
+    if (haversineKm(o.lat, o.lng, 13.775, 109.285) > 2.5) for (let off = -55; off <= 55; off += 0.5) { const az = (mid + off + 360) % 360, v = prof[Math.round(az * 2) % 720]; if (v > 0.4 && (!pk || v > pk.v)) pk = { az, v }; }
+    skyline.peak = pk;
+    draw();
+  } finally { skyline.busy = false; }
+}
+const skyAt = (az) => { if (!skyline.prof) return -9; const f = (((az % 360) + 360) % 360) * 2, i = Math.floor(f) % 720, t = f - Math.floor(f); return skyline.prof[i] * (1 - t) + skyline.prof[(i + 1) % 720] * t; };
+function drawSkyline(W, H, ppd, hy) {
+  const cv = $('#skyline'), dpr = Math.min(devicePixelRatio || 1, 2);
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+  if (!skyline.prof) return;
+  const half = st.fov / 2 + 1;
+  c.beginPath(); c.moveTo(-2, hy + 1);
+  for (let off = -half; off <= half; off += 0.4) c.lineTo(W / 2 + off * ppd, hy - Math.max(0, skyAt(st.heading + off)) * ppd * VEX);
+  c.lineTo(W + 2, hy + 1); c.closePath();
+  c.fillStyle = document.documentElement.dataset.ui === 'dark' ? '#0d1f27' : '#5f8a7c'; c.fill();
+}
+/* where the sun is, as a second reference when it is up */
+function sunAzEl(date) {
+  const rad = Math.PI / 180, y = date.getUTCFullYear();
+  const day = (Date.UTC(y, date.getUTCMonth(), date.getUTCDate()) - Date.UTC(y, 0, 0)) / 864e5;
+  const hr = date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600;
+  const g = ((2 * Math.PI) / 365) * (day - 1 + (hr - 12) / 24);
+  const eqt = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+  const decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+  const ha = (hr * 60 + eqt + 4 * QN.lng) / 4 - 180, lat = QN.lat * rad;
+  const cosZ = clamp(Math.sin(lat) * Math.sin(decl) + Math.cos(lat) * Math.cos(decl) * Math.cos(ha * rad), -1, 1), zen = Math.acos(cosZ);
+  const a = Math.acos(clamp((Math.sin(lat) * cosZ - Math.sin(decl)) / (Math.cos(lat) * Math.sin(zen)), -1, 1)) / rad;
+  return { az: ha > 0 ? (a + 180) % 360 : (540 - a) % 360, el: 90 - zen / rad };
+}
+const marks = {};
+function mark(id, text, cls) { if (!marks[id]) { marks[id] = el('span', 'mark' + (cls ? ' ' + cls : ''), text); $('#marks').append(marks[id]); } return marks[id]; }
+function placeMark(m, az, y, W, ppd) {
+  const off = angleDelta(az, st.heading);
+  if (Math.abs(off) > st.fov / 2 - 2) { m.style.display = 'none'; return; }
+  m.style.display = 'block'; m.style.left = (W / 2 + off * ppd).toFixed(1) + 'px'; m.style.top = y.toFixed(1) + 'px';
+}
+function drawMarks(W, ppd, hy) {
+  const sun = sunAzEl(new Date()), ms = mark('sun', 'Sun', 'sun');
+  if (sun.el > -0.5) { const y = Math.max(182, hy - sun.el * ppd * VEX - 24); placeMark(ms, sun.az, y, W, ppd); ms.style.setProperty('--drop', Math.max(0, hy - y - 22) + 'px'); } else ms.style.display = 'none';
+  const mp = mark('peak', 'Phuong Mai peninsula');
+  if (skyline.peak) placeMark(mp, skyline.peak.az, hy - skyline.peak.v * ppd * VEX - 28, W, ppd); else mp.style.display = 'none';
+  const mi = mark('isle', 'Cu Lao Xanh island'), o = st.obs, km = haversineKm(o.lat, o.lng, 13.6204, 109.3487), iaz = bearingDeg(o.lat, o.lng, 13.6204, 109.3487);
+  if (km > 3 && km < 31 && skyAt(iaz) > -1) placeMark(mi, iaz, hy - Math.max(0, skyAt(iaz)) * ppd * VEX - 28, W, ppd); else mi.style.display = 'none';
 }
 
 /* ---------- Drawing ---------- */
@@ -270,6 +387,7 @@ function render() {
   for (const [id, n] of nodes) if (!seen.has(id)) { n.box.remove(); nodes.delete(id); }
   if (changed || st.dirty) { st.dirty = false; renderSheet(); }
   if (changed && st.mode === 'live' && st.lock && navigator.vibrate) navigator.vibrate(60); // only when the named ship changes
+  drawSkyline(W, H, ppd, hy); drawMarks(W, ppd, hy);
   drawRadar();
   if (DEBUG) debug();
 }
@@ -355,7 +473,7 @@ function stepShip(dir) {
 $('#nextBtn').addEventListener('click', () => stepShip(1));
 $('#prevBtn').addEventListener('click', () => stepShip(-1));
 /* Dragging sideways turns the view. With the compass running it trims the alignment instead. */
-let dragStart = null, dragMoved = false;
+let dragStart = null, dragMoved = false, hinted = false;
 vf.addEventListener('pointerdown', (e) => {
   if (e.target.closest('.sheet,button,a')) return;
   dragStart = { x: e.clientX, y: e.clientY, heading: st.heading, offset: st.offset, horizontal: false }; dragMoved = false;
@@ -366,12 +484,15 @@ addEventListener('pointermove', (e) => {
   if (!dragStart.horizontal) { if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(dy)) return; dragStart.horizontal = true; vf.classList.add('dragging'); cancelAnimationFrame(tween); st.touched = true; }
   dragMoved = true;
   const deg = dx / (vf.clientWidth / st.fov);
-  if (st.mode === 'live' && st.hasHeading) { st.offset = clamp(dragStart.offset - deg, -60, 60); applyHeading(); tuneText(); }
+  if (st.mode === 'live' && st.hasHeading) {
+    if (!st.aligning) { if (!hinted) { hinted = true; toast('To correct the compass, press "Line it up" first.'); } return; }
+    st.offset = ((dragStart.offset - deg + 540) % 360) - 180; applyHeading(); tuneText();
+  }
   else { st.heading = (dragStart.heading - deg + 720) % 360; st.pinned = null; draw(); }
 });
 const endDrag = () => {
   if (!dragStart) return;
-  if (dragStart.horizontal && st.mode === 'live') { try { localStorage.setItem('qnSpotOffset', String(Math.round(st.offset * 10) / 10)); } catch { /* storage blocked */ } }
+  if (dragStart.horizontal && st.aligning) saveTrim();
   dragStart = null; vf.classList.remove('dragging'); setTimeout(() => { dragMoved = false; }, 0);
 };
 addEventListener('pointerup', endDrag); addEventListener('pointercancel', endDrag);
@@ -380,11 +501,19 @@ vf.addEventListener('keydown', (e) => {
   if (st.mode === 'live' && st.hasHeading) return;
   e.preventDefault(); st.touched = true; st.pinned = null; st.heading = (st.heading + (e.key === 'ArrowRight' ? 5 : -5) + 360) % 360; draw();
 });
+function saveTrim() { try { localStorage.setItem('qnSpotTrim', String(Math.round(st.offset * 10) / 10)); } catch { /* storage blocked */ } }
 function tuneText() {
   const o = Math.round(st.offset);
-  $('#tuneText').textContent = o === 0 ? 'Not lined up? Drag the view sideways.' : 'Trimmed ' + Math.abs(o) + '° ' + (o > 0 ? 'right' : 'left') + '. Drag to adjust.';
+  $('#tuneText').textContent = st.aligning ? 'Drag the view, then press Done.' : o === 0 ? 'Hills on screen not over the real hills?' : 'Compass corrected by ' + Math.abs(o) + '°.';
+  $('#alignBtn').textContent = st.aligning ? 'Done' : 'Line it up';
 }
-$('#tuneReset').addEventListener('click', () => { st.offset = 0; try { localStorage.removeItem('qnSpotOffset'); } catch { /* storage blocked */ } applyHeading(); tuneText(); });
+function setAligning(on) {
+  st.aligning = on; vf.classList.toggle('aligning', on);
+  if (!on) saveTrim();
+  tuneText(); placeRadar(); draw();
+}
+$('#alignBtn').addEventListener('click', () => setAligning(!st.aligning));
+$('#tuneReset').addEventListener('click', () => { st.offset = 0; try { localStorage.removeItem('qnSpotTrim'); } catch { /* storage blocked */ } applyHeading(); tuneText(); });
 
 /* ---------- Compass handling ----------
    Carried over unchanged from the current /spot page, where each part was a fix
@@ -467,7 +596,7 @@ function acceptHeading(heading, source) {
   smoothedHeading = smoothedHeading == null ? heading : lerpAngle(smoothedHeading, heading, SMOOTHING);
   compassHeading = smoothedHeading;
   if (!st.hasHeading) {
-    st.hasHeading = true; status('Using your compass. Point the phone at a ship.');
+    st.hasHeading = true; status(st.offset ? 'Using your compass. Point the phone at a ship.' : 'Using your compass. If the drawn hills do not sit over the real ones, press "Line it up".');
     setTimeout(() => { if (st.hasHeading && $('#status').textContent.startsWith('Using your compass')) status(''); }, 5000); // then get out of the way
   }
   applyHeading();
@@ -508,6 +637,8 @@ function debug() {
   const lines = [
     'mode: ' + st.mode + '  src: ' + (headingSource || '--') + (headingSource === 'relative' ? '  (!) no absolute compass' : ''),
     'heading: raw ' + f(rawHeading) + '  smoothed ' + f(smoothedHeading) + '  trim ' + f(st.offset) + '  shown ' + f(st.heading),
+    'browser: ' + navigator.userAgent.replace(/^Mozilla\/5\.0 /, '').slice(0, 70),
+    'skyline: ' + (skyline.prof ? 'drawn' : 'not loaded') + '  sun az ' + f(sunAzEl(new Date()).az, 0) + ' el ' + f(sunAzEl(new Date()).el, 0),
     tiltMag != null ? 'tilt: ' + f(tiltMag, 2) + (tiltMag >= 0.35 ? '  (camera mode)' : '  (near-flat: top-edge blend)') : null,
     iosAccuracy != null ? 'ios accuracy: +/-' + f(iosAccuracy) + (iosAccuracy < 0 ? ' (uncalibrated)' : '') : null,
     'viewer: ' + f(st.obs.lat, 5) + ', ' + f(st.obs.lng, 5) + '  +/-' + f(gpsAccuracy, 0) + 'm  height ' + f(st.obs.h, 0) + 'm',
@@ -573,6 +704,7 @@ function stopLive(message) {
   if (geoWatchId != null) { navigator.geolocation.clearWatch(geoWatchId); geoWatchId = null; }
   compassHeading = smoothedHeading = rawHeading = null; headingSource = null; gotAbsolute = false; iosAccuracy = null; tiltMag = null; gpsAccuracy = null;
   st.mode = 'look'; st.hasHeading = false; st.pinned = null; st.obs = { ...VIEWPOINT };
+  st.aligning = false; vf.classList.remove('aligning');
   vf.classList.remove('is-live');
   const btn = $('#liveBtn'); btn.disabled = false; btn.textContent = "Use my phone's compass";
   status(message);
