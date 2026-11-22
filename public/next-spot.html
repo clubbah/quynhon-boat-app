@@ -239,7 +239,7 @@ function render() {
     seen.add(s.id);
     const n = nodeFor(s);
     const rel = ((headingOf(s.v) - s.b) * Math.PI) / 180, side = Math.max(0.32, Math.abs(Math.sin(rel)));
-    const px = clamp((((s.v.length || 25) * side) / (s.d * 1000) / ((st.fov * Math.PI) / 180)) * W * 3.2, 26, 150);
+    const px = clamp((((s.v.length || 25) * side) / (s.d * 1000) / ((st.fov * Math.PI) / 180)) * W * 1.5, 22, 120);
     const x = W / 2 + s.off * ppd, y = hy + clamp(46 * (1 - s.d / 14), 0, 46);
     n.box.style.transform = `translate(${(x - px / 2).toFixed(1)}px,${(y - px * 0.3).toFixed(1)}px)`;
     n.svg.style.width = px.toFixed(1) + 'px';
