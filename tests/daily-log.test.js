@@ -26,9 +26,9 @@ const summary = (mmsi, timestamp) =>
 const visit = (mmsi, event, timestamp) =>
   db.prepare('INSERT INTO vessel_visits (mmsi, name, event, timestamp) VALUES (?, ?, ?, ?)').run(mmsi, 'X', event, timestamp);
 const archive = (mmsi, name, length, extra = {}) =>
-  db.prepare(`INSERT INTO vessel_archive (mmsi, name, length, width, vessel_type_label, flag_country, first_seen, last_seen)
-    VALUES (@mmsi, @name, @length, @width, @type, @flag, '2026-01-01T00:00:00.000Z', '2026-11-22T00:00:00.000Z')`)
-    .run({ mmsi, name, length, width: null, type: null, flag: null, ...extra });
+  db.prepare(`INSERT INTO vessel_archive (mmsi, name, imo, length, width, vessel_type_label, flag_country, first_seen, last_seen)
+    VALUES (@mmsi, @name, @imo, @length, @width, @type, @flag, '2026-01-01T00:00:00.000Z', '2026-11-22T00:00:00.000Z')`)
+    .run({ mmsi, name, length, imo: '9357901', width: null, type: null, flag: null, ...extra });
 
 // Open-Meteo responses for one day, shaped like the real API (checked 2026-11-22).
 function openMeteo(day, over = {}) {
@@ -185,6 +185,23 @@ describe('shipsForDay', () => {
       largest_width_m: 32, largest_type: 'Cargo', largest_flag: 'PA',
     });
     expect(s.ships_seen).toBe(4);   // the unnamed 574000009 counts as a ship, like on the home page
+  });
+
+  it('does not let a small boat with a mis-set transponder be the largest ship', () => {
+    // Real rows from the production archive: no IMO number, impossible sizes.
+    archive('574000011', 'THONGTIN', 343, { imo: null, width: 57, type: 'Fishing', flag: 'VN' });
+    archive('574000012', '66B1 GIA CAO GE LUI', 330, { imo: '0000000', width: 16, type: 'Pilot Vessel', flag: 'VN' });
+    archive('538000013', 'FIRST ANGEL', 200, { imo: '9357901', width: 32, type: 'Cargo', flag: 'PA' });
+    for (const m of ['574000011', '574000012', '538000013']) pos(m, '2026-11-22T03:00:00.000Z');
+    const s = shipsForDay(db, DAY);
+    expect(s.largest_name).toBe('FIRST ANGEL');
+    expect(s.ships_seen).toBe(3);   // they still count as ships seen
+  });
+
+  it('records no largest ship when none of the ships heard has an IMO number', () => {
+    archive('574000011', 'THONGTIN', 343, { imo: null });
+    pos('574000011', '2026-11-22T03:00:00.000Z');
+    expect(shipsForDay(db, DAY).largest_name).toBeNull();
   });
 
   it('counts the hours of the day the feed covered', () => {

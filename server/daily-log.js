@@ -38,6 +38,7 @@
  */
 
 import { scoreSunset, sunsetForecast } from '../public/js/sunset.js';
+import { hasValidImo } from './vessel-class.js';
 
 const QN_OFFSET_MS = 7 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -108,15 +109,18 @@ export function shipsForDay(db, day, gear = new Set()) {
     "SELECT mmsi FROM vessel_visits WHERE event = 'arrival' AND timestamp >= ? AND timestamp < ?",
   ).all(from, to).filter((r) => !gear.has(r.mmsi)).length;
 
-  // Largest named ship of the day, with the same length sanity range the
-  // trends page uses. The row keeps a copy of its details as they were.
+  // Largest named ship of the day. The row keeps a copy of its details as
+  // they were. Only ships with an IMO number qualify: on the production
+  // archive (Nov 2026) small boats with mis-set transponders report lengths
+  // of 250 to 340 m (a 343 m "fishing" boat, a 330 x 16 m pilot boat), and
+  // none of those has an IMO number, while every real ship that size does.
   const archive = db.prepare(
-    'SELECT mmsi, name, length, width, vessel_type_label, flag_country FROM vessel_archive WHERE mmsi = ?',
+    'SELECT mmsi, name, imo, length, width, vessel_type_label, flag_country FROM vessel_archive WHERE mmsi = ?',
   );
   let largest = null;
   for (const mmsi of ships) {
     const a = archive.get(mmsi);
-    if (!a || !a.name || !(a.length >= 1 && a.length <= 450)) continue;
+    if (!a || !a.name || !hasValidImo(a.imo) || !(a.length >= 1 && a.length <= 450)) continue;
     if (!largest || a.length > largest.length
       || (a.length === largest.length && String(a.name) < String(largest.name))) largest = a;
   }

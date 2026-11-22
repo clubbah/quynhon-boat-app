@@ -32,7 +32,7 @@ export function isValidCallSign(cs) {
   return /^[A-Z0-9]{4,7}$/.test(s) && /[A-Z]/.test(s) && /\d/.test(s);
 }
 
-function hasValidImo(imo) {
+export function hasValidImo(imo) {
   const s = String(imo ?? '').trim();
   return /^\d{7}$/.test(s) && s !== '0000000';
 }
