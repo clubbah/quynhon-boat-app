@@ -4,7 +4,7 @@
  * All synchronous SQLite reads, cheap enough to run per render.
  */
 import { getRecentVisits } from './db.js';
-import { isFishingGear } from './vessel-class.js';
+import { isFishingGear, canBeLargest } from './vessel-class.js';
 
 // Current ships, arrivals-free summary for the home page header and tables.
 // Fishing gear (net markers and buoys) stays on the map but is left out of
@@ -21,9 +21,10 @@ export function computePortStats(db, now = new Date()) {
   const moving = allVessels.filter((v) => v.speed != null && v.speed > 0.5);
   const anchored = allVessels.filter((v) => v.speed == null || v.speed <= 0.5);
 
-  // Vessel of the day: largest vessel currently visible
+  // Vessel of the day: largest vessel currently visible. Only a ship with an
+  // IMO number can hold the title (see canBeLargest); null when none is in view.
   const vesselOfDay = allVessels
-    .filter((v) => v.name && v.length)
+    .filter(canBeLargest)
     .sort((a, b) => (b.length || 0) - (a.length || 0))[0] || null;
 
   // Recent activity: last 10 updates

@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import { canBeLargest } from './vessel-class.js';
 
 export function createDb(path = './vessels.db') {
   const db = new Database(path);
@@ -258,7 +259,7 @@ export function getArchiveStats(db, gear = new Set()) {
     totalUnique: ships.length,
     newThisMonth: ships.filter((r) => r.first_seen >= monthStart).length,
     frequentVisitors: [...named].sort((a, b) => (b.visit_count || 0) - (a.visit_count || 0)).slice(0, 5).map(pick),
-    largestEver: named.filter((r) => r.length).sort((a, b) => b.length - a.length).map(pick)[0],
+    largestEver: named.filter(canBeLargest).sort((a, b) => b.length - a.length).map(pick)[0],
   };
 }
 
@@ -289,7 +290,7 @@ export function getPortTrends(db, gear = new Set()) {
       .slice(0, 8)
       .map(({ mmsi, name, flag_country, vessel_type_label, visit_count }) => ({ mmsi, name, flag_country, vessel_type_label, visit_count })),
     largest: named
-      .filter((r) => r.length >= 1 && r.length <= 450)
+      .filter(canBeLargest)
       .sort((a, b) => b.length - a.length)
       .slice(0, 5)
       .map(({ mmsi, name, flag_country, vessel_type_label, length, width }) => ({ mmsi, name, flag_country, vessel_type_label, length, width })),

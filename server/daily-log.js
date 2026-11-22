@@ -38,7 +38,7 @@
  */
 
 import { scoreSunset, sunsetForecast } from '../public/js/sunset.js';
-import { hasValidImo } from './vessel-class.js';
+import { canBeLargest } from './vessel-class.js';
 
 const QN_OFFSET_MS = 7 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -120,7 +120,7 @@ export function shipsForDay(db, day, gear = new Set()) {
   let largest = null;
   for (const mmsi of ships) {
     const a = archive.get(mmsi);
-    if (!a || !a.name || !hasValidImo(a.imo) || !(a.length >= 1 && a.length <= 450)) continue;
+    if (!canBeLargest(a)) continue;
     if (!largest || a.length > largest.length
       || (a.length === largest.length && String(a.name) < String(largest.name))) largest = a;
   }
