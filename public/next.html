@@ -590,7 +590,7 @@ function paintMap(w) {
       map.setLayoutProperty('qn-ships-art', 'icon-image', ['concat', dark ? 'qn-an-' : 'qn-ad-', ['get', 't']]);
     } catch { /* layers not added yet */ }
   }
-  set('qn-halo', 'circle-opacity', dark ? 0.45 : 0.12);
+  set('qn-halo', 'circle-opacity', w.n > 0.5 ? 0.6 : dark ? 0.4 : 0.12);
   for (const l of map.getStyle().layers) if (l.type === 'line' && l['source-layer'] === 'transportation' && !l.id.startsWith('qn-')) set(l.id, 'line-opacity', w.n > 0.5 ? 0.55 : 0.9);
   set('qn-names', 'text-color', dark ? '#ffffff' : '#ffffff');
   set('qn-names', 'text-halo-color', P.seaDeep);
@@ -711,9 +711,9 @@ function shipCanvas(type, night, mini) {
   c.restore();
   hullPath(c, hw, bow, sr, 0); c.lineWidth = mini ? 1.2 : 0.8; c.strokeStyle = 'rgba(8,20,28,.85)'; c.stroke();
   if (night) {
-    c.globalCompositeOperation = 'source-atop'; c.fillStyle = 'rgba(4,12,22,.62)'; c.fillRect(-20, -6, 40, 96); c.globalCompositeOperation = 'source-over';
-    if (type === 'Fishing') { for (const s of [-1, 1]) { glow('#eafff4', s * 13, 32.2, mini ? 2 : 1.3, 6); glow('#eafff4', s * 13, 67.8, mini ? 2 : 1.3, 6); if (!mini) glow('#eafff4', s * 6.8, 35, 0.9, 4); } glow(WARM, 0, 54, mini ? 2.2 : 1.2, 4); }
-    else if (mini) { glow(WARM, 0, type === 'Other' ? 26 : type === 'Passenger' ? 40 : 70, 2.6, 5); if (type === 'Passenger') glow(WARM, 0, 62, 2.6, 5); glow('#ffffff', 0, 7, 1.5, 3); }
+    c.globalCompositeOperation = 'source-atop'; c.fillStyle = mini ? 'rgba(4,12,22,.42)' : 'rgba(4,12,22,.62)'; c.fillRect(-20, -6, 40, 96); c.globalCompositeOperation = 'source-over';
+    if (type === 'Fishing') { for (const s of [-1, 1]) { glow('#eafff4', s * 13, 32.2, mini ? 3.2 : 1.3, mini ? 9 : 6); glow('#eafff4', s * 13, 67.8, mini ? 3.2 : 1.3, mini ? 9 : 6); if (!mini) glow('#eafff4', s * 6.8, 35, 0.9, 4); } glow(WARM, 0, 54, mini ? 3.4 : 1.2, mini ? 8 : 4); }
+    else if (mini) { glow(WARM, 0, type === 'Other' ? 30 : type === 'Passenger' ? 36 : 72, 4.6, 10); if (type === 'Passenger') glow(WARM, 0, 62, 4.6, 10); else if (type !== 'Other') glow(WARM, 0, 40, 2.6, 7); glow('#ffffff', 0, 8, 2.6, 6); }
     else if (type === 'Passenger') { for (let y = 31; y <= 78; y += 3.3) for (const s of [-1, 1]) glow('#ffe2a6', s * (hw - 2.9), y, 0.65, 2.2); glow(WARM, 0, 28.5, 1.2, 4); glow('#9be3ff', 0, 68.7, 1.6, 4); }
     else if (type === 'Other') { glow(WARM, -3, 23.5, 1, 3.5); glow(WARM, 3, 23.5, 1, 3.5); glow('#ffffff', -3.2, 68, 0.9, 4); glow('#ffffff', 3.2, 68, 0.9, 4); }
     else { const by = type === 'Cargo' ? 72.6 : 73.6; for (const x of [-4, 0, 4]) glow(WARM, x, by, 0.9, 3.5); for (const y of [27, 39, 51, 63]) glow(WARM, 0, y, 0.7, 3); glow('#ffffff', 0, 7, 0.9, 3); glow('#ffffff', 0, 82, 0.8, 3); }
