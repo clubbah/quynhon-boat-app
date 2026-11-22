@@ -31,6 +31,8 @@ h1{margin:0;font-family:var(--display);font-weight:800;font-size:clamp(40px,min(
 body.demo .demo-flag{display:block}
 @media (max-width:860px){.demo-flag{top:136px;left:16px;right:auto;max-width:calc(100vw - 76px)}}
 .hero-foot .credit{opacity:.9}
+/* on a short phone the storm numbers need more room than the screen has, so the first screen grows */
+@media (max-width:860px){.hero-wrap{min-height:820px}.nums{gap:12px 22px}}
 /* markers */
 .qn-pin{display:flex;align-items:center;gap:8px;font:700 13px var(--body);color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.7);white-space:nowrap}
 .qn-pin i{width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid #0b1d24;display:block;box-shadow:0 0 0 5px rgba(255,255,255,.35)}
@@ -178,7 +180,7 @@ body.demo .demo-flag{display:block}
       <div class="lv rv" data-lv="watch" style="--i:2"><h3><span class="tag" style="background:var(--watch)">Watch</span></h3><p><b>It could affect Quy Nhon.</b> The closest forecast pass is under 500 km within five days, or the storm carries a moderate alert and is forecast to reach Vietnam.</p><span class="now">This is the level now</span></div>
       <div class="lv rv" data-lv="warning" style="--i:3"><h3><span class="tag" style="background:var(--warning)">Warning</span></h3><p><b>Forecast to pass close.</b> The closest forecast pass is under 200 km within three days, or the storm carries a severe alert and is forecast to reach Vietnam or pass within 400 km.</p><span class="now">This is the level now</span></div>
     </div>
-    <p class="notice rv">For information only. In an emergency, follow official warnings from Vietnam's National Center for Hydro-Meteorological Forecasting (<a href="https://nchmf.gov.vn" rel="noopener">nchmf.gov.vn</a>) and your local authorities.</p>
+    <p class="notice rv">For information only. In an emergency, follow official warnings from Vietnam's National Center for Hydro-Meteorological Forecasting (<a href="https://www.nchmf.gov.vn/kttv/" rel="noopener">nchmf.gov.vn</a>) and your local authorities.</p>
     <p class="fine rv">Quy Nhon Life tracks tropical cyclones in the Western Pacific and South China Sea, the storms that reach central Vietnam. The map shows where a storm came from, its forecast path and likely wind zone, and how close it is expected to pass to Quy Nhon. Storm data: GDACS (UN/EU). Rain radar: RainViewer. Local weather: Open-Meteo.</p>
   </div>
 </section>
@@ -202,6 +204,7 @@ const state = { demo: '', snap: null, level: 'unknown', mapReady: false, explori
 const radar = { host: '', frames: [], idx: 0, timer: 0, playing: !reduced };
 let map = null, qnMarker = null, stormMarker = null, linkMarker = null;
 const hero = $('#hero');
+const skyParam = new URLSearchParams(location.search).get('sky'), SKY = ['day', 'sunset', 'night'].includes(skyParam) ? skyParam : 'live'; // ?sky= previews a time of day
 const narrow = () => innerWidth < 760;
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
@@ -298,7 +301,7 @@ function setInteractive(on) {
   }
 }
 function paint(force) {
-  const next = skyNow('live'), changed = !state.sky || next.key !== state.sky.key;
+  const next = skyNow(SKY), changed = !state.sky || next.key !== state.sky.key;
   state.sky = next;
   if (state.mapReady && (changed || force)) { paintBase(map, next.P, { borders: true }); tintRadar(); }
 }

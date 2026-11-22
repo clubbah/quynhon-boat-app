@@ -13,7 +13,7 @@
 <style>
 html[data-ui="light"]{--sil:#0b2530}
 html[data-ui="dark"]{--sil:#d6e2e6}
-.vf{position:relative;height:100vh;height:100svh;min-height:640px;overflow:hidden;color:#fff;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab;background:linear-gradient(var(--sky-top) 0%,var(--sky-hor) 41.8%,var(--sea) 42%,var(--sea-deep) 100%);transition:background 1.2s}
+.vf{position:relative;height:100vh;height:100svh;min-height:640px;overflow:hidden;color:#fff;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab;background:linear-gradient(var(--sky-top) 0%,var(--sky-hor) calc(var(--hz,42%) - .2%),var(--sea) var(--hz,42%),var(--sea-deep) 100%);transition:background 1.2s}
 .vf.dragging{cursor:grabbing}
 .vf:focus-visible{outline-offset:-4px}
 .vf .scrim-top{height:140px}
@@ -53,6 +53,11 @@ html[data-ui="dark"]{--sil:#d6e2e6}
   .sheet .facts dd{font-size:17px}
   .who canvas{display:none}
   .ctl #liveBtn{flex:1 1 100%}
+  .ctl .btn{min-height:46px}
+  .sheet{padding-top:12px}
+  .sheet .facts div:nth-child(n+4){display:none}
+  .who h2{font-size:22px}
+  .tune{font-size:13px;gap:8px}
   .radar{width:92px;height:92px;top:132px;bottom:auto !important}
   .status{right:118px;top:178px}
   .aim-read{top:132px}
@@ -232,10 +237,13 @@ let queued = false;
 const draw = () => { if (!queued) { queued = true; requestAnimationFrame(render); } };
 function render() {
   queued = false;
-  const W = vf.clientWidth, H = vf.clientHeight, ppd = W / st.fov, hy = H * HORIZON;
+  const W = vf.clientWidth, H = vf.clientHeight, ppd = W / st.fov;
+  // the horizon is kept in the gap between the compass tape and the bottom panel, whatever the screen height
+  const sheetTop = H - $('#sheet').offsetHeight, hy = clamp(H * HORIZON, 236, Math.max(236, sheetTop - 74)), drop = clamp(sheetTop - hy - 28, 0, 46);
+  vf.style.setProperty('--hz', ((hy / H) * 100).toFixed(2) + '%');
   $('#tape').style.transform = `translateX(${(W / 2 - (st.heading + 360) * tapePpd).toFixed(1)}px)`;
   $('#aimRead').textContent = String(Math.round(st.heading) % 360).padStart(3, '0') + '° ' + compass(st.heading);
-  $('#aim').style.height = Math.max(0, hy + 60 - 124) + 'px';
+  $('#aim').style.height = Math.max(0, hy + drop + 14 - 124) + 'px';
   const changed = pick();
   const seen = new Set(), placed = [];
   const order = [...st.view].sort((a, b) => Math.abs(a.off) - Math.abs(b.off));
@@ -244,7 +252,7 @@ function render() {
     const n = nodeFor(s);
     const rel = ((headingOf(s.v) - s.b) * Math.PI) / 180, side = Math.max(0.32, Math.abs(Math.sin(rel)));
     const px = clamp((((s.v.length || 25) * side) / (s.d * 1000) / ((st.fov * Math.PI) / 180)) * W * 1.5, 22, 120);
-    const x = W / 2 + s.off * ppd, y = hy + clamp(46 * (1 - s.d / 14), 0, 46);
+    const x = W / 2 + s.off * ppd, y = hy + clamp(drop * (1 - s.d / 14), 0, drop);
     n.box.style.transform = `translate(${(x - px / 2).toFixed(1)}px,${(y - px * 0.3).toFixed(1)}px)`;
     n.svg.style.width = px.toFixed(1) + 'px';
     n.svg.style.transform = Math.sin(rel) < 0 ? 'scaleX(-1)' : '';
@@ -258,7 +266,8 @@ function render() {
     if (room) placed.push(x);
   }
   for (const [id, n] of nodes) if (!seen.has(id)) { n.box.remove(); nodes.delete(id); }
-  if (changed) { renderSheet(); if (st.mode === 'live' && st.lock && navigator.vibrate) navigator.vibrate(60); }
+  if (changed || st.dirty) { st.dirty = false; renderSheet(); }
+  if (changed && st.mode === 'live' && st.lock && navigator.vibrate) navigator.vibrate(60); // only when the named ship changes
   drawRadar();
   if (DEBUG) debug();
 }
@@ -387,7 +396,7 @@ $('#tuneReset').addEventListener('click', () => { st.offset = 0; try { localStor
        computed from the full rotation: where the back camera points. */
 let compassHeading = null, smoothedHeading = null, rawHeading = null, headingSource = null;
 let gotAbsolute = false, iosAccuracy = null, warnTimer = null, orientationSensor = null, sensorActive = false, tiltMag = null;
-let gpsAccuracy = null, geoWatchId = null, active = false;
+let gpsAccuracy = null, geoWatchId = null, active = false, listAt = 0;
 function lerpAngle(from, to, t) {
   let diff = ((to - from + 540) % 360) - 180;
   return ((from + diff * t) + 360) % 360;
@@ -539,9 +548,11 @@ async function startLive() {
         active = true; st.mode = 'live'; st.pinned = null;
         vf.classList.add('is-live'); btn.disabled = false; btn.textContent = 'Stop the compass';
         status('Located. Waiting for the compass…');
-        tuneText(); placeRadar();
+        tuneText(); placeRadar(); listAt = 0;
       }
-      compute(); renderList(); st.lockId = undefined; draw();
+      compute();
+      if (Date.now() - listAt > 8000) { listAt = Date.now(); renderList(); st.dirty = true; } // a fix arrives about once a second
+      draw();
     },
     () => { stopLive('Your location was not available, so this is the view from ' + VIEWPOINT.name + '. Drag sideways to look around.'); },
     { enableHighAccuracy: true, timeout: 15000, maximumAge: 2000 },
@@ -560,7 +571,7 @@ function stopLive(message) {
   vf.classList.remove('is-live');
   const btn = $('#liveBtn'); btn.disabled = false; btn.textContent = "Use my phone's compass";
   status(message);
-  compute(); renderList(); placeRadar(); st.lockId = undefined; draw();
+  compute(); renderList(); placeRadar(); st.dirty = true; draw();
 }
 $('#liveBtn').addEventListener('click', startLive);
 
@@ -569,10 +580,11 @@ async function loadVessels() {
   try {
     const list = await getJSON('/api/vessels');
     if (!Array.isArray(list)) return;
-    st.vessels = list; compute(); renderList(); st.lockId = undefined; draw();
+    st.vessels = list; compute(); renderList(); st.dirty = true; draw();
   } catch (e) { console.warn(e); if (!st.vessels.length) status('The ship feed did not answer. Try again in a moment.'); }
 }
-function sky() { skyNow('live'); }
+const SKY = new URLSearchParams(location.search).get('sky'); // ?sky=day|sunset|night previews a time of day
+function sky() { skyNow(['day', 'sunset', 'night'].includes(SKY) ? SKY : 'live'); }
 sky();
 initChrome(() => (vf.clientHeight || 600) - 90);
 buildTape(); renderSheet(); placeRadar();
