@@ -42,32 +42,59 @@ const ACTIVE_INTERVAL_MS = 10 * 60 * 1000;  // re-poll GDACS every 10 min during
 const CALM_INTERVAL_MS = 30 * 60 * 1000;    // ...every 30 min when clear
 const FIRST_RUN_DELAY_MS = 15 * 1000;       // warm the cache shortly after boot
 
+const RETRY_AFTER_MS = 2 * 60 * 1000;       // after a failed refresh, wait before asking GDACS again
+const RETRY_INTERVAL_MS = 5 * 60 * 1000;    // the poller's own retry while refreshes are failing
+const FETCH_TIMEOUT_MS = 20 * 1000;         // a hung GDACS connection must not hold a refresh open
+
 let stormCache = { data: null, fetchedAt: 0 };
+let lastFailure = null;   // { at, message } while the most recent refresh attempt failed
+let inFlight = null;      // the refresh in progress, shared by everyone who asks meanwhile
+
+// A failed refresh must never read as "no storms". The rule everywhere below:
+// a snapshot is only replaced by a complete new one. While refreshes fail,
+// callers keep getting the last good snapshot with its old updatedAt, plus
+// refreshFailedAt so a page can say it could not check. If there has never
+// been a good snapshot they get null, and /api/storms answers 503.
+function currentSnapshot() {
+  const data = stormCache.data;
+  if (!data || !lastFailure) return data;
+  return { ...data, refreshFailedAt: new Date(lastFailure.at).toISOString() };
+}
 
 // ── Public API ──
 
-// Cached snapshot for /api/storms. Returns stale data on fetch error (like
-// fetchWeather), which may be null until the first successful fetch.
+// Snapshot for /api/storms, refreshed from GDACS when the cached one is older
+// than its TTL. See currentSnapshot() for what happens when a refresh fails.
 export async function getStormSnapshot() {
   const now = Date.now();
   const ttl = (stormCache.data && stormCache.data.active) ? ACTIVE_TTL_MS : CALM_TTL_MS;
-  if (stormCache.data && (now - stormCache.fetchedAt) < ttl) {
-    return stormCache.data;
+  if (stormCache.data && (now - stormCache.fetchedAt) < ttl) return currentSnapshot();
+  // A refresh just failed: do not make every visitor wait on GDACS again.
+  if (lastFailure && (now - lastFailure.at) < RETRY_AFTER_MS) return currentSnapshot();
+
+  if (!inFlight) {
+    inFlight = (async () => {
+      try {
+        const data = await buildSnapshot();
+        stormCache = { data, fetchedAt: Date.now() };
+        lastFailure = null;
+      } catch (err) {
+        lastFailure = { at: Date.now(), message: err.message };
+        const kept = stormCache.data ? `keeping the reading from ${stormCache.data.updatedAt}` : 'no earlier reading to fall back on';
+        console.error(`[Storm] Refresh failed (${err.message}), ${kept}`);
+      } finally {
+        inFlight = null;
+      }
+      return currentSnapshot();
+    })();
   }
-  try {
-    const data = await buildSnapshot();
-    stormCache = { data, fetchedAt: now };
-    return data;
-  } catch (err) {
-    console.error('[Storm] Fetch error:', err.message);
-    return stormCache.data;
-  }
+  return inFlight;
 }
 
 // Synchronous, never fetches: what page renders use, so a slow GDACS can never
 // hold up a page. Null until the first fetch after boot has finished.
 export function peekStormSnapshot() {
-  return stormCache.data;
+  return currentSnapshot();
 }
 
 export function startStormMonitor() {
@@ -78,41 +105,66 @@ export function startStormMonitor() {
   // stays live, and back off when the basin is clear.
   const run = async () => {
     let active = false;
+    let failing = false;
     try {
       const s = await getStormSnapshot();
       active = !!(s && s.active);
-      if (active) {
+      failing = !s || !!s.refreshFailedAt;
+      if (failing) {
+        // getStormSnapshot has already logged why. Say nothing about storms:
+        // this is "could not check", not "all clear".
+      } else if (active) {
         console.log(`[Storm] Active near basin: ${s.storm.name} ` +
           `(${s.threat.level}, ${s.threat.distanceKm} km from Quy Nhon)`);
       } else {
         console.log('[Storm] No active tropical cyclone threatening Quy Nhon.');
       }
     } catch (err) {
+      failing = true;
       console.error('[Storm] Check failed:', err.message);
     }
-    setTimeout(run, active ? ACTIVE_INTERVAL_MS : CALM_INTERVAL_MS);
+    setTimeout(run, failing ? RETRY_INTERVAL_MS : active ? ACTIVE_INTERVAL_MS : CALM_INTERVAL_MS);
   };
   setTimeout(run, FIRST_RUN_DELAY_MS);
 }
 
 // ── Snapshot builder ──
 
+// Throws whenever the answer would be incomplete. Only two things may come
+// back: "GDACS lists no tropical cyclone in our basin" (emptySnapshot), or
+// every storm in the basin, loaded.
 async function buildSnapshot() {
   const list = await fetchJson(GDACS_EVENTLIST);
+  // EVENTS4APP lists every active GDACS event of every hazard type
+  // (earthquakes, floods, droughts), so in practice it is never empty. A body
+  // with no events is a broken response, not a calm ocean.
+  if (!list || !Array.isArray(list.features) || list.features.length === 0) {
+    throw new Error('GDACS event list came back empty or malformed');
+  }
   const candidates = parseEventList(list).filter((e) => inBasin(e.lng, e.lat));
   if (!candidates.length) return emptySnapshot();
 
   const storms = [];
+  const failed = [];
   for (const ev of candidates) {
     try {
-      const geom = await fetchJson(ev.geometryUrl);
-      const storm = normalizeStorm(ev, geom);
+      const storm = normalizeStorm(ev, await fetchJson(ev.geometryUrl));
       if (storm) storms.push(storm);
+      else failed.push(ev.name);
     } catch (err) {
+      failed.push(ev.name);
       console.warn('[Storm] geometry fetch failed for', ev.name, '-', err.message);
     }
   }
-  if (!storms.length) return emptySnapshot();
+  // A storm that GDACS lists in the basin but that could not be loaded must
+  // not be left out: it may be the one heading here. Before this check, a
+  // storm whose track failed to load was dropped, and when every track failed
+  // the result was a fresh "no storms" snapshot. One storm that will not load
+  // therefore holds back the refresh for all of them until it does; the old
+  // reading keeps its old time, which is the honest thing to show.
+  if (failed.length) {
+    throw new Error(`could not load ${failed.length} of ${candidates.length} storms in the basin: ${failed.join(', ')}`);
+  }
 
   // The most threatening storm is the one whose track gets closest to Quy Nhon.
   storms.sort((a, b) => (a.threat.distanceKm ?? 1e9) - (b.threat.distanceKm ?? 1e9));
@@ -540,7 +592,7 @@ function centroid(g) {
 }
 
 async function fetchJson(url) {
-  const res = await fetch(url, { headers: { Accept: 'application/json' } });
+  const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
   return res.json();
 }
