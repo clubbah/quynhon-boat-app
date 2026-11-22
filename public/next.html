@@ -675,25 +675,28 @@ const DETAIL = {
   },
 };
 /* the far-away drawings keep just the two or three marks that say what the ship is */
+const MINI_BODY = { Cargo: '#fff3dc', Tanker: '#ff6b4a', Passenger: '#ffffff', Fishing: '#ffc233', Other: '#cdd9de' };
 const MINI_DETAIL = {
-  Cargo(c, hw) { box(c, '#c8553d', -(hw - 3.6), 25, 2 * (hw - 3.6), 17); box(c, '#2e7f86', -(hw - 3.6), 44.5, 2 * (hw - 3.6), 17); box(c, '#ffffff', -(hw - 3), 65, 2 * (hw - 3), 12); },
-  Tanker(c, hw) { box(c, '#ffd3c8', -1.2, 23, 2.4, 40); box(c, '#ffffff', -(hw - 3), 66, 2 * (hw - 3), 12); },
-  Passenger(c, hw) { c.fillStyle = '#ffffff'; rr(c, -(hw - 3), 27, 2 * (hw - 3), 50, 3); c.fill(); disc(c, '#0f4d57', 0, 54, 2.6); },
-  Fishing(c, hw) { box(c, '#ffffff', -(hw - 3.2), 46, 2 * (hw - 3.2), 17); box(c, '#2f7bd6', -(hw - 3.2), 46, 2 * (hw - 3.2), 4.5); },
-  Other(c, hw) { c.fillStyle = '#ff7a3d'; rr(c, -(hw - 3.2), 22, 2 * (hw - 3.2), 24, 2.5); c.fill(); disc(c, '#22313f', 0, 62, 2.6); },
+  Cargo(c, hw) { box(c, '#c8553d', -(hw - 2.6), 24, 2 * (hw - 2.6), 18); box(c, '#2e7f86', -(hw - 2.6), 44, 2 * (hw - 2.6), 18); box(c, '#22313f', -hw, 66, 2 * hw, 3); box(c, '#ffffff', -hw, 69, 2 * hw, 10); },
+  Tanker(c, hw) { box(c, '#ffe1d9', -1.6, 22, 3.2, 42); box(c, '#3a1a14', -hw, 66, 2 * hw, 3); box(c, '#ffffff', -hw, 69, 2 * hw, 10); },
+  Passenger(c, hw) { box(c, '#54e0a0', -hw, 0, 2 * hw, 26); box(c, '#54e0a0', -hw, 76, 2 * hw, 8); disc(c, '#0f4d57', 0, 52, 3.2); },
+  Fishing(c, hw) { box(c, '#ffffff', -(hw - 2.4), 44, 2 * (hw - 2.4), 20); box(c, '#2f7bd6', -(hw - 2.4), 44, 2 * (hw - 2.4), 6); },
+  Other(c, hw) { c.fillStyle = '#ff7a3d'; rr(c, -(hw - 2.6), 20, 2 * (hw - 2.6), 26, 3); c.fill(); disc(c, '#22313f', 0, 62, 3); },
 };
 const artCache = {};
 function shipCanvas(type, night, mini) {
   const key = type + (night ? 'n' : 'd') + (mini ? 's' : 'a');
   if (artCache[key]) return artCache[key];
   const S = mini ? MINI : ART, k = S.len / 84, dpx = S.R * k; // dpx: bitmap pixels per design unit
-  const L = LIVERY[type], hw = L.dims[0] * (mini ? 1.18 : 1), bow = L.dims[1], sr = L.dims[2], rim = mini ? 2.6 : 1.7;
+  // from far away a ship is a bright fleck, so the simple drawing drops the dark hull rim and is a little beamier
+  const L = mini ? { ...LIVERY[type], hull: MINI_BODY[type], deck: MINI_BODY[type] } : LIVERY[type];
+  const hw = L.dims[0] * (mini ? 1.3 : 1), bow = L.dims[1], sr = L.dims[2], rim = mini ? 0 : 1.7;
   const cv = document.createElement('canvas'); cv.width = S.W * S.R; cv.height = S.H * S.R;
   const c = cv.getContext('2d');
   c.scale(S.R, S.R); c.translate(S.W / 2, (S.H - S.len) / 2); c.scale(k, k);
   const glow = (col, x, y, r, blur) => { c.save(); c.shadowColor = col; c.shadowBlur = blur * dpx; disc(c, col, x, y, r); disc(c, col, x, y, r); c.restore(); };
   // soft shadow underneath, so the ship sits on the water
-  c.save(); c.shadowColor = 'rgba(0,10,20,.6)'; c.shadowBlur = (mini ? 5 : 3.6) * dpx; hullPath(c, hw, bow, sr, 0); c.fillStyle = L.hull; c.fill(); c.restore();
+  c.save(); c.shadowColor = mini ? 'rgba(0,10,20,.9)' : 'rgba(0,10,20,.6)'; c.shadowBlur = (mini ? 4.5 : 3.6) * dpx; hullPath(c, hw, bow, sr, 0); c.fillStyle = L.hull; c.fill(); if (mini) c.fill(); c.restore();
   if (type === 'Fishing') { // the long light booms of a Quy Nhon squid boat
     c.strokeStyle = '#6b4a22'; c.lineWidth = mini ? 1.6 : 0.9; c.lineCap = 'round';
     for (const s of [-1, 1]) { c.beginPath(); c.moveTo(0, 38); c.lineTo(s * 13.5, 32); c.moveTo(0, 62); c.lineTo(s * 13.5, 68); c.stroke(); }
@@ -706,7 +709,7 @@ function shipCanvas(type, night, mini) {
   g.addColorStop(0, 'rgba(255,255,255,.18)'); g.addColorStop(0.5, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(0,0,0,.2)');
   c.fillStyle = g; c.fillRect(-20, -6, 40, 96);
   c.restore();
-  hullPath(c, hw, bow, sr, 0); c.lineWidth = mini ? 1.5 : 0.8; c.strokeStyle = 'rgba(8,20,28,.85)'; c.stroke();
+  hullPath(c, hw, bow, sr, 0); c.lineWidth = mini ? 1.2 : 0.8; c.strokeStyle = 'rgba(8,20,28,.85)'; c.stroke();
   if (night) {
     c.globalCompositeOperation = 'source-atop'; c.fillStyle = 'rgba(4,12,22,.62)'; c.fillRect(-20, -6, 40, 96); c.globalCompositeOperation = 'source-over';
     if (type === 'Fishing') { for (const s of [-1, 1]) { glow('#eafff4', s * 13, 32.2, mini ? 2 : 1.3, 6); glow('#eafff4', s * 13, 67.8, mini ? 2 : 1.3, 6); if (!mini) glow('#eafff4', s * 6.8, 35, 0.9, 4); } glow(WARM, 0, 54, mini ? 2.2 : 1.2, 4); }
@@ -729,8 +732,8 @@ function thumb(type, len, night, mini) {
 /* Ship length on screen, in pixels. Ships are drawn at twice true scale for the
    current zoom, with a small floor so the little boats stay visible and tappable. */
 const MPP0 = 76026; // metres per screen pixel at zoom 0 at Quy Nhon's latitude
-const SHIP_SCALE = 2;
-const MIN_PX = [7, 8, 10, 12, 14, 16, 18, 20, 22]; // zoom 9 to 17
+const SHIP_SCALE = 2.2;
+const MIN_PX = [8, 9, 11, 13, 15, 17, 19, 21, 23]; // zoom 9 to 17
 const pxAt = (z) => ['max', MIN_PX[z - 9], ['min', 150, ['*', (SHIP_SCALE * 2 ** z) / MPP0, ['coalesce', ['get', 'len'], 0]]]];
 function shipPx(factor) {
   const stops = [];
